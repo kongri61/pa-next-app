@@ -220,6 +220,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     
     const currentZoom = mapInstance.current.getZoom() || 15;
     
+    // 기존 마커들을 제거하지 않고 새 마커만 추가
+    const newMarkers: google.maps.Marker[] = [];
+    
     if (currentZoom >= 18) {
       properties.forEach((property, index) => {
         const isSelected = selectedMarkerId === property.id;
@@ -272,7 +275,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           });
         }
 
-        markersRef.current.push(marker);
+        newMarkers.push(marker);
       });
     } else {
       const clusters = clusterMarkers([], currentZoom);
@@ -330,13 +333,21 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             });
           }
 
-          markersRef.current.push(marker);
+          newMarkers.push(marker);
         } else {
           const clusterMarker = createClusterMarker(cluster.properties, cluster.center);
-          markersRef.current.push(clusterMarker);
+          newMarkers.push(clusterMarker);
         }
       });
     }
+    
+    // 기존 마커들을 제거하고 새 마커들로 교체
+    markersRef.current.forEach(marker => {
+      if (marker && marker.setMap) {
+        marker.setMap(null);
+      }
+    });
+    markersRef.current = newMarkers;
   }, [properties, selectedMarkerId, hoveredMarkerId, onMarkerClick, setSelectedMarkerId, setSelectedClusterId, createClusterMarker, clusterMarkers]);
 
   const updateMarkers = useCallback(() => {
@@ -479,14 +490,18 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
   useEffect(() => {
     if (mapInstance.current && isMapLoaded) {
-      // 마커가 없으면 생성, 있으면 업데이트
+      // 마커가 없으면 생성
       if (markersRef.current.length === 0) {
         createMarkers();
       } else {
-        updateMarkers();
+        // 마커가 있으면 상태 변경에 따라 업데이트
+        const needsUpdate = properties.length > 0 || selectedMarkerId || selectedClusterId || hoveredMarkerId;
+        if (needsUpdate) {
+          createMarkers();
+        }
       }
     }
-  }, [properties, selectedMarkerId, selectedClusterId, hoveredMarkerId, isMapLoaded, createMarkers, updateMarkers]);
+  }, [properties, selectedMarkerId, selectedClusterId, hoveredMarkerId, isMapLoaded, createMarkers]);
 
   return (
     <MapContainer>
