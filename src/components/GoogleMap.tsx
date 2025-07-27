@@ -167,7 +167,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   }, [onMarkerClick, onClusterClick, selectedClusterId, hoveredMarkerId]);
 
   // 마커 클러스터링 로직
-  const clusterMarkers = (markers: any[], zoom: number) => {
+  const clusterMarkers = useCallback((markers: any[], zoom: number) => {
     const clusters: { center: { lat: number; lng: number }; properties: Property[] }[] = [];
     
     // 줌 레벨에 따른 클러스터 반경 설정 - 더 넓게 조정
@@ -221,132 +221,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
     console.log(`총 ${properties.length}개 매물이 ${clusters.length}개 클러스터로 그룹화됨`);
     return clusters;
-  };
+  }, [properties]);
 
-  // 지도 초기화
-  const initMap = useCallback(() => {
-    console.log('지도 초기화 시도...');
-    console.log('mapRef.current:', mapRef.current);
-    console.log('window.google:', window.google);
-    console.log('window.google.maps:', window.google?.maps);
-    
-    if (!mapRef.current) {
-      console.log('mapRef가 없음');
-      return false;
-    }
-    
-    if (!window.google) {
-      console.log('Google Maps API가 로드되지 않음');
-      return false;
-    }
-    
-    if (!window.google.maps) {
-      console.log('Google Maps 객체가 없음');
-      return false;
-    }
-
-    if (mapInstance.current) {
-      console.log('기존 지도 인스턴스 업데이트');
-      updateMarkers();
-      return true;
-    }
-
-    try {
-      console.log('새 지도 인스턴스 생성 시작...');
-      markersRef.current.forEach(marker => {
-        if (marker && marker.setMap) {
-          marker.setMap(null);
-        }
-      });
-      markersRef.current = [];
-
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 37.5665, lng: 126.9780 },
-        zoom: 10,
-        mapTypeId: window.google.maps.MapTypeId.ROADMAP,
-        zoomControl: false, // 확대/축소 버튼 제거
-        mapTypeControl: false,
-        scaleControl: false,
-        streetViewControl: false,
-        rotateControl: false,
-        fullscreenControl: false,
-        gestureHandling: 'greedy',
-        backgroundColor: '#f0f0f0',
-        disableDefaultUI: true, // 모든 기본 UI 비활성화
-        clickableIcons: false, // POI 클릭 비활성화
-        maxZoom: 20,
-        minZoom: 8,
-        tilt: 0,
-        disableDoubleClickZoom: false,
-        restriction: {
-          latLngBounds: {
-            north: 38.0,
-            south: 34.5,
-            east: 131.0,
-            west: 125.0
-          },
-          strictBounds: false
-        },
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'transit',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'landscape',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          }
-        ]
-      });
-
-      console.log('지도 인스턴스 생성 완료:', map);
-      mapInstance.current = map;
-      
-      // 지도가 완전히 로드된 후 마커 생성
-      map.addListener('idle', () => {
-        console.log('지도 로드 완료, 마커 생성 시작');
-        createMarkers();
-      });
-
-      map.addListener('zoom_changed', () => {
-        if (isClusterClicking.current) {
-          return;
-        }
-        
-        markersRef.current.forEach(marker => {
-          if (marker && marker.setMap) {
-            marker.setMap(null);
-          }
-        });
-        markersRef.current = [];
-
-        setTimeout(() => {
-          if (!isClusterClicking.current) {
-            createMarkers();
-          }
-        }, 300);
-      });
-
-      console.log('지도 초기화 완료');
-      setIsMapLoaded(true);
-      setMapError(null);
-      return true;
-    } catch (error) {
-      console.error('지도 초기화 오류:', error);
-      setMapError('지도를 로드할 수 없습니다. Google Maps API를 확인해주세요.');
-      setIsMapLoaded(false);
-      return false;
-    }
-  }, []);
-
-  const createMarkers = () => {
+  const createMarkers = useCallback(() => {
     if (!mapInstance.current) {
       console.log('mapInstance가 없어서 마커 생성 불가');
       return;
@@ -484,9 +361,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       });
       console.log('클러스터 마커 생성 완료, 총 마커 개수:', markersRef.current.length);
     }
-  };
+  }, [properties, selectedMarkerId, hoveredMarkerId, onMarkerClick, setSelectedMarkerId, setSelectedClusterId, createClusterMarker, clusterMarkers]);
 
-  const updateMarkers = () => {
+  const updateMarkers = useCallback(() => {
     if (!mapInstance.current) return;
     
     markersRef.current.forEach(marker => {
@@ -497,7 +374,130 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     markersRef.current = [];
 
     createMarkers();
-  };
+  }, [createMarkers]);
+
+  // 지도 초기화
+  const initMap = useCallback(() => {
+    console.log('지도 초기화 시도...');
+    console.log('mapRef.current:', mapRef.current);
+    console.log('window.google:', window.google);
+    console.log('window.google.maps:', window.google?.maps);
+    
+    if (!mapRef.current) {
+      console.log('mapRef가 없음');
+      return false;
+    }
+    
+    if (!window.google) {
+      console.log('Google Maps API가 로드되지 않음');
+      return false;
+    }
+    
+    if (!window.google.maps) {
+      console.log('Google Maps 객체가 없음');
+      return false;
+    }
+
+    if (mapInstance.current) {
+      console.log('기존 지도 인스턴스 업데이트');
+      updateMarkers();
+      return true;
+    }
+
+    try {
+      console.log('새 지도 인스턴스 생성 시작...');
+      markersRef.current.forEach(marker => {
+        if (marker && marker.setMap) {
+          marker.setMap(null);
+        }
+      });
+      markersRef.current = [];
+
+      const map = new window.google.maps.Map(mapRef.current, {
+        center: { lat: 37.5665, lng: 126.9780 },
+        zoom: 10,
+        mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+        zoomControl: false, // 확대/축소 버튼 제거
+        mapTypeControl: false,
+        scaleControl: false,
+        streetViewControl: false,
+        rotateControl: false,
+        fullscreenControl: false,
+        gestureHandling: 'greedy',
+        backgroundColor: '#f0f0f0',
+        disableDefaultUI: true, // 모든 기본 UI 비활성화
+        clickableIcons: false, // POI 클릭 비활성화
+        maxZoom: 20,
+        minZoom: 8,
+        tilt: 0,
+        disableDoubleClickZoom: false,
+        restriction: {
+          latLngBounds: {
+            north: 38.0,
+            south: 34.5,
+            east: 131.0,
+            west: 125.0
+          },
+          strictBounds: false
+        },
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'transit',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'landscape',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ]
+      });
+
+      console.log('지도 인스턴스 생성 완료:', map);
+      mapInstance.current = map;
+      
+      // 지도가 완전히 로드된 후 마커 생성
+      map.addListener('idle', () => {
+        console.log('지도 로드 완료, 마커 생성 시작');
+        updateMarkers();
+      });
+
+      map.addListener('zoom_changed', () => {
+        if (isClusterClicking.current) {
+          return;
+        }
+        
+        markersRef.current.forEach(marker => {
+          if (marker && marker.setMap) {
+            marker.setMap(null);
+          }
+        });
+        markersRef.current = [];
+
+        setTimeout(() => {
+          if (!isClusterClicking.current) {
+            updateMarkers();
+          }
+        }, 300);
+      });
+
+      console.log('지도 초기화 완료');
+      setIsMapLoaded(true);
+      setMapError(null);
+      return true;
+    } catch (error) {
+      console.error('지도 초기화 오류:', error);
+      setMapError('지도를 로드할 수 없습니다. Google Maps API를 확인해주세요.');
+      setIsMapLoaded(false);
+      return false;
+    }
+  }, [updateMarkers]);
 
   const checkAndInit = useCallback(() => {
     console.log('Google Maps API 확인 중...');

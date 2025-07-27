@@ -438,7 +438,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
   const [currentImages, setCurrentImages] = useState<string[]>(property.images || []);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mapImages, setMapImages] = useState<string[]>([]);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // 펌방지 기능
   const handleContextMenu = (e: React.MouseEvent) => {
