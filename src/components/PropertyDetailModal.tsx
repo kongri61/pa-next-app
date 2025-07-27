@@ -41,10 +41,6 @@ const LeftPanel = styled.div`
   overflow-y: auto;
 `;
 
-const RightPanel = styled.div`
-  display: none;
-`;
-
 const CloseButton = styled.button`
   position: absolute;
   top: 3rem;
@@ -204,29 +200,29 @@ const ImageUploadButton = styled.button`
   }
 `;
 
-const HiddenFileInput = styled.input`
-  display: none;
-`;
+// const HiddenFileInput = styled.input`
+//   display: none;
+// `;
 
-const ImageAnnotation = styled.div`
-  position: absolute;
-  bottom: 2rem;
-  left: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
+// const ImageAnnotation = styled.div`
+//   position: absolute;
+//   bottom: 2rem;
+//   left: 1rem;
+//   display: flex;
+//   flex-direction: column;
+//   gap: 0.5rem;
+// `;
 
-const AnnotationBox = styled.div`
-  background: white;
-  border: 2px solid #dc2626;
-  border-radius: 4px;
-  padding: 0.5rem;
-  font-size: 0.75rem;
-  color: #374151;
-  font-weight: 500;
-  max-width: 200px;
-`;
+// const AnnotationBox = styled.div`
+//   background: white;
+//   border: 2px solid #dc2626;
+//   border-radius: 4px;
+//   padding: 0.5rem;
+//   font-size: 0.75rem;
+//   color: #374151;
+//   font-weight: 500;
+//   max-width: 200px;
+// `;
 
 const InfoSection = styled.div`
   display: grid;
@@ -299,12 +295,12 @@ const ContactSection = styled.div`
   margin-bottom: 2rem;
 `;
 
-const ContactTitle = styled.h3`
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-`;
+// const ContactTitle = styled.h3`
+//   font-size: 0.875rem;
+//   color: #6b7280;
+//   font-weight: 500;
+//   margin-bottom: 0.5rem;
+// `;
 
 const ContactInfo = styled.div`
   background: #f8fafc;
@@ -365,19 +361,19 @@ const MapPlaceholder = styled.div`
   border-radius: 8px;
 `;
 
-const MapAnnotation = styled.div`
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  background: white;
-  border: 2px solid #dc2626;
-  border-radius: 4px;
-  padding: 0.5rem;
-  font-size: 0.75rem;
-  color: #374151;
-  font-weight: 500;
-  max-width: 200px;
-`;
+// const MapAnnotation = styled.div`
+//   position: absolute;
+//   top: 1rem;
+//   left: 1rem;
+//   background: white;
+//   border: 2px solid #dc2626;
+//   border-radius: 4px;
+//   padding: 0.5rem;
+//   font-size: 0.75rem;
+//   color: #374151;
+//   font-weight: 500;
+//   max-width: 200px;
+// `;
 
 const ImageDeleteButton = styled.button`
   position: absolute;
@@ -558,66 +554,66 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
   //   console.log('지도 이미지 저장 완료, 키:', mapImagesKey);
   // }, [mapImages, property.id]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('=== handleImageUpload 호출됨 ===');
-    const files = event.target.files;
-    console.log('파일들:', files);
+  // const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   console.log('=== handleImageUpload 호출됨 ===');
+  //   const files = event.target.files;
+  //   console.log('파일들:', files);
     
-    if (!files || files.length === 0) {
-      console.log('선택된 파일이 없습니다.');
-      return;
-    }
+  //   if (!files || files.length === 0) {
+  //     console.log('선택된 파일이 없습니다.');
+  //     return;
+  //   }
     
-    console.log(`선택된 파일 개수: ${files.length}`);
+  //   console.log(`선택된 파일 개수: ${files.length}`);
     
-    // 첫 번째 파일만 처리해보기
-    const file = files[0];
-    console.log('첫 번째 파일:', file.name, file.size, file.type);
+  //   // 첫 번째 파일만 처리해보기
+  //   const file = files[0];
+  //   console.log('첫 번째 파일:', file.name, file.size, file.type);
     
-    const reader = new FileReader();
+  //   const reader = new FileReader();
     
-    reader.onload = (e) => {
-      console.log('파일 읽기 완료');
-      const result = e.target?.result;
-      console.log('읽기 결과:', result ? '성공' : '실패');
+  //   reader.onload = (e) => {
+  //     console.log('파일 읽기 완료');
+  //     const result = e.target?.result;
+  //     console.log('읽기 결과:', result ? '성공' : '실패');
       
-      if (result) {
-        const newImages = [...currentImages, result as string];
-        console.log('새 이미지 배열:', newImages.length);
-        setCurrentImages(newImages);
-        console.log('이미지 상태 업데이트 완료');
+  //     if (result) {
+  //       const newImages = [...currentImages, result as string];
+  //       console.log('새 이미지 배열:', newImages.length);
+  //       setCurrentImages(newImages);
+  //       console.log('이미지 상태 업데이트 완료');
         
-        // localStorage에 저장
-        localStorage.setItem(`mainImages_${property.id}`, JSON.stringify(newImages));
+  //       // localStorage에 저장
+  //       localStorage.setItem(`mainImages_${property.id}`, JSON.stringify(newImages));
         
-        if (onPropertyUpdate) {
-          const updatedProperty = {
-            ...property,
-            images: newImages
-          };
-          onPropertyUpdate(updatedProperty);
-          console.log('부모 컴포넌트 업데이트 완료');
-        }
-      }
-    };
+  //       if (onPropertyUpdate) {
+  //         const updatedProperty = {
+  //           ...property,
+  //           images: newImages
+  //         };
+  //         onPropertyUpdate(updatedProperty);
+  //         console.log('부모 컴포넌트 업데이트 완료');
+  //       }
+  //     }
+  //   };
     
-    reader.onerror = (error) => {
-      console.error('파일 읽기 오류:', error);
-    };
+  //   reader.onerror = (error) => {
+  //     console.error('파일 읽기 오류:', error);
+  //   };
     
-    console.log('파일 읽기 시작');
-    reader.readAsDataURL(file);
-  };
+  //   console.log('파일 읽기 시작');
+  //   reader.readAsDataURL(file);
+  // };
 
-  const handleImageClick = () => {
-    console.log('상단 이미지 업로드 버튼 클릭');
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-      console.log('파일 선택 창 열기');
-    } else {
-      console.error('파일 입력 요소를 찾을 수 없습니다.');
-    }
-  };
+  // const handleImageClick = () => {
+  //   console.log('상단 이미지 업로드 버튼 클릭');
+  //   if (fileInputRef.current) {
+  //     fileInputRef.current.click();
+  //     console.log('파일 선택 창 열기');
+  //   } else {
+  //     console.error('파일 입력 요소를 찾을 수 없습니다.');
+  //   }
+  // };
 
   const handleMapImageClick = () => {
     console.log('=== 지도 이미지 업로드 버튼 클릭됨 ===');
@@ -731,30 +727,30 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
     document.body.removeChild(input);
   };
 
-  const handleMapImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const newMapImages: string[] = [];
+  // const handleMapImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const files = event.target.files;
+  //   if (files && files.length > 0) {
+  //     const newMapImages: string[] = [];
       
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            newMapImages.push(e.target.result as string);
-            if (newMapImages.length === files.length) {
-              const updatedMapImages = [...mapImages, ...newMapImages];
-              setMapImages(updatedMapImages);
-              // localStorage에 저장
-              const mapImagesKey = `mapImages_${property.id}`;
-              localStorage.setItem(mapImagesKey, JSON.stringify(updatedMapImages));
-              console.log('지도 이미지 업로드 완료:', updatedMapImages.length, '개');
-            }
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
+  //     Array.from(files).forEach(file => {
+  //       const reader = new FileReader();
+  //       reader.onload = (e) => {
+  //         if (e.target?.result) {
+  //           newMapImages.push(e.target.result as string);
+  //           if (newMapImages.length === files.length) {
+  //             const updatedMapImages = [...mapImages, ...newMapImages];
+  //             setMapImages(updatedMapImages);
+  //             // localStorage에 저장
+  //             const mapImagesKey = `mapImages_${property.id}`;
+  //             localStorage.setItem(mapImagesKey, JSON.stringify(updatedMapImages));
+  //             console.log('지도 이미지 업로드 완료:', updatedMapImages.length, '개');
+  //           }
+  //         }
+  //       };
+  //       reader.readAsDataURL(file);
+  //     });
+  //   }
+  // };
 
   // 이미지 삭제 함수
   const handleDeleteImage = (imageIndex: number) => {

@@ -93,58 +93,6 @@ const ResetButton = styled.button`
   }
 `;
 
-const SidebarContent = styled.div`
-  position: relative;
-  overflow-y: scroll !important;
-  overflow-x: hidden !important;
-  padding: 0.3rem;
-  height: calc(100vh - 80px) !important;
-  min-height: 400px !important;
-  max-height: calc(100vh - 80px) !important;
-  flex: 1;
-  
-  /* 스크롤바 스타일링 */
-  &::-webkit-scrollbar {
-    width: 8px !important;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1 !important;
-    border-radius: 4px !important;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #c1c1c1 !important;
-    border-radius: 4px !important;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8 !important;
-  }
-`;
-
-const ToggleButton = styled.button<{ isOpen: boolean }>`
-  position: absolute;
-  left: ${props => props.isOpen ? '-40px' : '-40px'};
-  top: 50%;
-  transform: translateY(-50%);
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 0.5rem;
-  cursor: pointer;
-  z-index: 10;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #f9fafb;
-  }
-
-  @media (max-width: 768px) {
-    left: ${props => props.isOpen ? '-40px' : '10px'};
-  }
-`;
-
 const PropertyCard = styled.div`
   display: flex;
   padding: 0.5rem;
@@ -390,19 +338,6 @@ const DeleteButton = styled.button`
   }
 `;
 
-const SidebarTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin-bottom: 1rem;
-  text-align: center;
-
-  @media (max-width: 768px) {
-    font-size: 1.3rem;
-    margin-bottom: 0.75rem;
-  }
-`;
-
 // 샘플 데이터
 const sampleProperties: Property[] = [
   {
@@ -561,7 +496,6 @@ const HomePage: React.FC<HomePageProps> = ({
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
   onPropertyAdded
 }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // 항상 true로 고정
   const [properties, setProperties] = useState<Property[]>(sampleProperties);
   const [selectedClusterProperties, setSelectedClusterProperties] = useState<Property[]>([]);
   const [selectedMarkerProperties, setSelectedMarkerProperties] = useState<Property[]>([]);
@@ -624,7 +558,7 @@ const HomePage: React.FC<HomePageProps> = ({
     
     setProperties(updatedProperties);
     console.log('매물 데이터 업데이트 완료');
-  }, []); // 앱 시작 시 한 번만 실행
+  }, [properties]); // properties 의존성 추가
 
   const handleMarkerClick = (property: Property) => {
     console.log(`마커 클릭: ${property.title} (${property.id})`);
@@ -632,7 +566,6 @@ const HomePage: React.FC<HomePageProps> = ({
     setSelectedClusterId(''); 
     setSelectedMarkerProperties([property]); 
     setSelectedMarkerId(property.id); 
-    setIsSidebarOpen(true);
   };
 
   const handleClusterClick = (clusterProperties: Property[]) => {
@@ -641,7 +574,6 @@ const HomePage: React.FC<HomePageProps> = ({
     setSelectedMarkerId(null); 
     setSelectedClusterProperties(clusterProperties);
     setSelectedClusterId(clusterProperties.map(p => p.id).join(',')); 
-    setIsSidebarOpen(true);
   };
 
   const handleShowAllProperties = () => {
