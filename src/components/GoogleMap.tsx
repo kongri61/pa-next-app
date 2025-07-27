@@ -478,7 +478,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     if (mapInstance.current && isMapLoaded) {
       updateMarkers();
     }
-  }, [properties, selectedMarkerId, selectedClusterId, hoveredMarkerId, isMapLoaded]);
+  }, [properties, selectedMarkerId, selectedClusterId, hoveredMarkerId, isMapLoaded, updateMarkers]);
 
   return (
     <MapContainer>
