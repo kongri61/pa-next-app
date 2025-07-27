@@ -20,12 +20,26 @@ Environment: Production, Preview, Development
 ### 3. 배포 재시작
 환경 변수 설정 후 **Deployments** → **Redeploy** 클릭
 
+## 로컬 개발 환경 설정
+
+### 1. 환경 변수 설정
+프로젝트 루트에 `.env.local` 파일 생성:
+```
+REACT_APP_GOOGLE_MAPS_API_KEY=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk
+```
+
+### 2. 개발 서버 시작
+```bash
+npm start
+```
+
 ## 문제 해결
 
 ### 구글 지도가 나타나지 않는 경우:
 1. 환경 변수가 제대로 설정되었는지 확인
 2. 브라우저 개발자 도구에서 콘솔 에러 확인
 3. Google Maps API 키가 유효한지 확인
+4. 네트워크 탭에서 API 호출이 성공하는지 확인
 
 ### 배포 실패 시:
 1. 로그 확인: **Deployments** → **View Function Logs**
@@ -36,4 +50,5 @@ Environment: Production, Preview, Development
 - ✅ 환경 변수 설정 완료
 - ✅ Google Maps API 키 설정
 - ✅ 배포 재시작 완료
-- ✅ 지도 정상 로드 확인 
+- ✅ 지도 정상 로드 확인
+- ✅ 로컬 개발 환경 설정 완료 

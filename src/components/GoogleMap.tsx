@@ -350,19 +350,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     markersRef.current = newMarkers;
   }, [properties, selectedMarkerId, hoveredMarkerId, onMarkerClick, setSelectedMarkerId, setSelectedClusterId, createClusterMarker, clusterMarkers]);
 
-  const updateMarkers = useCallback(() => {
-    if (!mapInstance.current) return;
-    
-    markersRef.current.forEach(marker => {
-      if (marker && marker.setMap) {
-        marker.setMap(null);
-      }
-    });
-    markersRef.current = [];
-
-    createMarkers();
-  }, [createMarkers]);
-
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google || !window.google.maps) {
       return false;
