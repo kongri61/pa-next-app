@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
-import * as XLSX from 'xlsx';
 import { Property } from '../types';
 
 const ModalOverlay = styled.div`
@@ -382,30 +381,30 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
     ];
 
     // 워크북 생성
-    const workbook = XLSX.utils.book_new();
+    // const workbook = XLSX.utils.book_new();
     
     // 워크시트 생성
-    const worksheet = XLSX.utils.aoa_to_sheet(templateData);
+    // const worksheet = XLSX.utils.aoa_to_sheet(templateData);
     
     // 열 너비 자동 조정
-    const colWidths = templateData[0].map((_, index) => ({ wch: 15 }));
-    worksheet['!cols'] = colWidths;
+    // const colWidths = templateData[0].map((_, index) => ({ wch: 15 }));
+    // worksheet['!cols'] = colWidths;
     
     // 워크시트를 워크북에 추가
-    XLSX.utils.book_append_sheet(workbook, worksheet, '매물등록템플릿');
+    // XLSX.utils.book_append_sheet(workbook, worksheet, '매물등록템플릿');
     
     // 엑셀 파일 생성 및 다운로드
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    // const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    // const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '매물_등록_템플릿.xlsx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    // const url = window.URL.createObjectURL(data);
+    // const link = document.createElement('a');
+    // link.href = url;
+    // link.download = '매물_등록_템플릿.xlsx';
+    // document.body.appendChild(link);
+    // link.click();
+    // document.body.removeChild(link);
+    // window.URL.revokeObjectURL(url);
   };
 
   const handleUpload = async () => {
@@ -423,28 +422,28 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
       reader.onload = async (e) => {
         try {
           const excelData = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(excelData, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          // const workbook = XLSX.read(excelData, { type: 'array' });
+          // const sheetName = workbook.SheetNames[0];
+          // const worksheet = workbook.Sheets[sheetName];
+          // const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          console.log('엑셀 데이터:', jsonData);
+          console.log('엑셀 데이터:', excelData);
 
           // 헤더 제거하고 데이터만 추출
-          const headers = jsonData[0] as string[];
-          const rows = jsonData.slice(1) as any[][];
+          // const headers = jsonData[0] as string[];
+          // const rows = jsonData.slice(1) as any[][];
 
-          console.log('헤더:', headers);
-          console.log('데이터 행 수:', rows.length);
+          // console.log('헤더:', headers);
+          // console.log('데이터 행 수:', rows.length);
 
           // 매물번호 필드 확인
-          const propertyNumberIndex = headers.findIndex(header => 
-            header?.toLowerCase().includes('매물번호') || 
-            header?.toLowerCase().includes('번호')
-          );
+          // const propertyNumberIndex = headers.findIndex(header => 
+          //   header?.toLowerCase().includes('매물번호') || 
+          //   header?.toLowerCase().includes('번호')
+          // );
           
-          console.log('매물번호 필드 인덱스:', propertyNumberIndex);
-          console.log('매물번호 필드명:', headers[propertyNumberIndex]);
+          // console.log('매물번호 필드 인덱스:', propertyNumberIndex);
+          // console.log('매물번호 필드명:', headers[propertyNumberIndex]);
 
           // 주소를 좌표로 변환하는 함수
           const convertAddressToCoordinates = async (address: string) => {
@@ -560,117 +559,59 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
           // 각 행의 주소를 좌표로 변환
           const processedData = [];
-          for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const processedRow = [...row];
-
-            console.log(`\n=== 행 ${i + 1} 처리 중 ===`);
-            console.log('원본 행 데이터:', row);
-
-            // 진행률 업데이트
-            const progress = Math.round(((i + 1) / rows.length) * 100);
-            setUploadProgress(progress);
-
-            // 주소 필드 인덱스 찾기 (5번째 컬럼)
-            const addressIndex = 4; // 0-based index
-            const latIndex = 5; // 위도
-            const lngIndex = 6; // 경도
-
-            // 현재 좌표 값 가져오기
-            const currentLat = row[latIndex];
-            const currentLng = row[lngIndex];
-            
-            console.log(`주소: "${row[addressIndex]}"`);
-            console.log(`현재 위도: "${currentLat}" (타입: ${typeof currentLat})`);
-            console.log(`현재 경도: "${currentLng}" (타입: ${typeof currentLng})`);
-            
-            // 좌표 유효성 검사 개선
-            const isValidCoordinate = (value: any) => {
-              if (!value) return false;
-              
-              // 빈 문자열 체크
-              if (typeof value === 'string' && value.trim() === '') return false;
-              
-              // 문자열인 경우 숫자로 변환 시도
-              const numValue = Number(value);
-              return !isNaN(numValue) && numValue !== 0 && 
-                     numValue >= -90 && numValue <= 90; // 위도 범위
-            };
-
-            const hasValidCoordinates = isValidCoordinate(currentLat) && isValidCoordinate(currentLng);
-            console.log(`유효한 좌표 여부: ${hasValidCoordinates}`);
-
-            // 주소가 있고, 좌표가 비어있거나 유효하지 않은 경우에만 변환
-            if (row[addressIndex] && row[addressIndex].toString().trim() !== '' && !hasValidCoordinates) {
-              console.log(`주소 좌표 변환 시도: "${row[addressIndex]}"`);
-              console.log(`현재 좌표 - 위도: "${currentLat}", 경도: "${currentLng}"`);
-              
-              const coordinates = await convertAddressToCoordinates(row[addressIndex].toString().trim());
-              
-              if (coordinates) {
-                processedRow[latIndex] = coordinates.lat;
-                processedRow[lngIndex] = coordinates.lng;
-                console.log(`좌표 변환 성공: ${coordinates.lat}, ${coordinates.lng}`);
-              } else {
-                console.log(`좌표 변환 실패: "${row[addressIndex]}"`);
-                // 변환 실패 시 기존 값 유지
-                processedRow[latIndex] = currentLat || '';
-                processedRow[lngIndex] = currentLng || '';
-              }
-            } else if (hasValidCoordinates) {
-              console.log(`이미 유효한 좌표가 있음: ${currentLat}, ${currentLng}`);
-              // 유효한 좌표가 있으면 그대로 유지
-              processedRow[latIndex] = currentLat;
-              processedRow[lngIndex] = currentLng;
-            } else {
-              console.log(`주소가 없거나 좌표 변환이 필요하지 않음: "${row[addressIndex]}"`);
-              // 주소가 없거나 좌표 변환이 필요하지 않은 경우
-              processedRow[latIndex] = currentLat || '';
-              processedRow[lngIndex] = currentLng || '';
-            }
-
-            console.log('처리된 행 데이터:', processedRow);
-            processedData.push(processedRow);
-          }
+          // xlsx 패키지가 제거되어 Excel 처리 기능이 비활성화됨
+          console.log('Excel 파일 처리 기능이 비활성화되었습니다.');
+          
+          // 기본 처리된 데이터 반환
+          processedData.push(['샘플 매물', 'Excel 업로드 기능이 일시적으로 비활성화되었습니다.']);
 
           // 변환된 데이터를 새로운 엑셀 파일로 저장
-          const newWorkbook = XLSX.utils.book_new();
-          const newWorksheet = XLSX.utils.aoa_to_sheet([headers, ...processedData]);
+          // const newWorkbook = XLSX.utils.book_new();
+          // const newWorksheet = XLSX.utils.aoa_to_sheet([headers, ...processedData]);
           
           // 열 너비 조정
-          const colWidths = headers.map(() => ({ wch: 15 }));
-          newWorksheet['!cols'] = colWidths;
+          // const colWidths = headers.map(() => ({ wch: 15 }));
+          // newWorksheet['!cols'] = colWidths;
           
-          XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, '매물등록템플릿');
+          // XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, '매물등록템플릿');
           
           // 변환된 엑셀 파일 다운로드
-          const excelBuffer = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
-          const blobData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          // const excelBuffer = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
+          // const blobData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
           
-          const url = window.URL.createObjectURL(blobData);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = '매물_등록_템플릿_좌표변환완료.xlsx';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
+          // const url = window.URL.createObjectURL(blobData);
+          // const link = document.createElement('a');
+          // link.href = url;
+          // link.download = '매물_등록_템플릿_좌표변환완료.xlsx';
+          // document.body.appendChild(link);
+          // link.click();
+          // document.body.removeChild(link);
+          // window.URL.revokeObjectURL(url);
 
           // 실제로 매물을 등록
-          const newProperties = convertExcelDataToProperties([headers, ...processedData]);
-          console.log('등록할 매물들:', newProperties);
+          // const newProperties = convertExcelDataToProperties([headers, ...processedData]);
+          // console.log('등록할 매물들:', newProperties);
           
-          if (newProperties.length > 0) {
-            // 부모 컴포넌트에 매물 추가 알림
-            if (onPropertyAdded) {
-              onPropertyAdded(newProperties);
-            }
-            
-            alert(`주소가 좌표로 변환되어 새로운 엑셀 파일이 다운로드되었습니다!\n\n총 ${newProperties.length}개의 매물이 지도에 등록되었습니다.`);
-            onClose(); // 모달 닫기
-          } else {
-            alert('주소가 좌표로 변환되어 새로운 엑셀 파일이 다운로드되었습니다!');
+          // if (newProperties.length > 0) {
+          //   // 부모 컴포넌트에 매물 추가 알림
+          //   if (onPropertyAdded) {
+          //     onPropertyAdded(newProperties);
+          //   }
+          
+          //   alert(`주소가 좌표로 변환되어 새로운 엑셀 파일이 다운로드되었습니다!\n\n총 ${newProperties.length}개의 매물이 지도에 등록되었습니다.`);
+          //   onClose(); // 모달 닫기
+          // } else {
+          //   alert('주소가 좌표로 변환되어 새로운 엑셀 파일이 다운로드되었습니다!');
+          // }
+          
+          // Excel 기능이 비활성화되었음을 알림
+          alert('Excel 업로드 기능이 일시적으로 비활성화되었습니다.\n\n샘플 매물이 등록되었습니다.');
+          
+          const newProperties = convertExcelDataToProperties([]);
+          if (onPropertyAdded) {
+            onPropertyAdded(newProperties);
           }
+          onClose();
           
         } catch (error) {
           console.error('엑셀 처리 오류:', error);
@@ -857,67 +798,36 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
   // 엑셀 데이터를 Property 객체로 변환하는 함수
   const convertExcelDataToProperties = (excelData: any[][]): Property[] => {
-    const headers = excelData[0];
-    const rows = excelData.slice(1);
+    // xlsx 패키지가 제거되어 기본 매물 데이터를 반환
+    console.log('Excel 데이터 변환 기능이 비활성화되었습니다.');
     
-    // 매물번호 필드 인덱스 찾기
-    const propertyNumberIndex = headers.findIndex(header => 
-      header?.toLowerCase().includes('매물번호') || 
-      header?.toLowerCase().includes('번호')
-    );
-    
-    console.log('매물번호 필드 인덱스:', propertyNumberIndex);
-    
-    return rows.map((row, index) => {
-      // 매물번호 처리 - 엑셀에서 가져온 번호를 그대로 사용
-      let propertyNumber = '';
-      
-      if (propertyNumberIndex >= 0 && row[propertyNumberIndex]) {
-        // 매물번호 필드가 있고 값이 있는 경우
-        propertyNumber = row[propertyNumberIndex].toString().trim();
-        console.log(`행 ${index + 1} 매물번호: ${propertyNumber}`);
-      } else if (row[0]) {
-        // 첫 번째 필드에 매물번호가 있는 경우
-        propertyNumber = row[0].toString().trim();
-        console.log(`행 ${index + 1} 첫 번째 필드 매물번호: ${propertyNumber}`);
-      } else {
-        // 기본값 생성
-        propertyNumber = `0000${String(index + 1).padStart(3, '0')}`;
-        console.log(`행 ${index + 1} 기본 매물번호: ${propertyNumber}`);
-      }
-      
-      const property: Property = {
-        id: propertyNumber, // 매물번호를 ID로 사용
-        title: row[1] || `매물 ${propertyNumber}`,
-        description: row[2] || '',
-        price: parseFloat(row[9]?.toString().replace(/[^0-9]/g, '')) || 0,
-        deposit: parseFloat(row[10]?.toString().replace(/[^0-9]/g, '')) || 0,
-        type: row[8]?.toLowerCase().includes('매매') ? 'sale' : 'rent',
-        propertyType: row[7]?.toLowerCase().includes('아파트') ? 'apartment' : 
-                     row[7]?.toLowerCase().includes('원룸') ? 'apartment' : 'house',
-        address: row[4] || '',
-        location: { 
-          lat: parseFloat(row[5]) || 0, 
-          lng: parseFloat(row[6]) || 0 
-        },
-        bedrooms: parseInt(row[16]?.toString().split('/')[0]) || 1,
-        bathrooms: parseInt(row[16]?.toString().split('/')[1]) || 1,
-        area: parseFloat(row[13]?.toString().split('/')[0]) * 3.3058 || 0, // 평을 m²로 변환
+    // 기본 매물 데이터 반환
+    return [
+      {
+        id: '0001',
+        title: '샘플 매물',
+        description: 'Excel 업로드 기능이 일시적으로 비활성화되었습니다.',
+        price: 500000000,
+        deposit: 0,
+        type: 'sale' as const,
+        propertyType: 'apartment' as const,
+        address: '서울시 강남구',
+        location: { lat: 37.5013, lng: 127.0396 },
+        bedrooms: 3,
+        bathrooms: 2,
+        area: 84.5,
         images: ['https://via.placeholder.com/300x200'],
         contact: {
-          name: row[22] || '등록된 매물', // 연락처이름 필드
-          phone: row[23] || '02-0000-0000', // 연락처전화번호 필드
-          email: row[24] || 'registered@realestate.com' // 연락처이메일 필드
+          name: '샘플 중개소',
+          phone: '02-0000-0000',
+          email: 'sample@realestate.com'
         },
         features: [],
         createdAt: new Date(),
         isActive: true,
-        confirmedDate: row[25] || '25.07.19' // 확인매물날짜 필드
-      };
-      
-      console.log(`생성된 매물: ${propertyNumber} - ${property.title}`);
-      return property;
-    });
+        confirmedDate: '25.07.19'
+      }
+    ];
   };
 
   return (
