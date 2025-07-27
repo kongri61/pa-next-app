@@ -339,6 +339,19 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     }
   }, [properties, selectedMarkerId, hoveredMarkerId, onMarkerClick, setSelectedMarkerId, setSelectedClusterId, createClusterMarker, clusterMarkers]);
 
+  const updateMarkers = useCallback(() => {
+    if (!mapInstance.current) return;
+    
+    markersRef.current.forEach(marker => {
+      if (marker && marker.setMap) {
+        marker.setMap(null);
+      }
+    });
+    markersRef.current = [];
+
+    createMarkers();
+  }, [createMarkers]);
+
   const initMap = useCallback(() => {
     if (!mapRef.current || !window.google || !window.google.maps) {
       return false;
@@ -405,9 +418,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       mapInstance.current = map;
       
       map.addListener('idle', () => {
-        if (updateMarkers) {
-          updateMarkers();
-        }
+        updateMarkers();
       });
 
       map.addListener('zoom_changed', () => {
@@ -423,7 +434,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         markersRef.current = [];
 
         setTimeout(() => {
-          if (!isClusterClicking.current && updateMarkers) {
+          if (!isClusterClicking.current) {
             updateMarkers();
           }
         }, 300);
@@ -438,20 +449,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       setIsMapLoaded(false);
       return false;
     }
-  }, []);
-
-  const updateMarkers = useCallback(() => {
-    if (!mapInstance.current) return;
-    
-    markersRef.current.forEach(marker => {
-      if (marker && marker.setMap) {
-        marker.setMap(null);
-      }
-    });
-    markersRef.current = [];
-
-    createMarkers();
-  }, [createMarkers]);
+  }, [updateMarkers]);
 
   const checkAndInit = useCallback(() => {
     if (window.google && window.google.maps) {
