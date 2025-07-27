@@ -451,7 +451,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
               console.log(`주소 변환 시작: "${address}"`);
               
               // Google Geocoding API 호출 (실제 구현 시)
-              // const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`);
+              // const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk`);
               // const data = await response.json();
               // return data.results[0].geometry.location;
 
@@ -652,7 +652,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
     try {
       // Google Geocoding API 사용 (실제 구현 시 API 키 필요)
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressSearch)}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressSearch)}&key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk`
       );
 
       if (!response.ok) {
