@@ -170,25 +170,23 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   const clusterMarkers = useCallback((markers: any[], zoom: number) => {
     const clusters: { center: { lat: number; lng: number }; properties: Property[] }[] = [];
     
-    // 줌 레벨에 따른 클러스터 반경 설정 - 더 넓게 조정
+    // 줌 레벨에 따른 클러스터 반경 설정
     let clusterRadius: number;
     if (zoom < 8) {
-      clusterRadius = 0.15; // 매우 넓은 범위
+      clusterRadius = 0.15;
     } else if (zoom < 10) {
-      clusterRadius = 0.08; // 넓은 범위
+      clusterRadius = 0.08;
     } else if (zoom < 12) {
-      clusterRadius = 0.04; // 중간 범위
+      clusterRadius = 0.04;
     } else if (zoom < 14) {
-      clusterRadius = 0.02; // 좁은 범위
+      clusterRadius = 0.02;
     } else if (zoom < 16) {
-      clusterRadius = 0.01; // 매우 좁은 범위
+      clusterRadius = 0.01;
     } else if (zoom < 18) {
-      clusterRadius = 0.005; // 개별 마커 근처
+      clusterRadius = 0.005;
     } else {
-      clusterRadius = 0.002; // 거의 개별 마커
+      clusterRadius = 0.002;
     }
-
-    console.log(`줌 레벨 ${zoom}, 클러스터 반경: ${clusterRadius}`);
 
     properties.forEach((property, index) => {
       let addedToCluster = false;
@@ -201,7 +199,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         
         if (distance < clusterRadius) {
           cluster.properties.push(property);
-          // 클러스터 중심점을 매물들의 평균 위치로 업데이트
           cluster.center = {
             lat: cluster.properties.reduce((sum, p) => sum + p.location.lat, 0) / cluster.properties.length,
             lng: cluster.properties.reduce((sum, p) => sum + p.location.lng, 0) / cluster.properties.length
@@ -219,24 +216,16 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       }
     });
 
-    console.log(`총 ${properties.length}개 매물이 ${clusters.length}개 클러스터로 그룹화됨`);
     return clusters;
   }, [properties]);
 
   const createMarkers = useCallback(() => {
-    if (!mapInstance.current) {
-      console.log('mapInstance가 없어서 마커 생성 불가');
-      return;
-    }
+    if (!mapInstance.current) return;
     
-    console.log('마커 생성 시작, properties 개수:', properties.length);
     const currentZoom = mapInstance.current.getZoom() || 15;
-    console.log('현재 줌 레벨:', currentZoom);
     
     if (currentZoom >= 18) {
-      console.log('개별 마커 생성 모드');
       properties.forEach((property, index) => {
-        console.log(`마커 ${index + 1} 생성:`, property.title, property.location);
         const isSelected = selectedMarkerId === property.id;
         const isHovered = hoveredMarkerId === property.id;
         const marker = new window.google.maps.Marker({
@@ -264,7 +253,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           }
         });
 
-        // 마커 hover 이벤트
         marker.addListener('mouseover', () => {
           setHoveredMarkerId(property.id);
         });
@@ -275,8 +263,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
         if (onMarkerClick) {
           marker.addListener('click', () => {
-            console.log(`개별 마커 클릭됨: ${property.id} - ${property.title}`);
-            setHoveredMarkerId(null); // 클릭 시 hover 상태 해제
+            setHoveredMarkerId(null);
             isClusterClicking.current = true;
             
             if (setSelectedMarkerId) setSelectedMarkerId(property.id);
@@ -291,14 +278,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
         markersRef.current.push(marker);
       });
-      console.log('개별 마커 생성 완료, 총 마커 개수:', markersRef.current.length);
     } else {
-      console.log('클러스터 모드');
       const clusters = clusterMarkers([], currentZoom);
-      console.log('생성된 클러스터 개수:', clusters.length);
 
       clusters.forEach((cluster, clusterIndex) => {
-        console.log(`클러스터 ${clusterIndex + 1}: ${cluster.properties.length}개 매물`);
         if (cluster.properties.length === 1) {
           const property = cluster.properties[0];
           const isSelected = selectedMarkerId === property.id;
@@ -328,7 +311,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
             }
           });
 
-          // 마커 hover 이벤트
           marker.addListener('mouseover', () => {
             setHoveredMarkerId(property.id);
           });
@@ -339,8 +321,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
           if (onMarkerClick) {
             marker.addListener('click', () => {
-              console.log(`클러스터링된 단일 마커 클릭됨: ${property.id} - ${property.title}`);
-              setHoveredMarkerId(null); // 클릭 시 hover 상태 해제
+              setHoveredMarkerId(null);
               isClusterClicking.current = true;
               
               if (setSelectedMarkerId) setSelectedMarkerId(property.id);
@@ -359,7 +340,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
           markersRef.current.push(clusterMarker);
         }
       });
-      console.log('클러스터 마커 생성 완료, 총 마커 개수:', markersRef.current.length);
     }
   }, [properties, selectedMarkerId, hoveredMarkerId, onMarkerClick, setSelectedMarkerId, setSelectedClusterId, createClusterMarker, clusterMarkers]);
 
@@ -376,36 +356,17 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     createMarkers();
   }, [createMarkers]);
 
-  // 지도 초기화
   const initMap = useCallback(() => {
-    console.log('지도 초기화 시도...');
-    console.log('mapRef.current:', mapRef.current);
-    console.log('window.google:', window.google);
-    console.log('window.google.maps:', window.google?.maps);
-    
-    if (!mapRef.current) {
-      console.log('mapRef가 없음');
-      return false;
-    }
-    
-    if (!window.google) {
-      console.log('Google Maps API가 로드되지 않음');
-      return false;
-    }
-    
-    if (!window.google.maps) {
-      console.log('Google Maps 객체가 없음');
+    if (!mapRef.current || !window.google || !window.google.maps) {
       return false;
     }
 
     if (mapInstance.current) {
-      console.log('기존 지도 인스턴스 업데이트');
       updateMarkers();
       return true;
     }
 
     try {
-      console.log('새 지도 인스턴스 생성 시작...');
       markersRef.current.forEach(marker => {
         if (marker && marker.setMap) {
           marker.setMap(null);
@@ -417,7 +378,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         center: { lat: 37.5665, lng: 126.9780 },
         zoom: 10,
         mapTypeId: window.google.maps.MapTypeId.ROADMAP,
-        zoomControl: false, // 확대/축소 버튼 제거
+        zoomControl: false,
         mapTypeControl: false,
         scaleControl: false,
         streetViewControl: false,
@@ -425,8 +386,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         fullscreenControl: false,
         gestureHandling: 'greedy',
         backgroundColor: '#f0f0f0',
-        disableDefaultUI: true, // 모든 기본 UI 비활성화
-        clickableIcons: false, // POI 클릭 비활성화
+        disableDefaultUI: true,
+        clickableIcons: false,
         maxZoom: 20,
         minZoom: 8,
         tilt: 0,
@@ -459,12 +420,9 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         ]
       });
 
-      console.log('지도 인스턴스 생성 완료:', map);
       mapInstance.current = map;
       
-      // 지도가 완전히 로드된 후 마커 생성
       map.addListener('idle', () => {
-        console.log('지도 로드 완료, 마커 생성 시작');
         updateMarkers();
       });
 
@@ -487,7 +445,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         }, 300);
       });
 
-      console.log('지도 초기화 완료');
       setIsMapLoaded(true);
       setMapError(null);
       return true;
@@ -500,15 +457,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   }, [updateMarkers]);
 
   const checkAndInit = useCallback(() => {
-    console.log('Google Maps API 확인 중...');
     if (window.google && window.google.maps) {
-      console.log('Google Maps API 로드됨, 지도 초기화 시도');
       if (initMap()) {
-        console.log('지도 초기화 성공');
         return;
       }
-    } else {
-      console.log('Google Maps API 아직 로드되지 않음, 재시도...');
     }
     
     setTimeout(checkAndInit, 100);
@@ -527,7 +479,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     };
   }, [checkAndInit]);
 
-  // properties가 변경될 때 마커 업데이트
   useEffect(() => {
     if (mapInstance.current && isMapLoaded) {
       updateMarkers();
