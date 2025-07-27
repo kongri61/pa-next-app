@@ -77,7 +77,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     const isHovered = hoveredMarkerId === clusterId;
     const propertyCount = properties.length;
     
-    // 매물 개수에 따른 클러스터 마커 크기와 색상 결정
     let markerSize = 40;
     let fontSize = 14;
     let backgroundColor = '#2563eb';
@@ -86,17 +85,17 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     if (propertyCount >= 10) {
       markerSize = 50;
       fontSize = 16;
-      backgroundColor = '#dc2626'; // 빨간색
+      backgroundColor = '#dc2626';
       borderColor = '#b91c1c';
     } else if (propertyCount >= 5) {
       markerSize = 45;
       fontSize = 15;
-      backgroundColor = '#f59e0b'; // 주황색
+      backgroundColor = '#f59e0b';
       borderColor = '#d97706';
     } else if (propertyCount >= 3) {
       markerSize = 42;
       fontSize = 14;
-      backgroundColor = '#10b981'; // 초록색
+      backgroundColor = '#10b981';
       borderColor = '#059669';
     }
     
@@ -133,7 +132,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       }
     });
 
-    // 클러스터 마커 hover 이벤트
     marker.addListener('mouseover', () => {
       setHoveredMarkerId(clusterId);
     });
@@ -143,8 +141,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
     });
 
     marker.addListener('click', () => {
-      console.log(`클러스터 클릭: ${propertyCount}개 매물`);
-      setHoveredMarkerId(null); // 클릭 시 hover 상태 해제
+      setHoveredMarkerId(null);
       
       isClusterClicking.current = true;
       
@@ -170,7 +167,6 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   const clusterMarkers = useCallback((markers: any[], zoom: number) => {
     const clusters: { center: { lat: number; lng: number }; properties: Property[] }[] = [];
     
-    // 줌 레벨에 따른 클러스터 반경 설정
     let clusterRadius: number;
     if (zoom < 8) {
       clusterRadius = 0.15;

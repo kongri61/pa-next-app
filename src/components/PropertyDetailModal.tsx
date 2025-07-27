@@ -201,82 +201,13 @@ const ImageUploadButton = styled.button`
 `;
 
 const InfoSection = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin-bottom: 2rem;
-`;
-
-const LeftInfoColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const RightInfoColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding-top: 4rem;
-`;
-
-const InfoGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
-`;
-
-const InfoLabel = styled.span`
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-  min-width: 120px;
-`;
-
-const InfoValue = styled.span`
-  font-size: 0.875rem;
-  color: #1f2937;
-  font-weight: 500;
-  text-align: right;
-  flex: 1;
-`;
-
-const DescriptionSection = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const DescriptionTitle = styled.h3`
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-`;
-
-const DescriptionContent = styled.div`
-  font-size: 0.875rem;
-  color: #1f2937;
-  line-height: 1.5;
-  padding: 0.5rem 0;
-  min-height: auto;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-`;
-
-const ContactSection = styled.div`
   margin-bottom: 2rem;
 `;
 
 const ContactInfo = styled.div`
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: #f9fafb;
   padding: 1rem;
-  margin-top: 1rem;
+  border-radius: 8px;
 `;
 
 const ContactItem = styled.div`
@@ -397,25 +328,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
   // 펌방지 기능
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    return false;
   };
 
   const handleDragStart = (e: React.DragEvent) => {
     e.preventDefault();
-    return false;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ctrl+C, Ctrl+A, Ctrl+S, Ctrl+P, F12 등 방지
-    if (
-      (e.ctrlKey && (e.key === 'c' || e.key === 'a' || e.key === 's' || e.key === 'p')) ||
-      e.key === 'F12' ||
-      (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-      (e.ctrlKey && e.shiftKey && e.key === 'J') ||
-      (e.ctrlKey && e.shiftKey && e.key === 'C')
-    ) {
-      e.preventDefault();
-      return false;
+    if (e.key === 'Escape') {
+      onClose();
     }
   };
 
@@ -839,120 +760,118 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
           </ImageSection>
 
           <InfoSection>
-            <LeftInfoColumn>
-              <SectionTitle>매물정보</SectionTitle>
-              <InfoGrid>
-                <InfoItem>
-                  <InfoLabel>주소</InfoLabel>
-                  <InfoValue>{maskAddress(property.address)}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>매물종류</InfoLabel>
-                  <InfoValue>
-                    {property.propertyType === 'apartment' ? '아파트' :
-                     property.propertyType === 'house' ? '단독주택' :
-                     property.propertyType === 'commercial' ? '상가' : '토지'}
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>거래유형</InfoLabel>
-                  <InfoValue>{property.type === 'sale' ? '매매' : '임대'}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>매매가</InfoLabel>
-                  <InfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>보증금/임대료</InfoLabel>
-                  <InfoValue>
-                    {property.type === 'rent' 
-                      ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
-                      : '-'
-                    }
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>관리비</InfoLabel>
-                  <InfoValue>-</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>융자금</InfoLabel>
-                  <InfoValue>-</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>공급/전용면적</InfoLabel>
-                  <InfoValue>
-                    {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>건축물용도</InfoLabel>
-                  <InfoValue>
-                    {property.propertyType === 'apartment' ? '주거용' :
-                     property.propertyType === 'commercial' ? '상업용' : '주거용'}
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>해당층/전체층</InfoLabel>
-                  <InfoValue>{property.floor || '-'}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>방/화장실</InfoLabel>
-                  <InfoValue>
-                    {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>난방유형</InfoLabel>
-                  <InfoValue>-</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>주차</InfoLabel>
-                  <InfoValue>{property.parking ? '가능' : '불가능'}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>엘리베이터</InfoLabel>
-                  <InfoValue>{property.elevator ? '있음' : '없음'}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>사용승인일</InfoLabel>
-                  <InfoValue>-</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>입주가능일</InfoLabel>
-                  <InfoValue>-</InfoValue>
-                </InfoItem>
-              </InfoGrid>
-            </LeftInfoColumn>
-            <RightInfoColumn>
-              <DescriptionSection>
-                <DescriptionTitle>매물설명</DescriptionTitle>
-                <DescriptionContent>
-                  {property.description}
-                </DescriptionContent>
-              </DescriptionSection>
-              <ContactSection>
-                <ContactInfo>
-                  <ContactItem>
-                    <ContactLabel>중개업소</ContactLabel>
-                    <ContactValue>{property.contact.name}</ContactValue>
-                  </ContactItem>
-                  <ContactItem>
-                    <ContactLabel>전화번호</ContactLabel>
-                    <ContactValue>{property.contact.phone}</ContactValue>
-                  </ContactItem>
-                  <ContactItem>
-                    <ContactLabel>이메일</ContactLabel>
-                    <ContactValue>{property.contact.email}</ContactValue>
-                  </ContactItem>
-                  <ContactItem>
-                    <ContactLabel>주소</ContactLabel>
-                    <ContactValue>서울특별시 강남구 역삼동 123-45</ContactValue>
-                  </ContactItem>
-                </ContactInfo>
-              </ContactSection>
-            </RightInfoColumn>
+            <SectionTitle>매물정보</SectionTitle>
+            <div>
+              <div>
+                <span>주소</span>
+                <span>{maskAddress(property.address)}</span>
+              </div>
+              <div>
+                <span>매물종류</span>
+                <span>
+                  {property.propertyType === 'apartment' ? '아파트' :
+                   property.propertyType === 'house' ? '단독주택' :
+                   property.propertyType === 'commercial' ? '상가' : '토지'}
+                </span>
+              </div>
+              <div>
+                <span>거래유형</span>
+                <span>{property.type === 'sale' ? '매매' : '임대'}</span>
+              </div>
+              <div>
+                <span>매매가</span>
+                <span>{property.type === 'sale' ? formatPrice(property.price) : '-'}</span>
+              </div>
+              <div>
+                <span>보증금/임대료</span>
+                <span>
+                  {property.type === 'rent' 
+                    ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
+                    : '-'}
+                </span>
+              </div>
+              <div>
+                <span>관리비</span>
+                <span>-</span>
+              </div>
+              <div>
+                <span>융자금</span>
+                <span>-</span>
+              </div>
+              <div>
+                <span>공급/전용면적</span>
+                <span>
+                  {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
+                </span>
+              </div>
+              <div>
+                <span>건축물용도</span>
+                <span>
+                  {property.propertyType === 'apartment' ? '주거용' :
+                   property.propertyType === 'commercial' ? '상업용' : '주거용'}
+                </span>
+              </div>
+              <div>
+                <span>해당층/전체층</span>
+                <span>{property.floor || '-'}</span>
+              </div>
+              <div>
+                <span>방/화장실</span>
+                <span>
+                  {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
+                </span>
+              </div>
+              <div>
+                <span>난방유형</span>
+                <span>-</span>
+              </div>
+              <div>
+                <span>주차</span>
+                <span>{property.parking ? '가능' : '불가능'}</span>
+              </div>
+              <div>
+                <span>엘리베이터</span>
+                <span>{property.elevator ? '있음' : '없음'}</span>
+              </div>
+              <div>
+                <span>사용승인일</span>
+                <span>-</span>
+              </div>
+              <div>
+                <span>입주가능일</span>
+                <span>-</span>
+              </div>
+            </div>
           </InfoSection>
+
+          <Section>
+            <SectionTitle>매물설명</SectionTitle>
+            <div>
+              {property.description}
+            </div>
+          </Section>
+
+          <Section>
+            <SectionTitle>연락처</SectionTitle>
+            <ContactInfo>
+              <ContactItem>
+                <ContactLabel>중개업소</ContactLabel>
+                <ContactValue>{property.contact.name}</ContactValue>
+              </ContactItem>
+              <ContactItem>
+                <ContactLabel>전화번호</ContactLabel>
+                <ContactValue>{property.contact.phone}</ContactValue>
+              </ContactItem>
+              <ContactItem>
+                <ContactLabel>이메일</ContactLabel>
+                <ContactValue>{property.contact.email}</ContactValue>
+              </ContactItem>
+              <ContactItem>
+                <ContactLabel>주소</ContactLabel>
+                <ContactValue>서울특별시 강남구 역삼동 123-45</ContactValue>
+              </ContactItem>
+            </ContactInfo>
+          </Section>
 
           <Section>
             <SectionTitle>위치정보</SectionTitle>
