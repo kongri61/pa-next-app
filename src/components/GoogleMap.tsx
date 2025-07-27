@@ -452,7 +452,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
       setIsMapLoaded(false);
       return false;
     }
-  }, [updateMarkers]);
+  }, [createMarkers]);
 
   const checkAndInit = useCallback(() => {
     if (window.google && window.google.maps) {
@@ -479,12 +479,14 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
   useEffect(() => {
     if (mapInstance.current && isMapLoaded) {
-      // 마커가 이미 있는 경우에만 업데이트
-      if (markersRef.current.length > 0) {
+      // 마커가 없으면 생성, 있으면 업데이트
+      if (markersRef.current.length === 0) {
+        createMarkers();
+      } else {
         updateMarkers();
       }
     }
-  }, [properties, selectedMarkerId, selectedClusterId, hoveredMarkerId, isMapLoaded, updateMarkers]);
+  }, [properties, selectedMarkerId, selectedClusterId, hoveredMarkerId, isMapLoaded, createMarkers, updateMarkers]);
 
   return (
     <MapContainer>
