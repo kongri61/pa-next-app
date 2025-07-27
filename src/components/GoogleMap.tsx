@@ -417,8 +417,11 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
       mapInstance.current = map;
       
+      // 지도 로드 완료 후 마커 생성 (한 번만)
       map.addListener('idle', () => {
-        updateMarkers();
+        if (markersRef.current.length === 0) {
+          createMarkers();
+        }
       });
 
       map.addListener('zoom_changed', () => {
@@ -435,7 +438,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
         setTimeout(() => {
           if (!isClusterClicking.current) {
-            updateMarkers();
+            createMarkers();
           }
         }, 300);
       });
@@ -476,7 +479,10 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
 
   useEffect(() => {
     if (mapInstance.current && isMapLoaded) {
-      updateMarkers();
+      // 마커가 이미 있는 경우에만 업데이트
+      if (markersRef.current.length > 0) {
+        updateMarkers();
+      }
     }
   }, [properties, selectedMarkerId, selectedClusterId, hoveredMarkerId, isMapLoaded, updateMarkers]);
 
