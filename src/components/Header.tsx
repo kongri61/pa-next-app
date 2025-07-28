@@ -45,42 +45,29 @@ const LogoSection = styled.div`
 const Logo = styled.div`
   width: 80px;
   height: 60px;
-  background: linear-gradient(90deg, #1a5f3a 0%, #2d7d4f 50%, #4ade80 100%);
-  border-radius: 8px;
+  background: linear-gradient(90deg, #0f4c3a 0%, #1a5f3a 30%, #2d7d4f 60%, #4ade80 100%);
+  transform: skew(-5deg);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-family: Arial, sans-serif;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #fbbf24;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #fbbf24;
+  /* 내부 텍스트를 기울기와 반대로 보정 */
+  & > span {
+    transform: skew(5deg);
+    display: block;
   }
 
   @media (max-width: 768px) {
     width: 60px;
     height: 45px;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
   }
 `;
 
@@ -801,7 +788,7 @@ const Header: React.FC<HeaderProps> = ({
       <MainSection>
         <LogoSection>
           <Logo>
-            PA
+            <span>PA</span>
           </Logo>
           <CompanyInfo>
             <CompanyName>피에이</CompanyName>
