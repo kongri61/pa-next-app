@@ -563,7 +563,7 @@ const HomePage: React.FC<HomePageProps> = ({
     setProperties(updatedProperties);
     hasInitialized.current = true; // 실행 완료 표시
     console.log('매물 데이터 업데이트 완료');
-  }, []); // 빈 의존성 배열로 변경
+  }, [properties]); // properties 의존성 추가
 
   const handleMarkerClick = (property: Property) => {
     console.log(`마커 클릭: ${property.title} (${property.id})`);
