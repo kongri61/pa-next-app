@@ -227,6 +227,24 @@ const PropertyInfoGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 2rem;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    background: #e2e8f0;
+    transform: translateX(-50%);
+  }
+`;
+
+const PropertyInfoColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
 const PropertyInfoItem = styled.div`
@@ -262,6 +280,8 @@ const ContactInfo = styled.div`
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
+  max-width: 400px;
+  width: 100%;
   
   &::before {
     content: '';
@@ -863,85 +883,89 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
           <InfoSection>
             <SectionTitle>매물정보</SectionTitle>
             <PropertyInfoGrid>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>주소</PropertyInfoLabel>
-                <PropertyInfoValue>{maskAddress(property.address)}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>매물종류</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.propertyType === 'apartment' ? '아파트' :
-                   property.propertyType === 'house' ? '단독주택' :
-                   property.propertyType === 'commercial' ? '상가' : '토지'}
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>거래유형</PropertyInfoLabel>
-                <PropertyInfoValue>{property.type === 'sale' ? '매매' : '임대'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>매매가</PropertyInfoLabel>
-                <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.type === 'rent' 
-                    ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
-                    : '-'}
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>관리비</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>융자금</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.propertyType === 'apartment' ? '주거용' :
-                   property.propertyType === 'commercial' ? '상업용' : '주거용'}
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
-                <PropertyInfoValue>{property.floor || '-'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>난방유형</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>주차</PropertyInfoLabel>
-                <PropertyInfoValue>{property.parking ? '가능' : '불가능'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
-                <PropertyInfoValue>{property.elevator ? '있음' : '없음'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>사용승인일</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>입주가능일</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
+              <PropertyInfoColumn>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>주소</PropertyInfoLabel>
+                  <PropertyInfoValue>{maskAddress(property.address)}</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>매물종류</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {property.propertyType === 'apartment' ? '아파트' :
+                     property.propertyType === 'house' ? '단독주택' :
+                     property.propertyType === 'commercial' ? '상가' : '토지'}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>거래유형</PropertyInfoLabel>
+                  <PropertyInfoValue>{property.type === 'sale' ? '매매' : '임대'}</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>매매가</PropertyInfoLabel>
+                  <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {property.type === 'rent' 
+                      ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
+                      : '-'}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>관리비</PropertyInfoLabel>
+                  <PropertyInfoValue>-</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>융자금</PropertyInfoLabel>
+                  <PropertyInfoValue>-</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+              </PropertyInfoColumn>
+              <PropertyInfoColumn>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {property.propertyType === 'apartment' ? '주거용' :
+                     property.propertyType === 'commercial' ? '상업용' : '주거용'}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
+                  <PropertyInfoValue>{property.floor || '-'}</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>난방유형</PropertyInfoLabel>
+                  <PropertyInfoValue>-</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>주차</PropertyInfoLabel>
+                  <PropertyInfoValue>{property.parking ? '가능' : '불가능'}</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
+                  <PropertyInfoValue>{property.elevator ? '있음' : '없음'}</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>사용승인일</PropertyInfoLabel>
+                  <PropertyInfoValue>-</PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>입주가능일</PropertyInfoLabel>
+                  <PropertyInfoValue>-</PropertyInfoValue>
+                </PropertyInfoItem>
+              </PropertyInfoColumn>
             </PropertyInfoGrid>
           </InfoSection>
 
