@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import logoImage from '../assets/logo.png';
 
 const HeaderContainer = styled.header`
   background: #fff;
@@ -42,32 +43,14 @@ const LogoSection = styled.div`
   }
 `;
 
-const Logo = styled.div`
+const Logo = styled.img`
   width: 80px;
   height: 60px;
-  background: linear-gradient(90deg, #0f4c3a 0%, #1a5f3a 30%, #2d7d4f 60%, #4ade80 100%);
-  transform: skew(-5deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 2rem;
-  font-family: Arial, sans-serif;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-
-  /* 내부 텍스트를 기울기와 반대로 보정 */
-  & > span {
-    transform: skew(5deg);
-    display: block;
-  }
+  object-fit: contain;
 
   @media (max-width: 768px) {
     width: 60px;
     height: 45px;
-    font-size: 1.5rem;
   }
 `;
 
@@ -787,9 +770,7 @@ const Header: React.FC<HeaderProps> = ({
     <HeaderContainer>
       <MainSection>
         <LogoSection>
-          <Logo>
-            <span>PA</span>
-          </Logo>
+          <Logo src={logoImage} alt="피에이 로고" />
           <CompanyInfo>
             <CompanyName>피에이</CompanyName>
             <CompanyType>공인중개사사무소</CompanyType>
