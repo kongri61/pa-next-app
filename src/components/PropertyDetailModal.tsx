@@ -308,13 +308,6 @@ const ContactName = styled.h3`
   margin: 0;
 `;
 
-const ContactType = styled.p`
-  font-size: 0.75rem;
-  color: #64748b;
-  margin: 0;
-  font-weight: 500;
-`;
-
 const ContactItem = styled.div`
   display: flex;
   justify-content: space-between;
