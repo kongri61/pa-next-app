@@ -869,7 +869,7 @@ const HomePage: React.FC<HomePageProps> = ({
                               <PriceValue>{formatPrice(property.deposit || 0)}</PriceValue>
                             </PriceBox>
                             <PriceBox type="rent">
-                              <PriceLabel>월세</PriceLabel>
+                              <PriceLabel>임대료</PriceLabel>
                               <PriceValue>{formatPrice(property.price)}</PriceValue>
                             </PriceBox>
                           </>
@@ -1271,7 +1271,7 @@ const PropertyEditForm: React.FC<{
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              {formData.type === 'sale' ? '매매가' : '월세'}
+              {formData.type === 'sale' ? '매매가' : '임대료'}
             </label>
             <input
               type="number"
@@ -1308,30 +1308,6 @@ const PropertyEditForm: React.FC<{
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              임대료
-            </label>
-            <input
-              type="number"
-              value={formData.type === 'rent' ? formData.price : ''}
-              onChange={(e) => {
-                if (formData.type === 'rent') {
-                  setFormData(prev => ({ ...prev, price: Number(e.target.value) }));
-                }
-              }}
-              disabled={formData.type !== 'rent'}
-              placeholder={formData.type === 'rent' ? '월세 입력' : '임대 매물만 입력 가능'}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                backgroundColor: formData.type !== 'rent' ? '#f3f4f6' : 'white'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
               관리비
             </label>
             <input
@@ -1347,9 +1323,7 @@ const PropertyEditForm: React.FC<{
               }}
             />
           </div>
-        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
               융자금
@@ -1366,23 +1340,6 @@ const PropertyEditForm: React.FC<{
                 borderRadius: '4px'
               }}
             />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              &nbsp;
-            </label>
-            <div style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '4px',
-              backgroundColor: '#f9fafb',
-              color: '#6b7280',
-              fontSize: '0.875rem'
-            }}>
-              빈 공간 (추가 필드용)
-            </div>
           </div>
         </div>
       </div>
