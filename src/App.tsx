@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import AddPropertyModal from './components/AddPropertyModal';
+import LoginModal from './components/LoginModal';
 import GlobalStyle from './styles/GlobalStyle';
 import { Property } from './types';
 
@@ -18,6 +19,9 @@ const MainContent = styled.main`
 
 function App() {
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [addressSearch, setAddressSearch] = useState('');
   const [filters, setFilters] = useState({
@@ -28,6 +32,17 @@ function App() {
     deposit: ''
   });
 
+  // 로그인 상태 확인
+  useEffect(() => {
+    const loginStatus = localStorage.getItem('is_logged_in');
+    const userRole = localStorage.getItem('user_role');
+    
+    if (loginStatus === 'true') {
+      setIsLoggedIn(true);
+      setIsAdmin(userRole === 'admin');
+    }
+  }, []);
+
   // 매물 추가 처리 함수
   const handlePropertyAdded = (newProperties: Property[]) => {
     console.log('새로운 매물이 추가되었습니다:', newProperties);
@@ -35,37 +50,23 @@ function App() {
     // 현재는 콘솔에만 출력
   };
 
-  // 관리자 권한 확인 (배포 환경에 맞게 수정)
-  const isAdmin = () => {
-    // 임시로 항상 true 반환 (개발/테스트 목적)
-    return true;
-    
-    // 기존 복잡한 로직 (주석 처리)
-    /*
-    // 방법 1: 환경 변수 기반 (빌드 시 설정)
-    const envAdmin = process.env.REACT_APP_ADMIN_MODE === 'true';
-    
-    // 방법 2: URL 파라미터로 관리자 모드 활성화 (임시)
-    const urlParams = new URLSearchParams(window.location.search);
-    const adminMode = urlParams.get('admin');
-    
-    // 방법 3: 로컬 스토리지 기반 (개발자 도구에서 설정 가능)
-    const localStorageAdmin = localStorage.getItem('admin_mode') === 'true';
-    
-    // 방법 4: 특정 도메인에서만 관리자 권한 부여
-    const allowedDomains = ['localhost', '127.0.0.1'];
-    const currentDomain = window.location.hostname;
-    
-    // 방법 5: 특정 IP에서만 관리자 권한 부여 (클라이언트에서는 제한적)
-    const allowedIPs = ['127.0.0.1', 'localhost'];
-    const currentIP = window.location.hostname;
-    
-    return envAdmin || 
-           adminMode === 'true' || 
-           localStorageAdmin ||
-           allowedDomains.includes(currentDomain) ||
-           allowedIPs.includes(currentIP);
-    */
+  // 로그인 처리 함수
+  const handleLogin = (adminStatus: boolean) => {
+    setIsLoggedIn(true);
+    setIsAdmin(adminStatus);
+  };
+
+  // 로그아웃 처리 함수
+  const handleLogout = () => {
+    localStorage.removeItem('is_logged_in');
+    localStorage.removeItem('user_role');
+    setIsLoggedIn(false);
+    setIsAdmin(false);
+  };
+
+  // 관리자 권한 확인 (로그인 상태 기반)
+  const checkAdminStatus = () => {
+    return isLoggedIn && isAdmin;
   };
 
   return (
@@ -80,7 +81,10 @@ function App() {
           onAddressSearchChange={setAddressSearch}
           filters={filters}
           onFilterChange={setFilters}
-          isAdmin={isAdmin()}
+          isAdmin={checkAdminStatus()}
+          isLoggedIn={isLoggedIn}
+          onLoginClick={() => setIsLoginModalOpen(true)}
+          onLogoutClick={handleLogout}
         />
         <MainContent>
           <HomePage 
@@ -88,6 +92,7 @@ function App() {
             addressSearch={addressSearch}
             filters={filters}
             onPropertyAdded={handlePropertyAdded}
+            isAdmin={checkAdminStatus()}
           />
         </MainContent>
       </AppContainer>
@@ -97,6 +102,12 @@ function App() {
           onClose={() => setIsAddPropertyModalOpen(false)}
         />
       )}
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLogin={handleLogin}
+      />
     </>
   );
 }

@@ -381,7 +381,7 @@ const ButtonGroup = styled.div`
   }
 `;
 
-const Button = styled.button<{ variant: 'reset' | 'upload' }>`
+const Button = styled.button<{ variant: 'reset' | 'upload' | 'login' | 'logout' }>`
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
   font-size: 12px;
@@ -393,11 +393,23 @@ const Button = styled.button<{ variant: 'reset' | 'upload' }>`
   gap: 0.5rem;
   border: none;
   color: white;
-  background: ${props => props.variant === 'reset' ? '#6B7280' : '#6B7280'};
+  background: ${props => {
+    if (props.variant === 'reset') return '#6B7280';
+    if (props.variant === 'upload') return '#6B7280';
+    if (props.variant === 'login') return '#6B7280';
+    if (props.variant === 'logout') return '#6B7280';
+    return 'white';
+  }};
   white-space: nowrap;
 
   &:hover {
-    background: ${props => props.variant === 'reset' ? '#4B5563' : '#4B5563'};
+    background: ${props => {
+      if (props.variant === 'reset') return '#4B5563';
+      if (props.variant === 'upload') return '#4B5563';
+      if (props.variant === 'login') return '#4B5563';
+      if (props.variant === 'logout') return '#4B5563';
+      return 'white';
+    }};
   }
 
   @media (max-width: 768px) {
@@ -428,6 +440,9 @@ interface HeaderProps {
   };
   onFilterChange?: (filters: any) => void;
   isAdmin?: boolean; // 관리자 권한 추가
+  isLoggedIn?: boolean; // 로그인 상태 추가
+  onLoginClick?: () => void; // 로그인 클릭 핸들러 추가
+  onLogoutClick?: () => void; // 로그아웃 클릭 핸들러 추가
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -438,7 +453,10 @@ const Header: React.FC<HeaderProps> = ({
   onAddressSearchChange,
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
   onFilterChange,
-  isAdmin
+  isAdmin,
+  isLoggedIn,
+  onLoginClick,
+  onLogoutClick
 }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
@@ -1086,6 +1104,15 @@ const Header: React.FC<HeaderProps> = ({
           {isAdmin && (
             <Button variant="upload" onClick={onAddProperty}>
               📤 대량 업로드
+            </Button>
+          )}
+          {!isLoggedIn ? (
+            <Button variant="login" onClick={onLoginClick}>
+              🔐 로그인
+            </Button>
+          ) : (
+            <Button variant="logout" onClick={onLogoutClick}>
+              🚪 로그아웃
             </Button>
           )}
         </ButtonGroup>

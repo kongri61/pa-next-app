@@ -488,13 +488,15 @@ interface HomePageProps {
     deposit: string;
   };
   onPropertyAdded?: (properties: Property[]) => void;
+  isAdmin?: boolean; // 관리자 권한 추가
 }
 
 const HomePage: React.FC<HomePageProps> = ({ 
   searchTerm = '', 
   addressSearch = '',
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
-  onPropertyAdded
+  onPropertyAdded,
+  isAdmin = false
 }) => {
   const [properties, setProperties] = useState<Property[]>(sampleProperties);
   const [selectedClusterProperties, setSelectedClusterProperties] = useState<Property[]>([]);
@@ -502,7 +504,6 @@ const HomePage: React.FC<HomePageProps> = ({
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
   const [selectedPropertyForDetail, setSelectedPropertyForDetail] = useState<Property | null>(null);
-  const [isAdmin] = useState(true); // 개발 중에는 true로 설정, 배포 시 false로 변경
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
