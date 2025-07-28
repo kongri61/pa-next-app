@@ -317,7 +317,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
   // 주소검색 관련 상태
   const [addressSearch, setAddressSearch] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<{
     address: string;
     lat: number;
@@ -837,9 +836,9 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <AddressSearchButton 
                 onClick={searchAddress}
-                disabled={isSearching || !addressSearch.trim()}
+                disabled={!addressSearch.trim()}
               >
-                {isSearching ? '검색 중...' : '🔍 좌표 검색'}
+                {searchResult ? '🔍 좌표 검색' : '🔍 좌표 검색'}
               </AddressSearchButton>
               
               {searchResult && (
