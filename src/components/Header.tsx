@@ -42,14 +42,45 @@ const LogoSection = styled.div`
   }
 `;
 
-const Logo = styled.img`
+const Logo = styled.div`
   width: 80px;
   height: 60px;
-  object-fit: contain;
+  background: linear-gradient(90deg, #1a5f3a 0%, #2d7d4f 50%, #4ade80 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.5rem;
+  font-family: Arial, sans-serif;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #fbbf24;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #fbbf24;
+  }
 
   @media (max-width: 768px) {
     width: 60px;
     height: 45px;
+    font-size: 1.2rem;
   }
 `;
 
@@ -769,16 +800,9 @@ const Header: React.FC<HeaderProps> = ({
     <HeaderContainer>
       <MainSection>
         <LogoSection>
-          <Logo 
-            src={`${process.env.PUBLIC_URL}/logo.png`} 
-            alt="PA Logo" 
-            onError={(e) => {
-              console.log('로고 로드 실패, 기본 텍스트로 대체');
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              // 로고가 로드되지 않으면 회사명만 표시
-            }}
-          />
+          <Logo>
+            PA
+          </Logo>
           <CompanyInfo>
             <CompanyName>피에이</CompanyName>
             <CompanyType>공인중개사사무소</CompanyType>
