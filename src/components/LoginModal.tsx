@@ -122,13 +122,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
     setIsLoading(true);
 
     // 간단한 로그인 로직 (실제로는 서버 인증 필요)
-    if (username === 'admin' && password === 'admin123') {
+    if (username === 'pa2024' && password === 'pa1234') {
       // 관리자 로그인 성공
       localStorage.setItem('user_role', 'admin');
       localStorage.setItem('is_logged_in', 'true');
       onLogin(true);
       onClose();
-    } else if (username === 'user' && password === 'user123') {
+    } else if (username === 'user2024' && password === 'user1234') {
       // 일반 사용자 로그인 성공
       localStorage.setItem('user_role', 'user');
       localStorage.setItem('is_logged_in', 'true');
@@ -180,11 +180,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
           {error && <ErrorMessage>{error}</ErrorMessage>}
         </Form>
         
-        <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.875rem', color: '#6b7280' }}>
-          <p><strong>테스트 계정:</strong></p>
-          <p>관리자: admin / admin123</p>
-          <p>일반사용자: user / user123</p>
-        </div>
       </ModalContent>
     </ModalOverlay>
   );
