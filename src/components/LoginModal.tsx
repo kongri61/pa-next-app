@@ -122,17 +122,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
     setIsLoading(true);
 
     // 간단한 로그인 로직 (실제로는 서버 인증 필요)
-    if (username === 'pa2024' && password === 'pa1234') {
+    if (username === 'kongri61' && password === 'rlaehdghk61@') {
       // 관리자 로그인 성공
       localStorage.setItem('user_role', 'admin');
       localStorage.setItem('is_logged_in', 'true');
       onLogin(true);
-      onClose();
-    } else if (username === 'user2024' && password === 'user1234') {
-      // 일반 사용자 로그인 성공
-      localStorage.setItem('user_role', 'user');
-      localStorage.setItem('is_logged_in', 'true');
-      onLogin(false);
       onClose();
     } else {
       setError('아이디 또는 비밀번호가 올바르지 않습니다.');
