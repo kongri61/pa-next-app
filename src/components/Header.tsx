@@ -42,14 +42,23 @@ const LogoSection = styled.div`
   }
 `;
 
-const Logo = styled.img`
+const Logo = styled.div`
   width: 80px;
   height: 60px;
-  object-fit: contain;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 
   @media (max-width: 768px) {
     width: 60px;
     height: 45px;
+    font-size: 1.2rem;
   }
 `;
 
@@ -769,7 +778,9 @@ const Header: React.FC<HeaderProps> = ({
     <HeaderContainer>
       <MainSection>
         <LogoSection>
-          <Logo src={process.env.PUBLIC_URL + "/logo.png"} alt="PA 로고" />
+          <Logo>
+            PA
+          </Logo>
           <CompanyInfo>
             <CompanyName>피에이</CompanyName>
             <CompanyType>공인중개사사무소</CompanyType>
