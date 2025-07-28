@@ -507,7 +507,11 @@ const HomePage: React.FC<HomePageProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // 앱 시작 시 localStorage의 이미지들을 매물 데이터에 반영
+  const hasInitialized = React.useRef(false);
+  
   React.useEffect(() => {
+    if (hasInitialized.current) return; // 이미 실행되었으면 중단
+    
     console.log('=== 앱 시작 시 localStorage 이미지 로드 ===');
     
     // localStorage 전체 상태 확인
@@ -557,8 +561,9 @@ const HomePage: React.FC<HomePageProps> = ({
     });
     
     setProperties(updatedProperties);
+    hasInitialized.current = true; // 실행 완료 표시
     console.log('매물 데이터 업데이트 완료');
-  }, [properties]); // properties 의존성 추가
+  }, []); // 빈 의존성 배열로 변경
 
   const handleMarkerClick = (property: Property) => {
     console.log(`마커 클릭: ${property.title} (${property.id})`);
