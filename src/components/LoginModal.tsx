@@ -115,6 +115,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const formRef = React.useRef<HTMLFormElement>(null);
 
   // 모달이 열릴 때 상태 초기화
   React.useEffect(() => {
@@ -123,6 +124,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
       setPassword('');
       setError('');
       setIsLoading(false);
+      // 폼 리셋
+      if (formRef.current) {
+        formRef.current.reset();
+      }
     }
   }, [isOpen]);
 
@@ -151,6 +156,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
     setPassword('');
     setError('');
     setIsLoading(false);
+    // 폼 리셋
+    if (formRef.current) {
+      formRef.current.reset();
+    }
     onClose();
   };
 
@@ -161,7 +170,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <CloseButton onClick={handleClose}>&times;</CloseButton>
         <Title>로그인</Title>
-        <Form onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit} key={isOpen ? 'open' : 'closed'} ref={formRef}>
           <InputGroup>
             <Label htmlFor="username">아이디</Label>
             <Input
@@ -170,6 +179,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="아이디를 입력하세요"
+              autoComplete="off"
               required
             />
           </InputGroup>
@@ -182,6 +192,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호를 입력하세요"
+              autoComplete="new-password"
               required
             />
           </InputGroup>
