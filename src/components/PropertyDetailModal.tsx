@@ -172,7 +172,7 @@ const ImageUploadButton = styled.button`
   bottom: 3rem;
   right: 1rem;
   background: #6b7280;
-  border: 2px solid #374151;
+  border: 3px solid #374151;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -739,7 +739,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                       margin: 0,
                       padding: 0
                     }}>
-                      +
+                      
                     </span>
                   </ImageUploadButton>
                 )}
@@ -874,7 +874,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                     margin: 0,
                     padding: 0
                   }}>
-                    +
+                    
                   </span>
                 </ImageUploadButton>
               </div>
@@ -1179,7 +1179,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                         margin: 0,
                         padding: 0
                       }}>
-                        +
+                        
                       </span>
                     </ImageUploadButton>
                   )}
@@ -1326,7 +1326,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                         margin: 0,
                         padding: 0
                       }}>
-                        +
+                        
                       </span>
                     </ImageUploadButton>
                   )}
