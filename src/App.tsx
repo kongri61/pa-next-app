@@ -31,6 +31,7 @@ function App() {
     price: '',
     deposit: ''
   });
+  const [newProperties, setNewProperties] = useState<Property[]>([]);
 
   // 로그인 상태 확인
   useEffect(() => {
@@ -46,8 +47,7 @@ function App() {
   // 매물 추가 처리 함수
   const handlePropertyAdded = (newProperties: Property[]) => {
     console.log('새로운 매물이 추가되었습니다:', newProperties);
-    // 여기서 실제로 매물을 저장하거나 상태를 업데이트할 수 있습니다
-    // 현재는 콘솔에만 출력
+    setNewProperties(newProperties);
   };
 
   // 로그인 처리 함수
@@ -95,6 +95,7 @@ function App() {
             filters={filters}
             onPropertyAdded={handlePropertyAdded}
             isAdmin={checkAdminStatus()}
+            newProperties={newProperties}
           />
         </MainContent>
       </AppContainer>
@@ -102,6 +103,7 @@ function App() {
       {isAddPropertyModalOpen && (
         <AddPropertyModal 
           onClose={() => setIsAddPropertyModalOpen(false)}
+          onPropertyAdded={handlePropertyAdded}
         />
       )}
 

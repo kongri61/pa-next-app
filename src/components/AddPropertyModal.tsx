@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+import * as XLSX from 'xlsx';
 import { Property } from '../types';
 
 const ModalOverlay = styled.div`
@@ -367,47 +368,102 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
   };
 
   const downloadTemplate = () => {
-    // 엑셀 템플릿 데이터 (확인매물 날짜 필드 추가)
-    // const templateData = [
-    //   ['매물번호', '매물제목', '매물설명', '확인매물', '주소', '위도', '경도', '매물종류', '거래유형', '매매가', '보증금/임대료', '관리비', '융자금', '공급/전용면적', '건축물용도', '해당층/전체층', '방/화장실', '난방유형', '주차', '엘리베이터', '사용승인일', '입주가능일', '연락처이름', '연락처전화번호', '연락처이메일', '확인매물날짜'],
-    //   ['0000954', '강남구 신축 아파트', '강남구 신축 아파트입니다', '확인매물', '강남구', '', '', '아파트', '매매', '5억원', '', '20만원', '', '50평/45평', '주거용', '5층/15층', '3방2욕', '개별난방', '가능', '있음', '2023-01-01', '즉시입주', '김부동산', '02-1234-5678', 'kim@realestate.com', '25.07.19'],
-    //   ['0000955', '홍대입구 근처 원룸', '홍대입구 근처 원룸입니다', '확인매물', '마포구', '', '', '원룸', '임대', '', '보증금 1000만원/월세 50만원', '5만원', '', '20평/18평', '주거용', '3층/5층', '1방1욕', '개별난방', '불가능', '없음', '2020-05-01', '즉시입주', '박부동산', '02-9876-5432', 'park@realestate.com', '25.07.20'],
-    //   ['0000956', '인천 송도 신축 아파트', '인천 송도 신축 아파트입니다', '확인매물', '연수구', '', '', '아파트', '매매', '3억원', '', '15만원', '', '40평/35평', '주거용', '8층/25층', '2방2욕', '개별난방', '가능', '있음', '2023-06-01', '즉시입주', '이부동산', '02-5555-1234', 'lee@realestate.com', '25.07.21'],
-    //   ['0000957', '부평구 근처 원룸', '부평구 근처 원룸입니다', '확인매물', '부평구', '', '', '원룸', '임대', '', '보증금 500만원/월세 30만원', '3만원', '', '15평/13평', '주거용', '2층/5층', '1방1욕', '개별난방', '불가능', '없음', '2022-03-01', '즉시입주', '최부동산', '02-7777-8888', 'choi@realestate.com', '25.07.22'],
-    //   ['0000958', '역삼동 아파트', '역삼동 아파트입니다', '확인매물', '역삼동', '', '', '아파트', '매매', '4억원', '', '18만원', '', '45평/40평', '주거용', '7층/20층', '2방2욕', '개별난방', '가능', '있음', '2023-03-01', '즉시입주', '정부동산', '02-9999-0000', 'jung@realestate.com', '25.07.23'],
-    //   ['0000959', '홍대 원룸', '홍대 원룸입니다', '확인매물', '홍대', '', '', '원룸', '임대', '', '보증금 800만원/월세 40만원', '4만원', '', '18평/16평', '주거용', '4층/6층', '1방1욕', '개별난방', '불가능', '없음', '2022-08-01', '즉시입주', '한부동산', '02-1111-2222', 'han@realestate.com', '25.07.24'],
-    //   ['0000960', '송도 아파트', '송도 아파트입니다', '확인매물', '송도', '', '', '아파트', '매매', '2.5억원', '', '12만원', '', '35평/30평', '주거용', '12층/30층', '2방2욕', '개별난방', '가능', '있음', '2023-09-01', '즉시입주', '윤부동산', '02-3333-4444', 'yoon@realestate.com', '25.07.25'],
-    //   ['0000961', '부평 원룸', '부평 원룸입니다', '확인매물', '부평', '', '', '원룸', '임대', '', '보증금 400만원/월세 25만원', '2만원', '', '12평/10평', '주거용', '3층/7층', '1방1욕', '개별난방', '불가능', '없음', '2022-11-01', '즉시입주', '임부동산', '02-5555-6666', 'lim@realestate.com', '25.07.26']
-    // ];
-
+    console.log('=== 엑셀 템플릿 다운로드 시작 ===');
+    
+    // 템플릿 헤더 정의
+    const headers = [
+      '매물번호',
+      '매물제목', 
+      '매물설명',
+      '거래유형',
+      '매물종류',
+      '매매가',
+      '보증금',
+      '주소',
+      '위도',
+      '경도',
+      '공급/전용면적',
+      '방/화장실',
+      '해당층/전체층',
+      '주차',
+      '엘리베이터',
+      '확인매물날짜',
+      '연락처이름',
+      '연락처전화번호',
+      '연락처이메일'
+    ];
+    
+    // 샘플 데이터
+    const sampleData = [
+      [
+        '001',
+        '강남구 역삼동 상가',
+        '강남구 역삼동에 위치한 상가입니다. 역세권으로 교통이 편리합니다.',
+        '매매',
+        '상가',
+        '850000000',
+        '0',
+        '서울시 강남구 역삼동 123-45',
+        '37.5013',
+        '127.0396',
+        '84.5',
+        '3/2',
+        '3/15층',
+        '가능',
+        '있음',
+        '25.07.19',
+        '김부동산',
+        '02-1234-5678',
+        'kim@realestate.com'
+      ],
+      [
+        '002',
+        '홍대입구 근처 사무실',
+        '홍대입구역 도보 5분 거리의 사무실입니다.',
+        '임대',
+        '사무실',
+        '500000',
+        '10000000',
+        '서울시 마포구 서교동 456-78',
+        '37.5572',
+        '126.9254',
+        '25.3',
+        '1/1',
+        '2/5층',
+        '불가능',
+        '있음',
+        '25.07.18',
+        '박부동산',
+        '02-9876-5432',
+        'park@realestate.com'
+      ]
+    ];
+    
     // 워크북 생성
-    // const workbook = XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
     
-    // 워크시트 생성
-    // const worksheet = XLSX.utils.aoa_to_sheet(templateData);
+    // 열 너비 조정
+    const colWidths = headers.map(() => ({ wch: 15 }));
+    worksheet['!cols'] = colWidths;
     
-    // 열 너비 자동 조정
-    // const colWidths = templateData[0].map((_, index) => ({ wch: 15 }));
-    // worksheet['!cols'] = colWidths;
-    
-    // 워크시트를 워크북에 추가
-    // XLSX.utils.book_append_sheet(workbook, worksheet, '매물등록템플릿');
+    // 시트 추가
+    XLSX.utils.book_append_sheet(workbook, worksheet, '매물등록템플릿');
     
     // 엑셀 파일 생성 및 다운로드
-    // const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    // const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blobData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     
-    // const url = window.URL.createObjectURL(data);
-    // const link = document.createElement('a');
-    // link.href = url;
-    // link.download = '매물_등록_템플릿.xlsx';
-    // document.body.appendChild(link);
-    // link.click();
-    // document.body.removeChild(link);
-    // window.URL.revokeObjectURL(url);
+    const url = window.URL.createObjectURL(blobData);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '매물_등록_템플릿.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
     
-    // Excel 기능이 비활성화되었음을 알림
-    alert('Excel 템플릿 다운로드 기능이 일시적으로 비활성화되었습니다.');
+    console.log('엑셀 템플릿 다운로드 완료');
   };
 
   const handleUpload = async () => {
@@ -425,191 +481,214 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
       reader.onload = async (e) => {
         try {
           const excelData = new Uint8Array(e.target?.result as ArrayBuffer);
-          // const workbook = XLSX.read(excelData, { type: 'array' });
-          // const sheetName = workbook.SheetNames[0];
-          // const worksheet = workbook.Sheets[sheetName];
-          // const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          const workbook = XLSX.read(excelData, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          console.log('엑셀 데이터:', excelData);
+          console.log('엑셀 데이터:', jsonData);
 
           // 헤더 제거하고 데이터만 추출
-          // const headers = jsonData[0] as string[];
-          // const rows = jsonData.slice(1) as any[][];
+          const headers = jsonData[0] as string[];
+          const rows = jsonData.slice(1) as any[][];
 
-          // console.log('헤더:', headers);
-          // console.log('데이터 행 수:', rows.length);
+          console.log('헤더:', headers);
+          console.log('데이터 행 수:', rows.length);
 
           // 매물번호 필드 확인
-          // const propertyNumberIndex = headers.findIndex(header => 
-          //   header?.toLowerCase().includes('매물번호') || 
-          //   header?.toLowerCase().includes('번호')
-          // );
+          const propertyNumberIndex = headers.findIndex(header => 
+            header?.toLowerCase().includes('매물번호') || 
+            header?.toLowerCase().includes('번호')
+          );
           
-          // console.log('매물번호 필드 인덱스:', propertyNumberIndex);
-          // console.log('매물번호 필드명:', headers[propertyNumberIndex]);
+          console.log('매물번호 필드 인덱스:', propertyNumberIndex);
+          console.log('매물번호 필드명:', headers[propertyNumberIndex]);
 
           // 주소를 좌표로 변환하는 함수
-          // const convertAddressToCoordinates = async (address: string) => {
-          //   try {
-          //     console.log(`주소 변환 시작: "${address}"`);
+          const convertAddressToCoordinates = async (address: string) => {
+            try {
+              console.log(`주소 변환 시작: "${address}"`);
               
-          //     // Google Geocoding API 호출 (실제 구현 시)
-          //     // const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk`);
-          //     // const data = await response.json();
-          //     // return data.results[0].geometry.location;
+              // Google Geocoding API 호출 (실제 구현 시)
+              // const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk`);
+              // const data = await response.json();
+              // return data.results[0].geometry.location;
 
-          //     // 시뮬레이션 (실제 구현에서는 위의 API 사용)
-          //     const mockResults = {
-          //       '서울시 강남구': { lat: 37.5665, lng: 126.9780 },
-          //       '서울시 마포구': { lat: 37.5575, lng: 126.9250 },
-          //       '서울시 서초구': { lat: 37.4837, lng: 127.0324 },
-          //       '서울시 송파구': { lat: 37.5145, lng: 127.1059 },
-          //       '서울시 강서구': { lat: 37.5509, lng: 126.8495 },
-          //       '서울시 영등포구': { lat: 37.5264, lng: 126.8962 },
-          //       '서울시 용산구': { lat: 37.5384, lng: 126.9654 },
-          //       '서울시 성동구': { lat: 37.5506, lng: 127.0409 },
-          //       '서울시 광진구': { lat: 37.5384, lng: 127.0822 },
-          //       '서울시 동대문구': { lat: 37.5744, lng: 127.0395 },
-          //       '서울시 중랑구': { lat: 37.6064, lng: 127.0926 },
-          //       '서울시 성북구': { lat: 37.5894, lng: 127.0167 },
-          //       '서울시 강북구': { lat: 37.6396, lng: 127.0257 },
-          //       '서울시 도봉구': { lat: 37.6688, lng: 127.0471 },
-          //       '서울시 노원구': { lat: 37.6542, lng: 127.0568 },
-          //       '서울시 은평구': { lat: 37.6026, lng: 126.9291 },
-          //       '서울시 서대문구': { lat: 37.5791, lng: 126.9368 },
-          //       '서울시 양천구': { lat: 37.5169, lng: 126.8665 },
-          //       '서울시 강동구': { lat: 37.5301, lng: 127.1238 },
-          //       '인천시 중구': { lat: 37.4639, lng: 126.6486 },
-          //       '인천시 동구': { lat: 37.4739, lng: 126.6439 },
-          //       '인천시 미추홀구': { lat: 37.4639, lng: 126.6486 },
-          //       '인천시 연수구': { lat: 37.4106, lng: 126.6788 },
-          //       '인천시 남동구': { lat: 37.4471, lng: 126.7310 },
-          //       '인천시 부평구': { lat: 37.5074, lng: 126.7219 },
-          //       '인천시 계양구': { lat: 37.5372, lng: 126.7370 },
-          //       '인천시 서구': { lat: 37.4517, lng: 126.6768 },
-          //       '인천시 강화군': { lat: 37.7464, lng: 126.4880 },
-          //       '인천시 옹진군': { lat: 37.4464, lng: 126.6370 },
-          //       // 추가 매칭을 위한 별칭들
-          //       '강남구': { lat: 37.5665, lng: 126.9780 },
-          //       '마포구': { lat: 37.5575, lng: 126.9250 },
-          //       '서초구': { lat: 37.4837, lng: 127.0324 },
-          //       '송파구': { lat: 37.5145, lng: 127.1059 },
-          //       '강서구': { lat: 37.5509, lng: 126.8495 },
-          //       '영등포구': { lat: 37.5264, lng: 126.8962 },
-          //       '용산구': { lat: 37.5384, lng: 126.9654 },
-          //       '성동구': { lat: 37.5506, lng: 127.0409 },
-          //       '광진구': { lat: 37.5384, lng: 127.0822 },
-          //       '동대문구': { lat: 37.5744, lng: 127.0395 },
-          //       '중랑구': { lat: 37.6064, lng: 127.0926 },
-          //       '성북구': { lat: 37.5894, lng: 127.0167 },
-          //       '강북구': { lat: 37.6396, lng: 127.0257 },
-          //       '도봉구': { lat: 37.6688, lng: 127.0471 },
-          //       '노원구': { lat: 37.6542, lng: 127.0568 },
-          //       '은평구': { lat: 37.6026, lng: 126.9291 },
-          //       '서대문구': { lat: 37.5791, lng: 126.9368 },
-          //       '양천구': { lat: 37.5169, lng: 126.8665 },
-          //       '강동구': { lat: 37.5301, lng: 127.1238 },
-          //       '연수구': { lat: 37.4106, lng: 126.6788 },
-          //       '남동구': { lat: 37.4471, lng: 126.7310 },
-          //       '부평구': { lat: 37.5074, lng: 126.7219 },
-          //       '계양구': { lat: 37.5372, lng: 126.7370 },
-          //       '서구': { lat: 37.4517, lng: 126.6768 },
-          //       '강화군': { lat: 37.7464, lng: 126.4880 },
-          //       '옹진군': { lat: 37.4464, lng: 126.6370 },
-          //       // 더 구체적인 주소들
-          //       '역삼동': { lat: 37.5665, lng: 126.9780 },
-          //       '홍대': { lat: 37.5575, lng: 126.9250 },
-          //       '송도': { lat: 37.4106, lng: 126.6788 },
-          //       '부평': { lat: 37.5074, lng: 126.7219 }
-          //     };
+              // 시뮬레이션 (실제 구현에서는 위의 API 사용)
+              const mockResults = {
+                '서울시 강남구': { lat: 37.5665, lng: 126.9780 },
+                '서울시 마포구': { lat: 37.5575, lng: 126.9250 },
+                '서울시 서초구': { lat: 37.4837, lng: 127.0324 },
+                '서울시 송파구': { lat: 37.5145, lng: 127.1059 },
+                '서울시 강서구': { lat: 37.5509, lng: 126.8495 },
+                '서울시 영등포구': { lat: 37.5264, lng: 126.8962 },
+                '서울시 용산구': { lat: 37.5384, lng: 126.9654 },
+                '서울시 성동구': { lat: 37.5506, lng: 127.0409 },
+                '서울시 광진구': { lat: 37.5384, lng: 127.0822 },
+                '서울시 동대문구': { lat: 37.5744, lng: 127.0395 },
+                '서울시 중랑구': { lat: 37.6064, lng: 127.0926 },
+                '서울시 성북구': { lat: 37.5894, lng: 127.0167 },
+                '서울시 강북구': { lat: 37.6396, lng: 127.0257 },
+                '서울시 도봉구': { lat: 37.6688, lng: 127.0471 },
+                '서울시 노원구': { lat: 37.6542, lng: 127.0568 },
+                '서울시 은평구': { lat: 37.6026, lng: 126.9291 },
+                '서울시 서대문구': { lat: 37.5791, lng: 126.9368 },
+                '서울시 양천구': { lat: 37.5169, lng: 126.8665 },
+                '서울시 강동구': { lat: 37.5301, lng: 127.1238 },
+                '인천시 중구': { lat: 37.4639, lng: 126.6486 },
+                '인천시 동구': { lat: 37.4739, lng: 126.6439 },
+                '인천시 미추홀구': { lat: 37.4639, lng: 126.6486 },
+                '인천시 연수구': { lat: 37.4106, lng: 126.6788 },
+                '인천시 남동구': { lat: 37.4471, lng: 126.7310 },
+                '인천시 부평구': { lat: 37.5074, lng: 126.7219 },
+                '인천시 계양구': { lat: 37.5372, lng: 126.7370 },
+                '인천시 서구': { lat: 37.4517, lng: 126.6768 },
+                '인천시 강화군': { lat: 37.7464, lng: 126.4880 },
+                '인천시 옹진군': { lat: 37.4464, lng: 126.6370 },
+                // 추가 매칭을 위한 별칭들
+                '강남구': { lat: 37.5665, lng: 126.9780 },
+                '마포구': { lat: 37.5575, lng: 126.9250 },
+                '서초구': { lat: 37.4837, lng: 127.0324 },
+                '송파구': { lat: 37.5145, lng: 127.1059 },
+                '강서구': { lat: 37.5509, lng: 126.8495 },
+                '영등포구': { lat: 37.5264, lng: 126.8962 },
+                '용산구': { lat: 37.5384, lng: 126.9654 },
+                '성동구': { lat: 37.5506, lng: 127.0409 },
+                '광진구': { lat: 37.5384, lng: 127.0822 },
+                '동대문구': { lat: 37.5744, lng: 127.0395 },
+                '중랑구': { lat: 37.6064, lng: 127.0926 },
+                '성북구': { lat: 37.5894, lng: 127.0167 },
+                '강북구': { lat: 37.6396, lng: 127.0257 },
+                '도봉구': { lat: 37.6688, lng: 127.0471 },
+                '노원구': { lat: 37.6542, lng: 127.0568 },
+                '은평구': { lat: 37.6026, lng: 126.9291 },
+                '서대문구': { lat: 37.5791, lng: 126.9368 },
+                '양천구': { lat: 37.5169, lng: 126.8665 },
+                '강동구': { lat: 37.5301, lng: 127.1238 },
+                '연수구': { lat: 37.4106, lng: 126.6788 },
+                '남동구': { lat: 37.4471, lng: 126.7310 },
+                '부평구': { lat: 37.5074, lng: 126.7219 },
+                '계양구': { lat: 37.5372, lng: 126.7370 },
+                '서구': { lat: 37.4517, lng: 126.6768 },
+                '강화군': { lat: 37.7464, lng: 126.4880 },
+                '옹진군': { lat: 37.4464, lng: 126.6370 },
+                // 더 구체적인 주소들
+                '역삼동': { lat: 37.5665, lng: 126.9780 },
+                '홍대': { lat: 37.5575, lng: 126.9250 },
+                '송도': { lat: 37.4106, lng: 126.6788 },
+                '부평': { lat: 37.5074, lng: 126.7219 }
+              };
 
-          //     // 정확한 매칭 시도
-          //     if (mockResults[address as keyof typeof mockResults]) {
-          //       console.log(`정확한 매칭 성공: "${address}"`);
-          //       return mockResults[address as keyof typeof mockResults];
-          //     }
+              // 정확한 매칭 시도
+              if (mockResults[address as keyof typeof mockResults]) {
+                console.log(`정확한 매칭 성공: "${address}"`);
+                return mockResults[address as keyof typeof mockResults];
+              }
 
-          //     // 부분 매칭 시도
-          //     for (const [key, value] of Object.entries(mockResults)) {
-          //       if (address.includes(key) || key.includes(address)) {
-          //         console.log(`부분 매칭 성공: "${address}" -> "${key}"`);
-          //         return value;
-          //       }
-          //     }
+              // 부분 매칭 시도
+              for (const [key, value] of Object.entries(mockResults)) {
+                if (address.includes(key) || key.includes(address)) {
+                  console.log(`부분 매칭 성공: "${address}" -> "${key}"`);
+                  return value;
+                }
+              }
 
-          //     // 대소문자 무시 매칭 시도
-          //     const lowerAddress = address.toLowerCase();
-          //     for (const [key, value] of Object.entries(mockResults)) {
-          //       const lowerKey = key.toLowerCase();
-          //       if (lowerAddress.includes(lowerKey) || lowerKey.includes(lowerAddress)) {
-          //         console.log(`대소문자 무시 매칭 성공: "${address}" -> "${key}"`);
-          //         return value;
-          //       }
-          //     }
+              // 대소문자 무시 매칭 시도
+              const lowerAddress = address.toLowerCase();
+              for (const [key, value] of Object.entries(mockResults)) {
+                const lowerKey = key.toLowerCase();
+                if (lowerAddress.includes(lowerKey) || lowerKey.includes(lowerAddress)) {
+                  console.log(`대소문자 무시 매칭 성공: "${address}" -> "${key}"`);
+                  return value;
+                }
+              }
 
-          //     console.log(`매칭 실패: "${address}"`);
-          //     return null;
-          //   } catch (error) {
-          //     console.error('좌표 변환 오류:', error);
-          //     return null;
-          //   }
-          // };
+              console.log(`매칭 실패: "${address}"`);
+              return null;
+            } catch (error) {
+              console.error('좌표 변환 오류:', error);
+              return null;
+            }
+          };
 
           // 각 행의 주소를 좌표로 변환
           const processedData = [];
-          // xlsx 패키지가 제거되어 Excel 처리 기능이 비활성화됨
-          console.log('Excel 파일 처리 기능이 비활성화되었습니다.');
-          
-          // 기본 처리된 데이터 반환
-          processedData.push(['샘플 매물', 'Excel 업로드 기능이 일시적으로 비활성화되었습니다.']);
-
-          // 변환된 데이터를 새로운 엑셀 파일로 저장
-          // const newWorkbook = XLSX.utils.book_new();
-          // const newWorksheet = XLSX.utils.aoa_to_sheet([headers, ...processedData]);
-          
-          // 열 너비 조정
-          // const colWidths = headers.map(() => ({ wch: 15 }));
-          // newWorksheet['!cols'] = colWidths;
-          
-          // XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, '매물등록템플릿');
-          
-          // 변환된 엑셀 파일 다운로드
-          // const excelBuffer = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
-          // const blobData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-          
-          // const url = window.URL.createObjectURL(blobData);
-          // const link = document.createElement('a');
-          // link.href = url;
-          // link.download = '매물_등록_템플릿_좌표변환완료.xlsx';
-          // document.body.appendChild(link);
-          // link.click();
-          // document.body.removeChild(link);
-          // window.URL.revokeObjectURL(url);
-
-          // 실제로 매물을 등록
-          // const newProperties = convertExcelDataToProperties([headers, ...processedData]);
-          // console.log('등록할 매물들:', newProperties);
-          
-          // if (newProperties.length > 0) {
-          //   // 부모 컴포넌트에 매물 추가 알림
-          //   if (onPropertyAdded) {
-          //     onPropertyAdded(newProperties);
-          //   }
-          
-          //   alert(`주소가 좌표로 변환되어 새로운 엑셀 파일이 다운로드되었습니다!\n\n총 ${newProperties.length}개의 매물이 지도에 등록되었습니다.`);
-          //   onClose(); // 모달 닫기
-          // } else {
-          //   alert('주소가 좌표로 변환되어 새로운 엑셀 파일이 다운로드되었습니다!');
-          // }
-          
-          // Excel 기능이 비활성화되었음을 알림
-          alert('Excel 업로드 기능이 일시적으로 비활성화되었습니다.\n\n샘플 매물이 등록되었습니다.');
-          
-          const newProperties = convertExcelDataToProperties([]);
-          if (onPropertyAdded) {
-            onPropertyAdded(newProperties);
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+            
+            try {
+              // 기본값 설정
+              const id = row[propertyNumberIndex]?.toString() || `auto_${Date.now()}_${i}`;
+              const title = row[headers.findIndex(header => header?.toLowerCase().includes('매물제목'))]?.toString() || '제목 없음';
+              const description = row[headers.findIndex(header => header?.toLowerCase().includes('매물설명'))]?.toString() || '설명 없음';
+              const type = row[headers.findIndex(header => header?.toLowerCase().includes('거래유형'))]?.toString()?.toLowerCase().includes('임대') ? 'rent' : 'sale';
+              const propertyType = getPropertyType(row[headers.findIndex(header => header?.toLowerCase().includes('매물종류'))]?.toString());
+              const price = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('매매가'))]?.toString() || '0');
+              const deposit = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('보증금'))]?.toString() || '0');
+              const address = row[headers.findIndex(header => header?.toLowerCase().includes('주소'))]?.toString() || '주소 없음';
+              const lat = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('위도'))]?.toString() || '37.5665');
+              const lng = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('경도'))]?.toString() || '126.9780');
+              const area = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('공급/전용면적'))]?.toString() || '0');
+              const bedrooms = parseBedrooms(row[headers.findIndex(header => header?.toLowerCase().includes('방/화장실'))]?.toString());
+              const bathrooms = parseBathrooms(row[headers.findIndex(header => header?.toLowerCase().includes('방/화장실'))]?.toString());
+              const floor = row[headers.findIndex(header => header?.toLowerCase().includes('해당층/전체층'))]?.toString() || '';
+              const parking = parseBoolean(row[headers.findIndex(header => header?.toLowerCase().includes('주차'))]?.toString());
+              const elevator = parseBoolean(row[headers.findIndex(header => header?.toLowerCase().includes('엘리베이터'))]?.toString());
+              const confirmedDate = row[headers.findIndex(header => header?.toLowerCase().includes('확인매물날짜'))]?.toString() || '';
+              const contactName = row[headers.findIndex(header => header?.toLowerCase().includes('연락처이름'))]?.toString() || '중개소';
+              const contactPhone = row[headers.findIndex(header => header?.toLowerCase().includes('연락처전화번호'))]?.toString() || '02-0000-0000';
+              const contactEmail = row[headers.findIndex(header => header?.toLowerCase().includes('연락처이메일'))]?.toString() || 'contact@realestate.com';
+              
+              const property: Property = {
+                id,
+                title,
+                description,
+                price,
+                deposit: deposit > 0 ? deposit : undefined,
+                type,
+                propertyType,
+                address,
+                location: { lat, lng },
+                bedrooms,
+                bathrooms,
+                area,
+                images: ['https://via.placeholder.com/300x200'],
+                contact: {
+                  name: contactName,
+                  phone: contactPhone,
+                  email: contactEmail
+                },
+                features: [],
+                createdAt: new Date(),
+                isActive: true,
+                confirmedDate: confirmedDate || undefined,
+                floor: floor || undefined,
+                parking,
+                elevator
+              };
+              
+              console.log(`매물 ${i} 생성:`, property);
+              processedData.push(property);
+              
+            } catch (error) {
+              console.error(`행 ${i} 처리 중 오류:`, error);
+            }
           }
-          onClose();
+          
+          console.log('변환된 매물 개수:', processedData.length);
+          
+          if (processedData.length > 0) {
+            // 부모 컴포넌트에 매물 추가 알림
+            if (onPropertyAdded) {
+              onPropertyAdded(processedData);
+            }
+            
+            alert(`총 ${processedData.length}개의 매물이 지도에 등록되었습니다.`);
+            onClose(); // 모달 닫기
+          } else {
+            alert('처리할 수 있는 매물 데이터가 없습니다.');
+          }
           
         } catch (error) {
           console.error('엑셀 처리 오류:', error);
@@ -796,36 +875,151 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
   // 엑셀 데이터를 Property 객체로 변환하는 함수
   const convertExcelDataToProperties = (excelData: any[][]): Property[] => {
-    // xlsx 패키지가 제거되어 기본 매물 데이터를 반환
-    console.log('Excel 데이터 변환 기능이 비활성화되었습니다.');
+    console.log('=== 엑셀 데이터 변환 시작 ===');
+    console.log('엑셀 데이터:', excelData);
     
-    // 기본 매물 데이터 반환
-    return [
-      {
-        id: '0001',
-        title: '샘플 매물',
-        description: 'Excel 업로드 기능이 일시적으로 비활성화되었습니다.',
-        price: 500000000,
-        deposit: 0,
-        type: 'sale' as const,
-        propertyType: 'commercial' as const,
-        address: '서울시 강남구',
-        location: { lat: 37.5013, lng: 127.0396 },
-        bedrooms: 3,
-        bathrooms: 2,
-        area: 84.5,
-        images: ['https://via.placeholder.com/300x200'],
-        contact: {
-          name: '샘플 중개소',
-          phone: '02-0000-0000',
-          email: 'sample@realestate.com'
-        },
-        features: [],
-        createdAt: new Date(),
-        isActive: true,
-        confirmedDate: '25.07.19'
+    if (!excelData || excelData.length < 2) {
+      console.log('엑셀 데이터가 없거나 헤더만 있음');
+      return [];
+    }
+    
+    const properties: Property[] = [];
+    const headers = excelData[0];
+    console.log('헤더:', headers);
+    
+    // 헤더 인덱스 찾기
+    const getColumnIndex = (columnName: string): number => {
+      return headers.findIndex(header => 
+        header && header.toString().toLowerCase().includes(columnName.toLowerCase())
+      );
+    };
+    
+    const idIndex = getColumnIndex('매물번호');
+    const titleIndex = getColumnIndex('매물제목');
+    const descriptionIndex = getColumnIndex('매물설명');
+    const typeIndex = getColumnIndex('거래유형');
+    const propertyTypeIndex = getColumnIndex('매물종류');
+    const priceIndex = getColumnIndex('매매가');
+    const depositIndex = getColumnIndex('보증금');
+    const addressIndex = getColumnIndex('주소');
+    const latIndex = getColumnIndex('위도');
+    const lngIndex = getColumnIndex('경도');
+    const areaIndex = getColumnIndex('공급/전용면적');
+    const bedroomsIndex = getColumnIndex('방/화장실');
+    const floorIndex = getColumnIndex('해당층/전체층');
+    const parkingIndex = getColumnIndex('주차');
+    const elevatorIndex = getColumnIndex('엘리베이터');
+    const confirmedDateIndex = getColumnIndex('확인매물날짜');
+    const contactNameIndex = getColumnIndex('연락처이름');
+    const contactPhoneIndex = getColumnIndex('연락처전화번호');
+    const contactEmailIndex = getColumnIndex('연락처이메일');
+    
+    console.log('컬럼 인덱스:', {
+      idIndex, titleIndex, descriptionIndex, typeIndex, propertyTypeIndex,
+      priceIndex, depositIndex, addressIndex, latIndex, lngIndex, areaIndex,
+      bedroomsIndex, floorIndex, parkingIndex, elevatorIndex, confirmedDateIndex,
+      contactNameIndex, contactPhoneIndex, contactEmailIndex
+    });
+    
+    // 데이터 행 처리
+    for (let i = 1; i < excelData.length; i++) {
+      const row = excelData[i];
+      console.log(`행 ${i} 처리:`, row);
+      
+      if (!row || row.length === 0) continue;
+      
+      try {
+        // 기본값 설정
+        const id = row[idIndex]?.toString() || `auto_${Date.now()}_${i}`;
+        const title = row[titleIndex]?.toString() || '제목 없음';
+        const description = row[descriptionIndex]?.toString() || '설명 없음';
+        const type = row[typeIndex]?.toString()?.toLowerCase().includes('임대') ? 'rent' : 'sale';
+        const propertyType = getPropertyType(row[propertyTypeIndex]?.toString());
+        const price = parseFloat(row[priceIndex]?.toString() || '0');
+        const deposit = parseFloat(row[depositIndex]?.toString() || '0');
+        const address = row[addressIndex]?.toString() || '주소 없음';
+        const lat = parseFloat(row[latIndex]?.toString() || '37.5665');
+        const lng = parseFloat(row[lngIndex]?.toString() || '126.9780');
+        const area = parseFloat(row[areaIndex]?.toString() || '0');
+        const bedrooms = parseBedrooms(row[bedroomsIndex]?.toString());
+        const bathrooms = parseBathrooms(row[bedroomsIndex]?.toString());
+        const floor = row[floorIndex]?.toString() || '';
+        const parking = parseBoolean(row[parkingIndex]?.toString());
+        const elevator = parseBoolean(row[elevatorIndex]?.toString());
+        const confirmedDate = row[confirmedDateIndex]?.toString() || '';
+        const contactName = row[contactNameIndex]?.toString() || '중개소';
+        const contactPhone = row[contactPhoneIndex]?.toString() || '02-0000-0000';
+        const contactEmail = row[contactEmailIndex]?.toString() || 'contact@realestate.com';
+        
+        const property: Property = {
+          id,
+          title,
+          description,
+          price,
+          deposit: deposit > 0 ? deposit : undefined,
+          type,
+          propertyType,
+          address,
+          location: { lat, lng },
+          bedrooms,
+          bathrooms,
+          area,
+          images: ['https://via.placeholder.com/300x200'],
+          contact: {
+            name: contactName,
+            phone: contactPhone,
+            email: contactEmail
+          },
+          features: [],
+          createdAt: new Date(),
+          isActive: true,
+          confirmedDate: confirmedDate || undefined,
+          floor: floor || undefined,
+          parking,
+          elevator
+        };
+        
+        console.log(`매물 ${i} 생성:`, property);
+        properties.push(property);
+        
+      } catch (error) {
+        console.error(`행 ${i} 처리 중 오류:`, error);
       }
-    ];
+    }
+    
+    console.log('변환된 매물 개수:', properties.length);
+    return properties;
+  };
+  
+  // 매물종류 변환 함수
+  const getPropertyType = (type: string | undefined): 'commercial' | 'office' | 'building' | 'other' => {
+    if (!type) return 'commercial';
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes('상가')) return 'commercial';
+    if (lowerType.includes('사무실')) return 'office';
+    if (lowerType.includes('건물')) return 'building';
+    return 'other';
+  };
+  
+  // 방 개수 파싱 함수
+  const parseBedrooms = (bedroomsStr: string | undefined): number => {
+    if (!bedroomsStr) return 0;
+    const match = bedroomsStr.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  };
+  
+  // 화장실 개수 파싱 함수
+  const parseBathrooms = (bathroomsStr: string | undefined): number => {
+    if (!bathroomsStr) return 0;
+    const match = bathroomsStr.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  };
+  
+  // 불린 값 파싱 함수
+  const parseBoolean = (value: string | undefined): boolean => {
+    if (!value) return false;
+    const lowerValue = value.toLowerCase();
+    return lowerValue.includes('가능') || lowerValue.includes('있음') || lowerValue.includes('true') || lowerValue.includes('1');
   };
 
   return (

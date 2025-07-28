@@ -489,6 +489,7 @@ interface HomePageProps {
   };
   onPropertyAdded?: (properties: Property[]) => void;
   isAdmin?: boolean; // 관리자 권한 추가
+  newProperties?: Property[]; // 새로운 매물 추가
 }
 
 const HomePage: React.FC<HomePageProps> = ({ 
@@ -496,7 +497,8 @@ const HomePage: React.FC<HomePageProps> = ({
   addressSearch = '',
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
   onPropertyAdded,
-  isAdmin = false
+  isAdmin = false,
+  newProperties = []
 }) => {
   const [properties, setProperties] = useState<Property[]>(sampleProperties);
   const [selectedClusterProperties, setSelectedClusterProperties] = useState<Property[]>([]);
@@ -565,6 +567,20 @@ const HomePage: React.FC<HomePageProps> = ({
     hasInitialized.current = true; // 실행 완료 표시
     console.log('매물 데이터 업데이트 완료');
   }, [properties]); // properties 의존성 추가
+
+  // 새로운 매물이 추가될 때 처리
+  React.useEffect(() => {
+    if (newProperties.length > 0) {
+      console.log('=== 새로운 매물 추가 처리 ===');
+      console.log('추가될 매물 개수:', newProperties.length);
+      
+      setProperties(prev => {
+        const updatedProperties = [...prev, ...newProperties];
+        console.log('매물 목록에 새 매물 추가 완료. 총 개수:', updatedProperties.length);
+        return updatedProperties;
+      });
+    }
+  }, [newProperties]);
 
   const handleMarkerClick = (property: Property) => {
     console.log(`마커 클릭: ${property.title} (${property.id})`);
