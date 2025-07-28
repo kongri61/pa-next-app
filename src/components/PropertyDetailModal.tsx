@@ -925,8 +925,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                 <PropertyInfoItem>
                   <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
                   <PropertyInfoValue>
-                    {property.propertyType === 'apartment' ? '주거용' :
-                     property.propertyType === 'commercial' ? '상업용' : '주거용'}
+                    {property.propertyType === 'commercial' ? '상업용' :
+                     property.propertyType === 'office' ? '사무용' :
+                     property.propertyType === 'building' ? '건물용' : '기타용도'}
                   </PropertyInfoValue>
                 </PropertyInfoItem>
                 <PropertyInfoItem>

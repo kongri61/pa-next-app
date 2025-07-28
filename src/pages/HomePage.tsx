@@ -342,12 +342,12 @@ const DeleteButton = styled.button`
 const sampleProperties: Property[] = [
   {
     id: '1',
-    title: '강남구 신축 아파트',
-    description: '강남구 역삼동 신축 아파트입니다. 역세권으로 교통이 편리합니다.',
+    title: '강남구 신축 상가',
+    description: '강남구 역삼동 신축 상가입니다. 역세권으로 교통이 편리합니다.',
     price: 850000000,
     deposit: 50000000,
     type: 'sale',
-    propertyType: 'apartment',
+    propertyType: 'commercial',
     address: '서울시 강남구 역삼동 123-45',
     location: { lat: 37.5013, lng: 127.0396 },
     bedrooms: 3,
@@ -369,12 +369,12 @@ const sampleProperties: Property[] = [
   },
   {
     id: '2',
-    title: '홍대입구 근처 원룸',
-    description: '홍대입구역 도보 5분 거리의 원룸입니다.',
+    title: '홍대입구 근처 사무실',
+    description: '홍대입구역 도보 5분 거리의 사무실입니다.',
     price: 500000,
     deposit: 10000000,
     type: 'rent',
-    propertyType: 'apartment',
+    propertyType: 'office',
     address: '서울시 마포구 서교동 456-78',
     location: { lat: 37.5572, lng: 126.9254 },
     bedrooms: 1,
@@ -386,7 +386,7 @@ const sampleProperties: Property[] = [
       phone: '02-9876-5432',
       email: 'park@realestate.com'
     },
-    features: ['역세권', '원룸', '주차불가'],
+    features: ['역세권', '사무실', '주차불가'],
     createdAt: new Date(),
     isActive: true,
     confirmedDate: '25.07.18',
@@ -396,12 +396,12 @@ const sampleProperties: Property[] = [
   },
   {
     id: '3',
-    title: '강남구 테헤란로 오피스텔',
-    description: '강남구 테헤란로에 위치한 오피스텔입니다.',
+    title: '강남구 테헤란로 건물',
+    description: '강남구 테헤란로에 위치한 건물입니다.',
     price: 1200000000,
     deposit: 0,
     type: 'sale',
-    propertyType: 'apartment',
+    propertyType: 'building',
     address: '서울시 강남구 테헤란로 123',
     location: { lat: 37.4981, lng: 127.0276 },
     bedrooms: 2,
@@ -413,7 +413,7 @@ const sampleProperties: Property[] = [
       phone: '02-5555-1234',
       email: 'lee@realestate.com'
     },
-    features: ['역세권', '오피스텔', '주차가능'],
+    features: ['역세권', '건물', '주차가능'],
     createdAt: new Date(),
     isActive: true,
     confirmedDate: '25.07.20',
@@ -450,12 +450,12 @@ const sampleProperties: Property[] = [
   },
   {
     id: '5',
-    title: '강남구 삼성동 빌라',
-    description: '강남구 삼성동에 위치한 빌라입니다.',
+    title: '강남구 삼성동 기타',
+    description: '강남구 삼성동에 위치한 기타 매물입니다.',
     price: 650000000,
     deposit: 0,
     type: 'sale',
-    propertyType: 'house',
+    propertyType: 'other',
     address: '서울시 강남구 삼성동 456-78',
     location: { lat: 37.5083, lng: 127.0558 },
     bedrooms: 3,
@@ -467,7 +467,7 @@ const sampleProperties: Property[] = [
       phone: '02-9999-1111',
       email: 'jung@realestate.com'
     },
-    features: ['빌라', '주차가능', '단독주택'],
+    features: ['기타', '주차가능', '단독주택'],
     createdAt: new Date(),
     isActive: true,
     confirmedDate: '25.07.21',
@@ -1009,7 +1009,7 @@ const PropertyEditForm: React.FC<{
     price: property?.price || 0,
     deposit: property?.deposit || 0,
     type: property?.type || 'sale',
-    propertyType: property?.propertyType || 'apartment',
+    propertyType: property?.propertyType || 'commercial',
     address: property?.address || '',
     bedrooms: property?.bedrooms || 0,
     bathrooms: property?.bathrooms || 0,
@@ -1082,7 +1082,7 @@ const PropertyEditForm: React.FC<{
         price: property.price || 0,
         deposit: property.deposit || 0,
         type: property.type || 'sale',
-        propertyType: property.propertyType || 'apartment',
+        propertyType: property.propertyType || 'commercial',
         address: property.address || '',
         bedrooms: property.bedrooms || 0,
         bathrooms: property.bathrooms || 0,
@@ -1212,7 +1212,7 @@ const PropertyEditForm: React.FC<{
             </label>
             <select
               value={formData.propertyType}
-              onChange={(e) => setFormData(prev => ({ ...prev, propertyType: e.target.value as 'apartment' | 'house' | 'commercial' }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, propertyType: e.target.value as 'commercial' | 'office' | 'building' }))}
               style={{
                 width: '100%',
                 padding: '0.5rem',
