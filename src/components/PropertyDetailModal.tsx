@@ -188,6 +188,7 @@ const ImageUploadButton = styled.button`
   line-height: 1;
   padding: 0;
   margin: 0;
+  flex-shrink: 0;
 
   &:hover {
     transform: scale(1.05);
@@ -197,6 +198,21 @@ const ImageUploadButton = styled.button`
 
   &:active {
     transform: scale(0.95);
+  }
+
+  /* 카메라 아이콘을 항상 중앙에 유지 */
+  & > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+    font-size: inherit;
+    position: relative;
+    top: 0;
+    left: 0;
+    transform: none;
   }
 `;
 
@@ -623,7 +639,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                     }}
                     title="이미지 업로드"
                   >
-                    📷
+                    <span>📷</span>
                   </ImageUploadButton>
                 )}
               </>
@@ -749,8 +765,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                   <span style={{ 
                     display: 'inline-block', 
                     lineHeight: '1', 
-                    verticalAlign: 'middle',
-                    transform: 'translateY(-5px)'
+                    verticalAlign: 'middle'
                   }}>
                     📷
                   </span>
@@ -1045,8 +1060,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                       <span style={{ 
                         display: 'inline-block', 
                         lineHeight: '1', 
-                        verticalAlign: 'middle',
-                        transform: 'translateY(-5px)'
+                        verticalAlign: 'middle'
                       }}>
                         📷
                       </span>
@@ -1187,8 +1201,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                       <span style={{ 
                         display: 'inline-block', 
                         lineHeight: '1', 
-                        verticalAlign: 'middle',
-                        transform: 'translateY(-5px)'
+                        verticalAlign: 'middle'
                       }}>
                         📷
                       </span>
