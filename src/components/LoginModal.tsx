@@ -116,6 +116,16 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // 모달이 열릴 때 상태 초기화
+  React.useEffect(() => {
+    if (isOpen) {
+      setUsername('');
+      setPassword('');
+      setError('');
+      setIsLoading(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -135,12 +145,21 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
     setIsLoading(false);
   };
 
+  const handleClose = () => {
+    // 모달 닫을 때 상태 초기화
+    setUsername('');
+    setPassword('');
+    setError('');
+    setIsLoading(false);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={onClose}>
+    <ModalOverlay onClick={handleClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
-        <CloseButton onClick={onClose}>&times;</CloseButton>
+        <CloseButton onClick={handleClose}>&times;</CloseButton>
         <Title>로그인</Title>
         <Form onSubmit={handleSubmit}>
           <InputGroup>

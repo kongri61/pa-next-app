@@ -62,6 +62,8 @@ function App() {
     localStorage.removeItem('user_role');
     setIsLoggedIn(false);
     setIsAdmin(false);
+    // 로그인 모달 상태 초기화
+    setIsLoginModalOpen(false);
   };
 
   // 관리자 권한 확인 (로그인 상태 기반)
