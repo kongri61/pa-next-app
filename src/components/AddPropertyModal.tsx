@@ -717,140 +717,15 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
   const copyCoordinates = () => {
     if (searchResult) {
-      const coordinates = `${searchResult.lat}, ${searchResult.lng}`;
-      navigator.clipboard.writeText(coordinates).then(() => {
+      const text = `${searchResult.lat}, ${searchResult.lng}`;
+      navigator.clipboard.writeText(text).then(() => {
         alert('좌표가 클립보드에 복사되었습니다!');
       }).catch(() => {
-        // 클립보드 API가 지원되지 않는 경우
-        const textArea = document.createElement('textarea');
-        textArea.value = coordinates;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert('좌표가 클립보드에 복사되었습니다!');
+        alert('클립보드 복사에 실패했습니다.');
       });
     }
   };
 
-  // 엑셀 데이터를 Property 객체로 변환하는 함수
-  const convertExcelDataToProperties = (excelData: any[][]): Property[] => {
-    console.log('=== 엑셀 데이터 변환 시작 ===');
-    console.log('엑셀 데이터:', excelData);
-    
-    if (!excelData || excelData.length < 2) {
-      console.log('엑셀 데이터가 없거나 헤더만 있음');
-      return [];
-    }
-    
-    const properties: Property[] = [];
-    const headers = excelData[0];
-    console.log('헤더:', headers);
-    
-    // 헤더 인덱스 찾기
-    const getColumnIndex = (columnName: string): number => {
-      return headers.findIndex(header => 
-        header && header.toString().toLowerCase().includes(columnName.toLowerCase())
-      );
-    };
-    
-    const idIndex = getColumnIndex('매물번호');
-    const titleIndex = getColumnIndex('매물제목');
-    const descriptionIndex = getColumnIndex('매물설명');
-    const typeIndex = getColumnIndex('거래유형');
-    const propertyTypeIndex = getColumnIndex('매물종류');
-    const priceIndex = getColumnIndex('매매가');
-    const depositIndex = getColumnIndex('보증금');
-    const addressIndex = getColumnIndex('주소');
-    const latIndex = getColumnIndex('위도');
-    const lngIndex = getColumnIndex('경도');
-    const areaIndex = getColumnIndex('공급/전용면적');
-    const bedroomsIndex = getColumnIndex('방/화장실');
-    const floorIndex = getColumnIndex('해당층/전체층');
-    const parkingIndex = getColumnIndex('주차');
-    const elevatorIndex = getColumnIndex('엘리베이터');
-    const confirmedDateIndex = getColumnIndex('확인매물날짜');
-    const contactNameIndex = getColumnIndex('연락처이름');
-    const contactPhoneIndex = getColumnIndex('연락처전화번호');
-    const contactEmailIndex = getColumnIndex('연락처이메일');
-    
-    console.log('컬럼 인덱스:', {
-      idIndex, titleIndex, descriptionIndex, typeIndex, propertyTypeIndex,
-      priceIndex, depositIndex, addressIndex, latIndex, lngIndex, areaIndex,
-      bedroomsIndex, floorIndex, parkingIndex, elevatorIndex, confirmedDateIndex,
-      contactNameIndex, contactPhoneIndex, contactEmailIndex
-    });
-    
-    // 데이터 행 처리
-    for (let i = 1; i < excelData.length; i++) {
-      const row = excelData[i];
-      console.log(`행 ${i} 처리:`, row);
-      
-      if (!row || row.length === 0) continue;
-      
-      try {
-        // 기본값 설정
-        const id = row[idIndex]?.toString() || `auto_${Date.now()}_${i}`;
-        const title = row[titleIndex]?.toString() || '제목 없음';
-        const description = row[descriptionIndex]?.toString() || '설명 없음';
-        const type = row[typeIndex]?.toString()?.toLowerCase().includes('임대') ? 'rent' : 'sale';
-        const propertyType = getPropertyType(row[propertyTypeIndex]?.toString());
-        const price = parseFloat(row[priceIndex]?.toString() || '0');
-        const deposit = parseFloat(row[depositIndex]?.toString() || '0');
-        const address = row[addressIndex]?.toString() || '주소 없음';
-        const lat = parseFloat(row[latIndex]?.toString() || '37.5665');
-        const lng = parseFloat(row[lngIndex]?.toString() || '126.9780');
-        const area = parseFloat(row[areaIndex]?.toString() || '0');
-        const bedrooms = parseBedrooms(row[bedroomsIndex]?.toString());
-        const bathrooms = parseBathrooms(row[bedroomsIndex]?.toString());
-        const floor = row[floorIndex]?.toString() || '';
-        const parking = parseBoolean(row[parkingIndex]?.toString());
-        const elevator = parseBoolean(row[elevatorIndex]?.toString());
-        const confirmedDate = row[confirmedDateIndex]?.toString() || '';
-        const contactName = row[contactNameIndex]?.toString() || '중개소';
-        const contactPhone = row[contactPhoneIndex]?.toString() || '02-0000-0000';
-        const contactEmail = row[contactEmailIndex]?.toString() || 'contact@realestate.com';
-        
-        const property: Property = {
-          id,
-          title,
-          description,
-          price,
-          deposit: deposit > 0 ? deposit : undefined,
-          type,
-          propertyType,
-          address,
-          location: { lat, lng },
-          bedrooms,
-          bathrooms,
-          area,
-          images: ['https://via.placeholder.com/300x200'],
-          contact: {
-            name: contactName,
-            phone: contactPhone,
-            email: contactEmail
-          },
-          features: [],
-          createdAt: new Date(),
-          isActive: true,
-          confirmedDate: confirmedDate || undefined,
-          floor: floor || undefined,
-          parking,
-          elevator
-        };
-        
-        console.log(`매물 ${i} 생성:`, property);
-        properties.push(property);
-        
-      } catch (error) {
-        console.error(`행 ${i} 처리 중 오류:`, error);
-      }
-    }
-    
-    console.log('변환된 매물 개수:', properties.length);
-    return properties;
-  };
-  
   // 매물종류 변환 함수
   const getPropertyType = (type: string | undefined): 'commercial' | 'office' | 'building' | 'other' => {
     if (!type) return 'commercial';
