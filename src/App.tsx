@@ -37,6 +37,11 @@ function App() {
 
   // 관리자 권한 확인 (배포 환경에 맞게 수정)
   const isAdmin = () => {
+    // 임시로 항상 true 반환 (개발/테스트 목적)
+    return true;
+    
+    // 기존 복잡한 로직 (주석 처리)
+    /*
     // 방법 1: 환경 변수 기반 (빌드 시 설정)
     const envAdmin = process.env.REACT_APP_ADMIN_MODE === 'true';
     
@@ -60,6 +65,7 @@ function App() {
            localStorageAdmin ||
            allowedDomains.includes(currentDomain) ||
            allowedIPs.includes(currentIP);
+    */
   };
 
   return (

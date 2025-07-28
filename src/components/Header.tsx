@@ -769,7 +769,7 @@ const Header: React.FC<HeaderProps> = ({
     <HeaderContainer>
       <MainSection>
         <LogoSection>
-          <Logo src="/logo.png" alt="PA 로고" />
+          <Logo src={process.env.PUBLIC_URL + "/logo.png"} alt="PA 로고" />
           <CompanyInfo>
             <CompanyName>피에이</CompanyName>
             <CompanyType>공인중개사사무소</CompanyType>
