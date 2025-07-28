@@ -739,7 +739,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                       margin: 0,
                       padding: 0
                     }}>
-                      📷
+                      +
                     </span>
                   </ImageUploadButton>
                 )}
@@ -874,7 +874,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                     margin: 0,
                     padding: 0
                   }}>
-                    📷
+                    +
                   </span>
                 </ImageUploadButton>
               </div>
@@ -1179,7 +1179,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                         margin: 0,
                         padding: 0
                       }}>
-                        📷
+                        +
                       </span>
                     </ImageUploadButton>
                   )}
@@ -1326,7 +1326,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                         margin: 0,
                         padding: 0
                       }}>
-                        📷
+                        +
                       </span>
                     </ImageUploadButton>
                   )}
