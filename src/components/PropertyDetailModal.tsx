@@ -171,8 +171,8 @@ const ImageUploadButton = styled.button`
   position: absolute;
   bottom: 3rem;
   right: 1rem;
-  background: transparent;
-  border: 2px solid #4b5563;
+  background: #6b7280;
+  border: 2px solid #374151;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -191,9 +191,10 @@ const ImageUploadButton = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    transform: scale(1.05);
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-    border-color: #6b7280;
+    background: white;
+    color: #374151;
+    text-shadow: none;
+    border-color: #374151;
   }
 
   &:active {
