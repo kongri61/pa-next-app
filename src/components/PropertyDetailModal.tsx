@@ -275,13 +275,13 @@ const PropertyInfoValue = styled.span`
 
 const ContactInfo = styled.div`
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
-  max-width: 400px;
+  max-width: 300px;
   width: 100%;
   
   &::before {
@@ -296,20 +296,20 @@ const ContactInfo = styled.div`
 `;
 
 const ContactHeader = styled.div`
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
   border-bottom: 2px solid #e2e8f0;
 `;
 
 const ContactName = styled.h3`
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #1e293b;
-  margin: 0 0 0.25rem 0;
+  margin: 0;
 `;
 
 const ContactType = styled.p`
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin: 0;
   font-weight: 500;
@@ -318,8 +318,8 @@ const ContactType = styled.p`
 const ContactItem = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
-  font-size: 0.875rem;
+  padding: 0.25rem 0;
+  font-size: 0.75rem;
   border-bottom: 1px solid #f1f5f9;
   
   &:last-child {
@@ -330,7 +330,7 @@ const ContactItem = styled.div`
 const ContactLabel = styled.span`
   color: #64748b;
   font-weight: 500;
-  min-width: 80px;
+  min-width: 60px;
 `;
 
 const ContactValue = styled.span`
@@ -981,8 +981,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
             <SectionTitle>연락처</SectionTitle>
             <ContactInfo>
               <ContactHeader>
-                <ContactName>{property.contact.name}</ContactName>
-                <ContactType>공인중개사사무소</ContactType>
+                <ContactName>김부동산 공인중개사무소</ContactName>
               </ContactHeader>
               <ContactItem>
                 <ContactLabel>전화번호</ContactLabel>
