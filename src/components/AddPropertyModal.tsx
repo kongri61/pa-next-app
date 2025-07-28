@@ -318,7 +318,11 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
   // 주소검색 관련 상태
   const [addressSearch, setAddressSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResult, setSearchResult] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchResult, setSearchResult] = useState<{
+    address: string;
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -404,8 +408,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         '850000000',
         '0',
         '서울시 강남구 역삼동 123-45',
-        '37.5013',
-        '127.0396',
+        '', // 위도 - 자동 변환됨
+        '', // 경도 - 자동 변환됨
         '84.5',
         '3/2',
         '3/15층',
@@ -425,8 +429,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         '500000',
         '10000000',
         '서울시 마포구 서교동 456-78',
-        '37.5572',
-        '126.9254',
+        '', // 위도 - 자동 변환됨
+        '', // 경도 - 자동 변환됨
         '25.3',
         '1/1',
         '2/5층',
@@ -504,107 +508,40 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           console.log('매물번호 필드 인덱스:', propertyNumberIndex);
           console.log('매물번호 필드명:', headers[propertyNumberIndex]);
 
-          // 주소를 좌표로 변환하는 함수
-          const convertAddressToCoordinates = async (address: string) => {
+          // 주소를 좌표로 변환하는 함수 (실제 Google Geocoding API 사용)
+          const convertAddressToCoordinates = async (address: string): Promise<{lat: number, lng: number} | null> => {
             try {
               console.log(`주소 변환 시작: "${address}"`);
               
-              // Google Geocoding API 호출 (실제 구현 시)
-              // const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk`);
-              // const data = await response.json();
-              // return data.results[0].geometry.location;
-
-              // 시뮬레이션 (실제 구현에서는 위의 API 사용)
-              const mockResults = {
-                '서울시 강남구': { lat: 37.5665, lng: 126.9780 },
-                '서울시 마포구': { lat: 37.5575, lng: 126.9250 },
-                '서울시 서초구': { lat: 37.4837, lng: 127.0324 },
-                '서울시 송파구': { lat: 37.5145, lng: 127.1059 },
-                '서울시 강서구': { lat: 37.5509, lng: 126.8495 },
-                '서울시 영등포구': { lat: 37.5264, lng: 126.8962 },
-                '서울시 용산구': { lat: 37.5384, lng: 126.9654 },
-                '서울시 성동구': { lat: 37.5506, lng: 127.0409 },
-                '서울시 광진구': { lat: 37.5384, lng: 127.0822 },
-                '서울시 동대문구': { lat: 37.5744, lng: 127.0395 },
-                '서울시 중랑구': { lat: 37.6064, lng: 127.0926 },
-                '서울시 성북구': { lat: 37.5894, lng: 127.0167 },
-                '서울시 강북구': { lat: 37.6396, lng: 127.0257 },
-                '서울시 도봉구': { lat: 37.6688, lng: 127.0471 },
-                '서울시 노원구': { lat: 37.6542, lng: 127.0568 },
-                '서울시 은평구': { lat: 37.6026, lng: 126.9291 },
-                '서울시 서대문구': { lat: 37.5791, lng: 126.9368 },
-                '서울시 양천구': { lat: 37.5169, lng: 126.8665 },
-                '서울시 강동구': { lat: 37.5301, lng: 127.1238 },
-                '인천시 중구': { lat: 37.4639, lng: 126.6486 },
-                '인천시 동구': { lat: 37.4739, lng: 126.6439 },
-                '인천시 미추홀구': { lat: 37.4639, lng: 126.6486 },
-                '인천시 연수구': { lat: 37.4106, lng: 126.6788 },
-                '인천시 남동구': { lat: 37.4471, lng: 126.7310 },
-                '인천시 부평구': { lat: 37.5074, lng: 126.7219 },
-                '인천시 계양구': { lat: 37.5372, lng: 126.7370 },
-                '인천시 서구': { lat: 37.4517, lng: 126.6768 },
-                '인천시 강화군': { lat: 37.7464, lng: 126.4880 },
-                '인천시 옹진군': { lat: 37.4464, lng: 126.6370 },
-                // 추가 매칭을 위한 별칭들
-                '강남구': { lat: 37.5665, lng: 126.9780 },
-                '마포구': { lat: 37.5575, lng: 126.9250 },
-                '서초구': { lat: 37.4837, lng: 127.0324 },
-                '송파구': { lat: 37.5145, lng: 127.1059 },
-                '강서구': { lat: 37.5509, lng: 126.8495 },
-                '영등포구': { lat: 37.5264, lng: 126.8962 },
-                '용산구': { lat: 37.5384, lng: 126.9654 },
-                '성동구': { lat: 37.5506, lng: 127.0409 },
-                '광진구': { lat: 37.5384, lng: 127.0822 },
-                '동대문구': { lat: 37.5744, lng: 127.0395 },
-                '중랑구': { lat: 37.6064, lng: 127.0926 },
-                '성북구': { lat: 37.5894, lng: 127.0167 },
-                '강북구': { lat: 37.6396, lng: 127.0257 },
-                '도봉구': { lat: 37.6688, lng: 127.0471 },
-                '노원구': { lat: 37.6542, lng: 127.0568 },
-                '은평구': { lat: 37.6026, lng: 126.9291 },
-                '서대문구': { lat: 37.5791, lng: 126.9368 },
-                '양천구': { lat: 37.5169, lng: 126.8665 },
-                '강동구': { lat: 37.5301, lng: 127.1238 },
-                '연수구': { lat: 37.4106, lng: 126.6788 },
-                '남동구': { lat: 37.4471, lng: 126.7310 },
-                '부평구': { lat: 37.5074, lng: 126.7219 },
-                '계양구': { lat: 37.5372, lng: 126.7370 },
-                '서구': { lat: 37.4517, lng: 126.6768 },
-                '강화군': { lat: 37.7464, lng: 126.4880 },
-                '옹진군': { lat: 37.4464, lng: 126.6370 },
-                // 더 구체적인 주소들
-                '역삼동': { lat: 37.5665, lng: 126.9780 },
-                '홍대': { lat: 37.5575, lng: 126.9250 },
-                '송도': { lat: 37.4106, lng: 126.6788 },
-                '부평': { lat: 37.5074, lng: 126.7219 }
-              };
-
-              // 정확한 매칭 시도
-              if (mockResults[address as keyof typeof mockResults]) {
-                console.log(`정확한 매칭 성공: "${address}"`);
-                return mockResults[address as keyof typeof mockResults];
+              if (!address || address.trim() === '') {
+                console.log('주소가 비어있음');
+                return null;
               }
 
-              // 부분 매칭 시도
-              for (const [key, value] of Object.entries(mockResults)) {
-                if (address.includes(key) || key.includes(address)) {
-                  console.log(`부분 매칭 성공: "${address}" -> "${key}"`);
-                  return value;
-                }
+              // Google Geocoding API 호출
+              const response = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk&language=ko`
+              );
+              
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
               }
-
-              // 대소문자 무시 매칭 시도
-              const lowerAddress = address.toLowerCase();
-              for (const [key, value] of Object.entries(mockResults)) {
-                const lowerKey = key.toLowerCase();
-                if (lowerAddress.includes(lowerKey) || lowerKey.includes(lowerAddress)) {
-                  console.log(`대소문자 무시 매칭 성공: "${address}" -> "${key}"`);
-                  return value;
-                }
+              
+              const data = await response.json();
+              console.log('Geocoding API 응답:', data);
+              
+              if (data.status === 'OK' && data.results && data.results.length > 0) {
+                const location = data.results[0].geometry.location;
+                console.log(`좌표 변환 성공: "${address}" → ${location.lat}, ${location.lng}`);
+                return {
+                  lat: location.lat,
+                  lng: location.lng
+                };
+              } else {
+                console.log(`좌표 변환 실패: "${address}" - ${data.status}`);
+                return null;
               }
-
-              console.log(`매칭 실패: "${address}"`);
-              return null;
+              
             } catch (error) {
               console.error('좌표 변환 오류:', error);
               return null;
@@ -627,8 +564,26 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
               const price = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('매매가'))]?.toString() || '0');
               const deposit = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('보증금'))]?.toString() || '0');
               const address = row[headers.findIndex(header => header?.toLowerCase().includes('주소'))]?.toString() || '주소 없음';
-              const lat = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('위도'))]?.toString() || '37.5665');
-              const lng = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('경도'))]?.toString() || '126.9780');
+              
+              // 주소를 좌표로 변환
+              let lat = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('위도'))]?.toString() || '0');
+              let lng = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('경도'))]?.toString() || '0');
+              
+              // 위도/경도가 없거나 0인 경우 주소로 좌표 변환 시도
+              if ((lat === 0 && lng === 0) || (isNaN(lat) || isNaN(lng))) {
+                console.log(`매물 ${i}: 주소로 좌표 변환 시도 - "${address}"`);
+                const coordinates = await convertAddressToCoordinates(address);
+                if (coordinates) {
+                  lat = coordinates.lat;
+                  lng = coordinates.lng;
+                  console.log(`매물 ${i}: 좌표 변환 성공 - ${lat}, ${lng}`);
+                } else {
+                  console.log(`매물 ${i}: 좌표 변환 실패, 기본값 사용`);
+                  lat = 37.5665; // 서울시청 기본 좌표
+                  lng = 126.9780;
+                }
+              }
+              
               const area = parseFloat(row[headers.findIndex(header => header?.toLowerCase().includes('공급/전용면적'))]?.toString() || '0');
               const bedrooms = parseBedrooms(row[headers.findIndex(header => header?.toLowerCase().includes('방/화장실'))]?.toString());
               const bathrooms = parseBathrooms(row[headers.findIndex(header => header?.toLowerCase().includes('방/화장실'))]?.toString());
@@ -723,135 +678,40 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
       return;
     }
 
-    setIsSearching(true);
-    setSearchResult(null);
-
     try {
-      // Google Geocoding API 사용 (실제 구현 시 API 키 필요)
+      console.log(`주소 검색 시작: "${addressSearch}"`);
+      
+      // Google Geocoding API 호출
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressSearch)}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressSearch)}&key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk&language=ko`
       );
-
+      
       if (!response.ok) {
-        throw new Error('주소 검색에 실패했습니다.');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+      
       const data = await response.json();
-
-      if (data.results && data.results.length > 0) {
+      console.log('Geocoding API 응답:', data);
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
         const location = data.results[0].geometry.location;
+        const formattedAddress = data.results[0].formatted_address;
+        
         setSearchResult({
+          address: formattedAddress,
           lat: location.lat,
           lng: location.lng
         });
+        
+        console.log(`주소 검색 성공: "${addressSearch}" → ${formattedAddress} (${location.lat}, ${location.lng})`);
       } else {
-        alert('해당 주소를 찾을 수 없습니다.');
+        alert(`주소를 찾을 수 없습니다: ${addressSearch}`);
+        console.log(`주소 검색 실패: "${addressSearch}" - ${data.status}`);
       }
+      
     } catch (error) {
       console.error('주소 검색 오류:', error);
-      
-      // API 키가 없는 경우를 위한 시뮬레이션
-      // 실제 구현에서는 Google Geocoding API를 사용해야 합니다
-      const mockResults = {
-        '서울시 강남구': { lat: 37.5665, lng: 126.9780 },
-        '서울시 마포구': { lat: 37.5575, lng: 126.9250 },
-        '서울시 서초구': { lat: 37.4837, lng: 127.0324 },
-        '서울시 송파구': { lat: 37.5145, lng: 127.1059 },
-        '서울시 강서구': { lat: 37.5509, lng: 126.8495 },
-        '서울시 영등포구': { lat: 37.5264, lng: 126.8962 },
-        '서울시 용산구': { lat: 37.5384, lng: 126.9654 },
-        '서울시 성동구': { lat: 37.5506, lng: 127.0409 },
-        '서울시 광진구': { lat: 37.5384, lng: 127.0822 },
-        '서울시 동대문구': { lat: 37.5744, lng: 127.0395 },
-        '서울시 중랑구': { lat: 37.6064, lng: 127.0926 },
-        '서울시 성북구': { lat: 37.5894, lng: 127.0167 },
-        '서울시 강북구': { lat: 37.6396, lng: 127.0257 },
-        '서울시 도봉구': { lat: 37.6688, lng: 127.0471 },
-        '서울시 노원구': { lat: 37.6542, lng: 127.0568 },
-        '서울시 은평구': { lat: 37.6026, lng: 126.9291 },
-        '서울시 서대문구': { lat: 37.5791, lng: 126.9368 },
-        '서울시 양천구': { lat: 37.5169, lng: 126.8665 },
-        '서울시 강동구': { lat: 37.5301, lng: 127.1238 },
-        '인천시 중구': { lat: 37.4639, lng: 126.6486 },
-        '인천시 동구': { lat: 37.4739, lng: 126.6439 },
-        '인천시 미추홀구': { lat: 37.4639, lng: 126.6486 },
-        '인천시 연수구': { lat: 37.4106, lng: 126.6788 },
-        '인천시 남동구': { lat: 37.4471, lng: 126.7310 },
-        '인천시 부평구': { lat: 37.5074, lng: 126.7219 },
-        '인천시 계양구': { lat: 37.5372, lng: 126.7370 },
-        '인천시 서구': { lat: 37.4517, lng: 126.6768 },
-        '인천시 강화군': { lat: 37.7464, lng: 126.4880 },
-        '인천시 옹진군': { lat: 37.4464, lng: 126.6370 },
-        // 추가 매칭을 위한 별칭들
-        '강남구': { lat: 37.5665, lng: 126.9780 },
-        '마포구': { lat: 37.5575, lng: 126.9250 },
-        '서초구': { lat: 37.4837, lng: 127.0324 },
-        '송파구': { lat: 37.5145, lng: 127.1059 },
-        '강서구': { lat: 37.5509, lng: 126.8495 },
-        '영등포구': { lat: 37.5264, lng: 126.8962 },
-        '용산구': { lat: 37.5384, lng: 126.9654 },
-        '성동구': { lat: 37.5506, lng: 127.0409 },
-        '광진구': { lat: 37.5384, lng: 127.0822 },
-        '동대문구': { lat: 37.5744, lng: 127.0395 },
-        '중랑구': { lat: 37.6064, lng: 127.0926 },
-        '성북구': { lat: 37.5894, lng: 127.0167 },
-        '강북구': { lat: 37.6396, lng: 127.0257 },
-        '도봉구': { lat: 37.6688, lng: 127.0471 },
-        '노원구': { lat: 37.6542, lng: 127.0568 },
-        '은평구': { lat: 37.6026, lng: 126.9291 },
-        '서대문구': { lat: 37.5791, lng: 126.9368 },
-        '양천구': { lat: 37.5169, lng: 126.8665 },
-        '강동구': { lat: 37.5301, lng: 127.1238 },
-        '연수구': { lat: 37.4106, lng: 126.6788 },
-        '남동구': { lat: 37.4471, lng: 126.7310 },
-        '부평구': { lat: 37.5074, lng: 126.7219 },
-        '계양구': { lat: 37.5372, lng: 126.7370 },
-        '서구': { lat: 37.4517, lng: 126.6768 },
-        '강화군': { lat: 37.7464, lng: 126.4880 },
-        '옹진군': { lat: 37.4464, lng: 126.6370 },
-        // 더 구체적인 주소들
-        '역삼동': { lat: 37.5665, lng: 126.9780 },
-        '홍대': { lat: 37.5575, lng: 126.9250 },
-        '송도': { lat: 37.4106, lng: 126.6788 },
-        '부평': { lat: 37.5074, lng: 126.7219 }
-      };
-
-      console.log(`주소 검색 시도: "${addressSearch}"`);
-
-      // 정확한 매칭 시도
-      if (mockResults[addressSearch as keyof typeof mockResults]) {
-        console.log(`정확한 매칭 성공: "${addressSearch}"`);
-        setSearchResult(mockResults[addressSearch as keyof typeof mockResults]);
-        alert('시뮬레이션 결과입니다. 실제 구현에서는 Google Geocoding API를 사용합니다.');
-        return;
-      }
-
-      // 부분 매칭 시도
-      for (const [key, value] of Object.entries(mockResults)) {
-        if (addressSearch.includes(key) || key.includes(addressSearch)) {
-          console.log(`부분 매칭 성공: "${addressSearch}" -> "${key}"`);
-          setSearchResult(value);
-          alert('시뮬레이션 결과입니다. 실제 구현에서는 Google Geocoding API를 사용합니다.');
-          return;
-        }
-      }
-
-      // 대소문자 무시 매칭 시도
-      const lowerAddress = addressSearch.toLowerCase();
-      for (const [key, value] of Object.entries(mockResults)) {
-        const lowerKey = key.toLowerCase();
-        if (lowerAddress.includes(lowerKey) || lowerKey.includes(lowerAddress)) {
-          console.log(`대소문자 무시 매칭 성공: "${addressSearch}" -> "${key}"`);
-          setSearchResult(value);
-          alert('시뮬레이션 결과입니다. 실제 구현에서는 Google Geocoding API를 사용합니다.');
-          return;
-        }
-      }
-
-      console.log(`매칭 실패: "${addressSearch}"`);
-      alert('해당 주소를 찾을 수 없습니다. (시뮬레이션 모드)');
-    } finally {
-      setIsSearching(false);
+      alert('주소 검색 중 오류가 발생했습니다.');
     }
   };
 
@@ -1036,6 +896,14 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
             <TemplateDescription>
               매물 정보를 입력할 수 있는 엑셀 템플릿을 다운로드하세요.
               템플릿에 맞춰 데이터를 입력한 후 업로드하시면 됩니다.
+              <br /><br />
+              <strong>💡 주소 자동 좌표 변환:</strong>
+              <br />
+              • 주소만 입력하면 위도/경도가 자동으로 변환됩니다
+              <br />
+              • 위도/경도 필드를 비워두거나 0으로 입력하세요
+              <br />
+              • 예: "서울시 강남구 역삼동 123-45" → 자동 좌표 변환
             </TemplateDescription>
             <TemplateButton onClick={downloadTemplate}>
               📥 엑셀 템플릿 다운로드
