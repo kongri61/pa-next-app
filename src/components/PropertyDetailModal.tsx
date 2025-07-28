@@ -222,16 +222,82 @@ const InfoSection = styled.div`
   margin-bottom: 2rem;
 `;
 
+const PropertyInfoGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+`;
+
+const PropertyInfoItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const PropertyInfoLabel = styled.span`
+  color: #64748b;
+  font-weight: 500;
+  min-width: 80px;
+`;
+
+const PropertyInfoValue = styled.span`
+  color: #1e293b;
+  font-weight: 600;
+  text-align: right;
+  flex: 1;
+`;
+
 const ContactInfo = styled.div`
-  background: #f9fafb;
-  padding: 1rem;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+  }
+`;
+
+const ContactHeader = styled.div`
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
+`;
+
+const ContactName = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+`;
+
+const ContactType = styled.p`
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
 `;
 
 const ContactItem = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 0.25rem 0;
+  padding: 0.5rem 0;
   font-size: 0.875rem;
   border-bottom: 1px solid #f1f5f9;
   
@@ -796,87 +862,87 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
 
           <InfoSection>
             <SectionTitle>매물정보</SectionTitle>
-            <div>
-              <div>
-                <span>주소</span>
-                <span>{maskAddress(property.address)}</span>
-              </div>
-              <div>
-                <span>매물종류</span>
-                <span>
+            <PropertyInfoGrid>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>주소</PropertyInfoLabel>
+                <PropertyInfoValue>{maskAddress(property.address)}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>매물종류</PropertyInfoLabel>
+                <PropertyInfoValue>
                   {property.propertyType === 'apartment' ? '아파트' :
                    property.propertyType === 'house' ? '단독주택' :
                    property.propertyType === 'commercial' ? '상가' : '토지'}
-                </span>
-              </div>
-              <div>
-                <span>거래유형</span>
-                <span>{property.type === 'sale' ? '매매' : '임대'}</span>
-              </div>
-              <div>
-                <span>매매가</span>
-                <span>{property.type === 'sale' ? formatPrice(property.price) : '-'}</span>
-              </div>
-              <div>
-                <span>보증금/임대료</span>
-                <span>
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>거래유형</PropertyInfoLabel>
+                <PropertyInfoValue>{property.type === 'sale' ? '매매' : '임대'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>매매가</PropertyInfoLabel>
+                <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
+                <PropertyInfoValue>
                   {property.type === 'rent' 
                     ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
                     : '-'}
-                </span>
-              </div>
-              <div>
-                <span>관리비</span>
-                <span>-</span>
-              </div>
-              <div>
-                <span>융자금</span>
-                <span>-</span>
-              </div>
-              <div>
-                <span>공급/전용면적</span>
-                <span>
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>관리비</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>융자금</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
+                <PropertyInfoValue>
                   {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
-                </span>
-              </div>
-              <div>
-                <span>건축물용도</span>
-                <span>
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
+                <PropertyInfoValue>
                   {property.propertyType === 'apartment' ? '주거용' :
                    property.propertyType === 'commercial' ? '상업용' : '주거용'}
-                </span>
-              </div>
-              <div>
-                <span>해당층/전체층</span>
-                <span>{property.floor || '-'}</span>
-              </div>
-              <div>
-                <span>방/화장실</span>
-                <span>
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
+                <PropertyInfoValue>{property.floor || '-'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
+                <PropertyInfoValue>
                   {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
-                </span>
-              </div>
-              <div>
-                <span>난방유형</span>
-                <span>-</span>
-              </div>
-              <div>
-                <span>주차</span>
-                <span>{property.parking ? '가능' : '불가능'}</span>
-              </div>
-              <div>
-                <span>엘리베이터</span>
-                <span>{property.elevator ? '있음' : '없음'}</span>
-              </div>
-              <div>
-                <span>사용승인일</span>
-                <span>-</span>
-              </div>
-              <div>
-                <span>입주가능일</span>
-                <span>-</span>
-              </div>
-            </div>
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>난방유형</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>주차</PropertyInfoLabel>
+                <PropertyInfoValue>{property.parking ? '가능' : '불가능'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
+                <PropertyInfoValue>{property.elevator ? '있음' : '없음'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>사용승인일</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>입주가능일</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+            </PropertyInfoGrid>
           </InfoSection>
 
           <Section>
@@ -889,10 +955,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
           <Section>
             <SectionTitle>연락처</SectionTitle>
             <ContactInfo>
-              <ContactItem>
-                <ContactLabel>중개업소</ContactLabel>
-                <ContactValue>{property.contact.name}</ContactValue>
-              </ContactItem>
+              <ContactHeader>
+                <ContactName>{property.contact.name}</ContactName>
+                <ContactType>공인중개사사무소</ContactType>
+              </ContactHeader>
               <ContactItem>
                 <ContactLabel>전화번호</ContactLabel>
                 <ContactValue>{property.contact.phone}</ContactValue>
