@@ -808,7 +808,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         price: 500000000,
         deposit: 0,
         type: 'sale' as const,
-        propertyType: 'apartment' as const,
+        propertyType: 'commercial' as const,
         address: '서울시 강남구',
         location: { lat: 37.5013, lng: 127.0396 },
         bedrooms: 3,

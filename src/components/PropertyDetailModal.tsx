@@ -885,9 +885,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                 <PropertyInfoItem>
                   <PropertyInfoLabel>매물종류</PropertyInfoLabel>
                   <PropertyInfoValue>
-                    {property.propertyType === 'apartment' ? '아파트' :
-                     property.propertyType === 'house' ? '단독주택' :
-                     property.propertyType === 'commercial' ? '상가' : '토지'}
+                    {property.propertyType === 'commercial' ? '상가' :
+                     property.propertyType === 'office' ? '사무실' :
+                     property.propertyType === 'building' ? '건물' : '기타'}
                   </PropertyInfoValue>
                 </PropertyInfoItem>
                 <PropertyInfoItem>
@@ -974,7 +974,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
             <SectionTitle>연락처</SectionTitle>
             <ContactInfo>
               <ContactHeader>
-                <ContactName>김부동산 공인중개사무소</ContactName>
+                <ContactName>{property.contact.name}</ContactName>
               </ContactHeader>
               <ContactItem>
                 <ContactLabel>전화번호</ContactLabel>
@@ -986,7 +986,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
               </ContactItem>
               <ContactItem>
                 <ContactLabel>주소</ContactLabel>
-                <ContactValue>서울특별시 강남구 역삼동 123-45</ContactValue>
+                <ContactValue>{property.address}</ContactValue>
               </ContactItem>
             </ContactInfo>
           </Section>

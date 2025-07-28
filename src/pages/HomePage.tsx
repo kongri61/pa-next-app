@@ -1221,9 +1221,10 @@ const PropertyEditForm: React.FC<{
               }}
               required
             >
-              <option value="apartment">아파트</option>
-              <option value="house">단독주택</option>
               <option value="commercial">상가</option>
+              <option value="office">사무실</option>
+              <option value="building">건물</option>
+              <option value="other">기타</option>
             </select>
           </div>
         </div>

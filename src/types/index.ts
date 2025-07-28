@@ -5,7 +5,7 @@ export interface Property {
   price: number;
   deposit?: number; // 보증금 (원)
   type: 'sale' | 'rent';
-  propertyType: 'apartment' | 'house' | 'commercial' | 'land';
+  propertyType: 'commercial' | 'office' | 'building' | 'other';
   address: string;
   location: {
     lat: number;
@@ -41,7 +41,7 @@ export interface MapMarker {
 
 export interface SearchFilters {
   type?: 'sale' | 'rent';
-  propertyType?: 'apartment' | 'house' | 'commercial' | 'land';
+  propertyType?: 'commercial' | 'office' | 'building' | 'other';
   minPrice?: number;
   maxPrice?: number;
   minArea?: number;
