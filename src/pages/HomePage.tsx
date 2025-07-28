@@ -515,7 +515,23 @@ const HomePage: React.FC<HomePageProps> = ({
   React.useEffect(() => {
     if (hasInitialized.current) return; // 이미 실행되었으면 중단
     
-    console.log('=== 앱 시작 시 localStorage 이미지 로드 ===');
+    console.log('=== 앱 시작 시 localStorage 데이터 로드 ===');
+    
+    // localStorage에서 저장된 매물 목록 확인
+    const savedProperties = localStorage.getItem('updatedProperties');
+    if (savedProperties) {
+      try {
+        const parsedProperties = JSON.parse(savedProperties);
+        if (Array.isArray(parsedProperties) && parsedProperties.length > 0) {
+          console.log('localStorage에서 저장된 매물 목록 로드:', parsedProperties.length, '개');
+          setProperties(parsedProperties);
+          hasInitialized.current = true;
+          return; // 저장된 매물이 있으면 기본 샘플 데이터 대신 사용
+        }
+      } catch (error) {
+        console.error('저장된 매물 데이터 파싱 오류:', error);
+      }
+    }
     
     // localStorage 전체 상태 확인
     console.log('=== localStorage 전체 상태 ===');
@@ -576,7 +592,11 @@ const HomePage: React.FC<HomePageProps> = ({
       
       setProperties(prev => {
         const updatedProperties = [...prev, ...newProperties];
-        console.log('매물 목록에 새 매물 추가 완료. 총 개수:', updatedProperties.length);
+        
+        // localStorage에 업데이트된 매물 목록 저장
+        localStorage.setItem('updatedProperties', JSON.stringify(updatedProperties));
+        console.log('새 매물 추가 및 localStorage 저장. 총 개수:', updatedProperties.length);
+        
         return updatedProperties;
       });
     }
@@ -701,14 +721,41 @@ const HomePage: React.FC<HomePageProps> = ({
 
   const handleConfirmDelete = () => {
     if (showDeleteConfirm) {
-      setProperties(prev => prev.filter(p => p.id !== showDeleteConfirm));
+      setProperties(prev => {
+        const newProperties = prev.filter(p => p.id !== showDeleteConfirm);
+        
+        // localStorage에 업데이트된 매물 목록 저장
+        localStorage.setItem('updatedProperties', JSON.stringify(newProperties));
+        console.log('매물 삭제 완료 및 localStorage 저장:', showDeleteConfirm);
+        
+        return newProperties;
+      });
       setShowDeleteConfirm(null);
-      console.log('매물 삭제 완료:', showDeleteConfirm);
     }
   };
 
   const handleCancelDelete = () => {
     setShowDeleteConfirm(null);
+  };
+
+  // 초기화 기능: 모든 localStorage 데이터 삭제하고 원본 데이터로 복원
+  const handleResetAllData = () => {
+    if (window.confirm('모든 변경사항을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      // localStorage에서 매물 관련 데이터 모두 삭제
+      localStorage.removeItem('updatedProperties');
+      
+      // 이미지 관련 localStorage 데이터도 삭제
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('mainImages') || key.includes('updatedProperties'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // 원본 샘플 데이터로 복원
+      setProperties(sampleProperties);
+      console.log('모든 데이터 초기화 완료');
+    }
   };
 
   const handleSaveEdit = (updatedProperty: Property) => {
@@ -727,9 +774,16 @@ const HomePage: React.FC<HomePageProps> = ({
       }
     }
     
-    setProperties(prev => prev.map(p => p.id === updatedProperty.id ? updatedProperty : p));
+    setProperties(prev => {
+      const newProperties = prev.map(p => p.id === updatedProperty.id ? updatedProperty : p);
+      
+      // localStorage에 업데이트된 매물 목록 저장
+      localStorage.setItem('updatedProperties', JSON.stringify(newProperties));
+      console.log('매물 수정 완료 및 localStorage 저장:', updatedProperty.title);
+      
+      return newProperties;
+    });
     setEditingProperty(null);
-    console.log('매물 수정 완료:', updatedProperty.title);
   };
 
   const handleCancelEdit = () => {
@@ -767,11 +821,21 @@ const HomePage: React.FC<HomePageProps> = ({
                   : `총 ${properties.length}개 중 ${filteredProperties.length}개 표시`
               }
             </FilterInfo>
-            {(selectedClusterProperties.length > 0 || selectedMarkerProperties.length > 0) && (
-              <ResetButton onClick={handleShowAllProperties}>
-                초기화
-              </ResetButton>
-            )}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {(selectedClusterProperties.length > 0 || selectedMarkerProperties.length > 0) && (
+                <ResetButton onClick={handleShowAllProperties}>
+                  초기화
+                </ResetButton>
+              )}
+              {isAdmin && (
+                <ResetButton 
+                  onClick={handleResetAllData}
+                  style={{ background: '#dc2626' }}
+                >
+                  전체초기화
+                </ResetButton>
+              )}
+            </div>
           </FilterInfoWrap>
         </SidebarHeader>
 
