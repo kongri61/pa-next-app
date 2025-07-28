@@ -200,7 +200,7 @@ const ImageUploadButton = styled.button`
     transform: scale(0.95);
   }
 
-  /* 카메라 아이콘을 항상 중앙에 유지 */
+  /* 카메라 아이콘을 정확히 중앙에 유지 */
   & > span {
     display: flex;
     align-items: center;
@@ -213,6 +213,8 @@ const ImageUploadButton = styled.button`
     top: 0;
     left: 0;
     transform: none;
+    margin: 0;
+    padding: 0;
   }
 `;
 
@@ -639,7 +641,19 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                     }}
                     title="이미지 업로드"
                   >
-                    <span>📷</span>
+                    <span style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      height: '100%',
+                      lineHeight: '1',
+                      fontSize: 'inherit',
+                      margin: 0,
+                      padding: 0
+                    }}>
+                      📷
+                    </span>
                   </ImageUploadButton>
                 )}
               </>
@@ -763,9 +777,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                   }}
                 >
                   <span style={{ 
-                    display: 'inline-block', 
-                    lineHeight: '1', 
-                    verticalAlign: 'middle'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%',
+                    lineHeight: '1',
+                    fontSize: 'inherit',
+                    margin: 0,
+                    padding: 0
                   }}>
                     📷
                   </span>
@@ -1058,9 +1078,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                       style={{ bottom: '1rem', right: '1rem' }}
                     >
                       <span style={{ 
-                        display: 'inline-block', 
-                        lineHeight: '1', 
-                        verticalAlign: 'middle'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '100%',
+                        lineHeight: '1',
+                        fontSize: 'inherit',
+                        margin: 0,
+                        padding: 0
                       }}>
                         📷
                       </span>
@@ -1199,9 +1225,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                       }}
                     >
                       <span style={{ 
-                        display: 'inline-block', 
-                        lineHeight: '1', 
-                        verticalAlign: 'middle'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '100%',
+                        lineHeight: '1',
+                        fontSize: 'inherit',
+                        margin: 0,
+                        padding: 0
                       }}>
                         📷
                       </span>
