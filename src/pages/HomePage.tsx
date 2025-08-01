@@ -809,6 +809,68 @@ const HomePage: React.FC<HomePageProps> = ({
           selectedClusterId={selectedClusterId}
           setSelectedClusterId={setSelectedClusterId}
         />
+        
+        {/* 클러스터 선택 정보 표시 */}
+        {selectedClusterProperties.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            right: '10px',
+            background: '#2563eb',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                background: '#ef4444',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                {selectedClusterProperties.length}
+              </div>
+              <span style={{ fontWeight: 'bold' }}>
+                클러스터 선택됨: {selectedClusterProperties.length}개 매물
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {/* 전체 매물 보기 버튼 */}
+        {(selectedClusterProperties.length > 0 || selectedMarkerProperties.length > 0) && (
+          <div style={{
+            position: 'absolute',
+            top: selectedClusterProperties.length > 0 ? '70px' : '10px',
+            left: '10px',
+            right: '10px',
+            background: '#1e40af',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            zIndex: 1000,
+            cursor: 'pointer',
+            textAlign: 'center',
+            fontWeight: '500',
+            fontSize: '14px'
+          }}
+          onClick={handleShowAllProperties}
+          >
+            전체 매물 보기 (현재 {selectedClusterProperties.length > 0 ? selectedClusterProperties.length : selectedMarkerProperties.length}개 {selectedClusterProperties.length > 0 ? '클러스터' : '선택'} 매물 / 전체 {filteredProperties.length}개)
+          </div>
+        )}
       </MapSection>
       <Sidebar isOpen={true}>
         <SidebarHeader>
