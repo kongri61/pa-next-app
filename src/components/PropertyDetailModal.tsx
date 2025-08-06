@@ -13,7 +13,7 @@ const ModalOverlay = styled.div`
   align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding: 3rem 1rem 1rem 1rem;
+  padding: 6rem 1rem 1rem 1rem;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -23,8 +23,8 @@ const ModalOverlay = styled.div`
 const ModalContent = styled.div`
   background: white;
   border-radius: 8px;
-  width: 95%;
-  max-width: 800px;
+  width: 100%;
+  max-width: 1000px;
   height: 90vh;
   display: flex;
   overflow: hidden;
@@ -37,17 +37,17 @@ const ModalContent = styled.div`
 
 const LeftPanel = styled.div`
   width: 100%;
-  padding: 7rem 2rem 2rem 2rem;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
   overflow-y: auto;
 `;
 
 const CloseButton = styled.button`
   position: absolute;
-  top: 3rem;
-  right: 1rem;
+  top: 0;
+  right: 0;
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 50%;
+  border-radius: 0 8px 0 8px;
   width: 40px;
   height: 40px;
   font-size: 1.5rem;
@@ -81,16 +81,16 @@ const HeaderLeft = styled.div`
 
 const PropertyNumberBox = styled.div`
   background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  border: 0.05px solid #d1d5db;
   border-radius: 4px;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
   color: #374151;
   font-weight: 500;
 `;
 
 const PropertyTitle = styled.h1`
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #1f2937;
   margin: 0;
@@ -107,16 +107,16 @@ const ConfirmedDateBox = styled.div`
 `;
 
 const ImageSection = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   position: relative;
 `;
 
 const MainImage = styled.img`
   width: 100%;
-  height: 400px;
+  height: 280px;
   object-fit: cover;
   border-radius: 8px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem;
 `;
 
 const ImageCounter = styled.div`
@@ -220,26 +220,15 @@ const ImageUploadButton = styled.button`
 `;
 
 const InfoSection = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 `;
 
 const PropertyInfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
   position: relative;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 1px;
-    height: 100%;
-    background: #e2e8f0;
-    transform: translateX(-50%);
-  }
 `;
 
 const PropertyInfoColumn = styled.div`
@@ -334,7 +323,7 @@ const ContactValue = styled.span`
 `;
 
 const Section = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 `;
 
 const SectionTitle = styled.h3`
@@ -348,7 +337,7 @@ const SectionTitle = styled.h3`
 
 const MapPlaceholder = styled.div`
   width: 100%;
-  height: 300px;
+  height: 200px;
   background: #e5e7eb;
   display: flex;
   align-items: center;
@@ -390,7 +379,7 @@ const ImageDeleteButton = styled.button`
 const ImageContainer = styled.div`
   position: relative;
   width: 100%;
-  height: 400px;
+  height: 280px;
   border-radius: 8px;
   overflow: hidden;
 `;
@@ -592,7 +581,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
         <LeftPanel>
           <Header>
             <HeaderLeft>
-              <PropertyNumberBox>매물번호 {property.id}</PropertyNumberBox>
+              <PropertyNumberBox>
+                매물번호<br />
+                {property.id}
+              </PropertyNumberBox>
               <PropertyTitle>{property.title}</PropertyTitle>
             </HeaderLeft>
             {property.confirmedDate && (
@@ -740,7 +732,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
             ) : (
               <div style={{
                 width: '100%',
-                height: '400px',
+                height: '280px',
                 background: '#f3f4f6',
                 border: '2px dashed #d1d5db',
                 borderRadius: '8px',
@@ -751,8 +743,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                 fontSize: '1rem',
                 position: 'relative'
               }}>
-                이미지를 업로드해주세요
-                <ImageUploadButton 
+                <ImageUploadButton
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -877,90 +868,86 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
           <InfoSection>
             <SectionTitle>매물정보</SectionTitle>
             <PropertyInfoGrid>
-              <PropertyInfoColumn>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>주소</PropertyInfoLabel>
-                  <PropertyInfoValue>{maskAddress(property.address)}</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>매물종류</PropertyInfoLabel>
-                  <PropertyInfoValue>
-                    {property.propertyType === 'commercial' ? '상가' :
-                     property.propertyType === 'office' ? '사무실' :
-                     property.propertyType === 'building' ? '건물' : '기타'}
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>거래유형</PropertyInfoLabel>
-                  <PropertyInfoValue>{property.type === 'sale' ? '매매' : '임대'}</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>매매가</PropertyInfoLabel>
-                  <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
-                  <PropertyInfoValue>
-                    {property.type === 'rent' 
-                      ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
-                      : '-'}
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>관리비</PropertyInfoLabel>
-                  <PropertyInfoValue>-</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>융자금</PropertyInfoLabel>
-                  <PropertyInfoValue>-</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
-                  <PropertyInfoValue>
-                    {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-              </PropertyInfoColumn>
-              <PropertyInfoColumn>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
-                  <PropertyInfoValue>
-                    {property.propertyType === 'commercial' ? '상업용' :
-                     property.propertyType === 'office' ? '사무용' :
-                     property.propertyType === 'building' ? '건물용' : '기타용도'}
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
-                  <PropertyInfoValue>{property.floor || '-'}</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
-                  <PropertyInfoValue>
-                    {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>난방유형</PropertyInfoLabel>
-                  <PropertyInfoValue>-</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>주차</PropertyInfoLabel>
-                  <PropertyInfoValue>{property.parking ? '가능' : '불가능'}</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
-                  <PropertyInfoValue>{property.elevator ? '있음' : '없음'}</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>사용승인일</PropertyInfoLabel>
-                  <PropertyInfoValue>-</PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>입주가능일</PropertyInfoLabel>
-                  <PropertyInfoValue>-</PropertyInfoValue>
-                </PropertyInfoItem>
-              </PropertyInfoColumn>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>주소</PropertyInfoLabel>
+                <PropertyInfoValue>{maskAddress(property.address)}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>매물종류</PropertyInfoLabel>
+                <PropertyInfoValue>
+                  {property.propertyType === 'commercial' ? '상가' :
+                   property.propertyType === 'office' ? '사무실' :
+                   property.propertyType === 'building' ? '건물' : '기타'}
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>거래유형</PropertyInfoLabel>
+                <PropertyInfoValue>{property.type === 'sale' ? '매매' : '임대'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>매매가</PropertyInfoLabel>
+                <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
+                <PropertyInfoValue>
+                  {property.type === 'rent' 
+                    ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
+                    : '-'}
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>관리비</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>융자금</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
+                <PropertyInfoValue>
+                  {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
+                <PropertyInfoValue>
+                  {property.propertyType === 'commercial' ? '상업용' :
+                   property.propertyType === 'office' ? '사무용' :
+                   property.propertyType === 'building' ? '건물용' : '기타용도'}
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
+                <PropertyInfoValue>{property.floor || '-'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
+                <PropertyInfoValue>
+                  {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>난방유형</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>주차</PropertyInfoLabel>
+                <PropertyInfoValue>{property.parking ? '가능' : '불가능'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
+                <PropertyInfoValue>{property.elevator ? '있음' : '없음'}</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>사용승인일</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>입주가능일</PropertyInfoLabel>
+                <PropertyInfoValue>-</PropertyInfoValue>
+              </PropertyInfoItem>
             </PropertyInfoGrid>
           </InfoSection>
 
@@ -1188,7 +1175,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                   fontSize: '1rem',
                   position: 'relative'
                 }}>
-                  지도 이미지를 업로드해주세요
                   {isAdmin && (
                     <ImageUploadButton 
                       onClick={() => {

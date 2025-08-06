@@ -578,8 +578,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
                   console.log(`매물 ${i}: 좌표 변환 성공 - ${lat}, ${lng}`);
                 } else {
                   console.log(`매물 ${i}: 좌표 변환 실패, 기본값 사용`);
-                  lat = 37.5665; // 서울시청 기본 좌표
-                  lng = 126.9780;
+                  lat = 37.4000; // 인천 중심 기본 좌표
+                  lng = 126.7052;
                 }
               }
               

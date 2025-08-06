@@ -1,961 +1,663 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, memo } from 'react';
 import styled from 'styled-components';
 import { Property } from '../types';
 
 const MapContainer = styled.div`
   width: 100%;
-  height: 85%;
-  min-height: 480px;
+  height: 100%;
+  min-height: 300px;
   position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 0 12px 12px 0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-
+  background: #f8fafc;
+  
   @media (max-width: 768px) {
-    border-radius: 0;
-    box-shadow: none;
-    height: 75%;
-    min-height: 360px;
-  }
-
-  @media (max-width: 480px) {
-    height: 70%;
-    min-height: 300px;
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
   }
 `;
 
-const MapError = styled.div`
-  text-align: center;
-  padding: 2.5rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  max-width: 450px;
-  border: 1px solid #e5e7eb;
+const MapDiv = styled.div`
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  
+  @media (max-width: 768px) {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+  }
 `;
 
 interface GoogleMapProps {
   properties: Property[];
   onMarkerClick?: (property: Property) => void;
   onClusterClick?: (properties: Property[]) => void;
-  selectedMarkerId?: string | null;
-  setSelectedMarkerId?: (id: string) => void;
-  selectedClusterId?: string | null;
-  setSelectedClusterId?: (id: string) => void;
+}
+
+export interface GoogleMapRef {
+  setCenter: (position: { lat: number; lng: number }) => void;
+  setZoom: (zoom: number) => void;
+  resetMarkers: () => void;
 }
 
 declare global {
   interface Window {
     google: any;
-    markerClusterer: any;
-    markerClustererLoaded: boolean;
-    MarkerClusterer?: any;
   }
 }
 
-const GoogleMap: React.FC<GoogleMapProps> = ({
+const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
   properties,
   onMarkerClick,
-  onClusterClick,
-  selectedMarkerId,
-  setSelectedMarkerId,
-  selectedClusterId,
-  setSelectedClusterId
-}) => {
+  onClusterClick
+}, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const markersRef = useRef<any[]>([]);
-  const clustererRef = useRef<any>(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
-  const [internalSelectedClusterId, setInternalSelectedClusterId] = useState<string | null>(null);
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const clusterHoverIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 마커 클러스터링 함수
-  const createClusterMarker = useCallback((properties: Property[], center: { lat: number; lng: number }) => {
-    const clusterId = properties.map(p => p.id).join(',');
-    const isSelected = internalSelectedClusterId === clusterId;
-    const isHovered = hoveredMarkerId === clusterId;
-    const propertyCount = properties.length;
-    
-    let markerSize = 40;
-    let fontSize = 14;
-    let backgroundColor = '#2563eb';
-    let borderColor = '#1e40af';
-    
-    if (propertyCount >= 10) {
-      markerSize = 50;
-      fontSize = 16;
-      backgroundColor = '#dc2626';
-      borderColor = '#b91c1c';
-    } else if (propertyCount >= 5) {
-      markerSize = 45;
-      fontSize = 15;
-      backgroundColor = '#f59e0b';
-      borderColor = '#d97706';
-    } else if (propertyCount >= 3) {
-      markerSize = 42;
-      fontSize = 14;
-      backgroundColor = '#10b981';
-      borderColor = '#059669';
-    }
-    
-    const marker = new window.google.maps.Marker({
-      position: center,
-      map: mapInstance.current,
-      title: propertyCount === 1 
-        ? `${properties[0].title} - ${properties[0].price}만원`
-        : `${propertyCount}개 매물 클러스터\n${properties.slice(0, 3).map((p, idx) => `${idx + 1}. ${p.title} - ${p.price}만원`).join('\n')}${properties.length > 3 ? `\n... 외 ${properties.length - 3}개 더` : ''}`,
-      icon: {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
-          isSelected
-            ? `<svg width="${markerSize + 4}" height="${markerSize + 4}" viewBox="0 0 ${markerSize + 4} ${markerSize + 4}" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="${(markerSize + 4) / 2}" cy="${(markerSize + 4) / 2}" r="${markerSize / 2}" fill="white" stroke="#111" stroke-width="3"/>
-                <text x="${(markerSize + 4) / 2}" y="${(markerSize + 4) / 2 + fontSize / 3}" text-anchor="middle" fill="#111" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold">${propertyCount}</text>
-              </svg>`
-            : isHovered
-              ? `<svg width="${markerSize + 2}" height="${markerSize + 2}" viewBox="0 0 ${markerSize + 2} ${markerSize + 2}" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="${(markerSize + 2) / 2}" cy="${(markerSize + 2) / 2}" r="${markerSize / 2}" fill="white" stroke="#111" stroke-width="3"/>
-                  <text x="${(markerSize + 2) / 2}" y="${(markerSize + 2) / 2 + fontSize / 3}" text-anchor="middle" fill="#111" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold">${propertyCount}</text>
-                </svg>`
-              : `<svg width="${markerSize}" height="${markerSize}" viewBox="0 0 ${markerSize} ${markerSize}" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="${markerSize / 2}" cy="${markerSize / 2}" r="${markerSize / 2 - 2}" fill="${backgroundColor}" stroke="${borderColor}" stroke-width="3"/>
-                  <text x="${markerSize / 2}" y="${markerSize / 2 + fontSize / 3}" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold">${propertyCount}</text>
-                </svg>`
-        ),
-        scaledSize: isSelected
-          ? new window.google.maps.Size(markerSize + 4, markerSize + 4)
-          : isHovered
-            ? new window.google.maps.Size(markerSize + 2, markerSize + 2)
-            : new window.google.maps.Size(markerSize, markerSize),
-        anchor: isSelected
-          ? new window.google.maps.Point((markerSize + 4) / 2, (markerSize + 4) / 2)
-          : isHovered
-            ? new window.google.maps.Point((markerSize + 2) / 2, (markerSize + 2) / 2)
-            : new window.google.maps.Point(markerSize / 2, markerSize / 2)
-      }
-    });
-
-    marker.addListener('mouseover', () => {
-      setHoveredMarkerId(clusterId);
-    });
-
-    marker.addListener('mouseout', () => {
-      setHoveredMarkerId(null);
-    });
-
-    marker.addListener('click', () => {
-      setHoveredMarkerId(null);
-      
-      // isClusterClicking.current = true; // This line was removed as per the new_code
-      
-      if (propertyCount === 1) {
-        if (onMarkerClick) {
-          onMarkerClick(properties[0]);
-        }
-        if (setSelectedMarkerId) {
-          setSelectedMarkerId(properties[0].id);
-        }
-        if (setSelectedClusterId) {
-          setSelectedClusterId('');
-        }
-      } else {
-        if (onClusterClick) {
-          onClusterClick(properties);
-        }
-        if (setSelectedClusterId) {
-          setSelectedClusterId(clusterId);
-        }
-        if (setSelectedMarkerId) {
-          setSelectedMarkerId('');
-        }
-        
-        // 클러스터 영역으로 지도 확대
-        if (mapInstance.current && properties.length > 1) {
-          const bounds = new window.google.maps.LatLngBounds();
-          properties.forEach((property: Property) => {
-            if (property.location && property.location.lat && property.location.lng) {
-              bounds.extend(new window.google.maps.LatLng(property.location.lat, property.location.lng));
-            }
-          });
-          
-          if (!bounds.isEmpty()) {
-            const center = bounds.getCenter();
-            mapInstance.current.setCenter(center);
-            const currentZoom = mapInstance.current.getZoom() || 10;
-            const targetZoom = Math.min(currentZoom + 2, 18);
-            mapInstance.current.setZoom(targetZoom);
-          }
-        }
-      }
-      
-      // setTimeout(() => { // This line was removed as per the new_code
-      //   isClusterClicking.current = false; // This line was removed as per the new_code
-      // }, 1500); // This line was removed as per the new_code
-    });
-
-    return marker;
-  }, [onMarkerClick, onClusterClick, internalSelectedClusterId, hoveredMarkerId, setSelectedMarkerId, setSelectedClusterId]);
-
-  // 마커 클러스터링 로직
-  const clusterMarkers = useCallback((markers: any[], zoom: number) => {
-    const clusters: { center: { lat: number; lng: number }; properties: Property[] }[] = [];
-    
-    let clusterRadius: number;
-    if (zoom < 8) {
-      clusterRadius = 0.15;
-    } else if (zoom < 10) {
-      clusterRadius = 0.08;
-    } else if (zoom < 12) {
-      clusterRadius = 0.04;
-    } else if (zoom < 14) {
-      clusterRadius = 0.02;
-    } else if (zoom < 16) {
-      clusterRadius = 0.01;
-    } else if (zoom < 18) {
-      clusterRadius = 0.005;
-    } else {
-      clusterRadius = 0.002;
-    }
-
-    properties.forEach((property, index) => {
-      let addedToCluster = false;
-      
-      for (const cluster of clusters) {
-        const distance = Math.sqrt(
-          Math.pow(property.location.lat - cluster.center.lat, 2) +
-          Math.pow(property.location.lng - cluster.center.lng, 2)
-        );
-        
-        if (distance < clusterRadius) {
-          cluster.properties.push(property);
-          cluster.center = {
-            lat: cluster.properties.reduce((sum, p) => sum + p.location.lat, 0) / cluster.properties.length,
-            lng: cluster.properties.reduce((sum, p) => sum + p.location.lng, 0) / cluster.properties.length
-          };
-          addedToCluster = true;
-          break;
-        }
-      }
-      
-      if (!addedToCluster) {
-        clusters.push({
-          center: property.location,
-          properties: [property]
-        });
-      }
-    });
-
-    return clusters;
-  }, [properties]);
-
-  // 마커 생성 및 관리
-  const createMarkers = useCallback(() => {
-    console.log('=== createMarkers 함수 시작 ===');
-    console.log('properties 배열:', properties.length, '개');
-    
-    // 기존 마커들 제거
-    markersRef.current.forEach(marker => {
-      if (marker && marker.setMap) {
-        marker.setMap(null);
-      }
-    });
-    markersRef.current = [];
-
-    // 기존 클러스터러 제거
-    if (clustererRef.current) {
-      clustererRef.current.clearMarkers();
-      clustererRef.current = null;
-    }
-
-    if (!mapInstance.current || !properties.length) {
-      console.log('지도가 초기화되지 않았거나 매물이 없습니다.');
-      return;
-    }
-
-    console.log(`${properties.length}개의 매물에 대한 마커 생성 시작...`);
-
-    // 모든 마커 생성
-    properties.forEach((property, index) => {
-      if (!property.location || !property.location.lat || !property.location.lng) {
-        console.warn(`매물 ${property.id}의 위치 정보가 없습니다.`);
-        return;
-      }
-
-      const marker = new window.google.maps.Marker({
-        position: { lat: property.location.lat, lng: property.location.lng },
-        map: null, // 클러스터러가 관리하므로 null로 설정
-        title: `${property.title} - ${property.price}만원`,
-        icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                </filter>
-              </defs>
-              <circle cx="15" cy="15" r="14" fill="#3b82f6" stroke="#000000" stroke-width="1.5" filter="url(#shadow)"/>
-              <text x="15" y="18" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">1</text>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(30, 30),
-          anchor: new window.google.maps.Point(15, 15)
-        }
-      });
-
-      // 마커에 매물 정보 저장
-      (marker as any).propertyId = property.id;
-      (marker as any).property = property;
-      (marker as any).markerIndex = index + 1;
-
-      // 마커 클릭 이벤트 추가
-      marker.addListener('click', () => {
-        console.log('마커 클릭 이벤트 발생:', property.id);
-        
-        // 이전에 선택된 마커가 있다면 선택 해제
-        if (selectedMarkerId && selectedMarkerId !== property.id) {
-          console.log('이전 마커 선택 해제:', selectedMarkerId);
-          // 이전 마커를 찾아서 원래 스타일로 복원
-          const previousMarker = markersRef.current.find(m => (m as any).propertyId === selectedMarkerId);
-          if (previousMarker) {
-            previousMarker.setIcon({
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                    </filter>
-                  </defs>
-                  <circle cx="15" cy="15" r="14" fill="#3b82f6" stroke="#000000" stroke-width="1.5" filter="url(#shadow)"/>
-                  <text x="15" y="18" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">1</text>
-                </svg>
-              `),
-              scaledSize: new window.google.maps.Size(30, 30),
-              anchor: new window.google.maps.Point(15, 15)
-            });
-            previousMarker.setTitle(`${(previousMarker as any).property.title} - ${(previousMarker as any).property.price}만원`);
-          }
-        }
-        
-        // 클릭 시 호버 상태 유지
-        setHoveredMarkerId(property.id);
-        
-        if (onMarkerClick) {
-          onMarkerClick(property);
-        }
-        if (setSelectedMarkerId) {
-          setSelectedMarkerId(property.id);
-        }
-        if (setSelectedClusterId) {
-          setSelectedClusterId('');
-        }
-        
-        // 클릭된 마커를 선택된 상태로 표시 (빨간색, 크기 증가)
-        const markerSize = 38;
-        const centerPoint = markerSize / 2;
-        const fontSize = Math.max(8, markerSize * 0.3);
-        
-        marker.setIcon({
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="${markerSize}" height="${markerSize}" viewBox="0 0 ${markerSize} ${markerSize}" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                </filter>
-              </defs>
-              <circle cx="${centerPoint}" cy="${centerPoint}" r="${centerPoint - 1}" fill="#ef4444" stroke="#000000" stroke-width="2" filter="url(#shadow)"/>
-              <text x="${centerPoint}" y="${centerPoint + fontSize/3}" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold">1</text>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(markerSize, markerSize),
-          anchor: new window.google.maps.Point(centerPoint, centerPoint)
-        });
-        
-        // 클릭된 마커의 툴팁 업데이트
-        marker.setTitle(`${property.title} - ${property.price}만원 (선택됨)`);
-      });
-
-      // 마커 호버 이벤트 추가
-      marker.addListener('mouseover', () => {
-        console.log('개별 마커 호버:', property.title);
-        
-        // 선택된 마커는 호버 효과 적용하지 않음
-        const isSelected = selectedMarkerId === property.id;
-        if (isSelected) {
-          console.log('선택된 마커이므로 호버 효과 적용하지 않음');
-          return;
-        }
-        
-        setHoveredMarkerId(property.id);
-        
-        // 호버 시 시각적 피드백
-        marker.setIcon({
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                </filter>
-              </defs>
-              <circle cx="17" cy="17" r="16" fill="#1e40af" stroke="#000000" stroke-width="2" filter="url(#shadow)"/>
-              <text x="17" y="20" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="11" font-weight="bold">1</text>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(34, 34),
-          anchor: new window.google.maps.Point(17, 17)
-        });
-        
-        // 호버 시 툴팁 업데이트
-        marker.setTitle(`${property.title} - ${property.price}만원 (호버)`);
-      });
-
-      marker.addListener('mouseout', () => {
-        console.log('개별 마커 호버 해제:', property.title);
-        
-        // 선택된 마커는 호버 해제 효과 적용하지 않음
-        const isSelected = selectedMarkerId === property.id;
-        if (isSelected) {
-          console.log('선택된 마커이므로 호버 해제 효과 적용하지 않음');
-          return;
-        }
-        
-        setHoveredMarkerId(null);
-        
-        // 호버 해제 시 원래 스타일로 복원
-        marker.setIcon({
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                </filter>
-              </defs>
-              <circle cx="15" cy="15" r="14" fill="#3b82f6" stroke="#000000" stroke-width="1.5" filter="url(#shadow)"/>
-              <text x="15" y="18" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">1</text>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(30, 30),
-          anchor: new window.google.maps.Point(15, 15)
-        });
-        
-        // 호버 해제 시 툴팁 복원
-        marker.setTitle(`${property.title} - ${property.price}만원`);
-      });
-
-      markersRef.current.push(marker);
-    });
-
-    console.log(`${markersRef.current.length}개의 마커 생성 완료`);
-  }, [properties, selectedMarkerId, hoveredMarkerId, onMarkerClick, setSelectedMarkerId, setSelectedClusterId]);
-
-  // 간단한 클러스터링 로직 (개선된 버전)
-  const createSimpleClusters = useCallback(() => {
-    console.log('간단한 클러스터링 로직 시작');
-    
-    if (!mapInstance.current || markersRef.current.length === 0) return;
-    
-    // 모든 마커를 지도에 표시
-    markersRef.current.forEach(marker => {
-      marker.setMap(mapInstance.current);
-    });
-    
-    // 간단한 클러스터링: 줌 레벨에 따라 마커 표시/숨김
-    const updateMarkerVisibility = () => {
-      const bounds = mapInstance.current.getBounds();
-      
-      if (!bounds) return;
-      
-      markersRef.current.forEach(marker => {
-        const position = marker.getPosition();
-        if (!position) return;
-        
-        // 모든 줌 레벨에서 마커 표시 (줌 레벨 제한 제거)
-        marker.setVisible(true);
-      });
-    };
-    
-    // 줌 변경 시 마커 가시성 업데이트
-    mapInstance.current.addListener('zoom_changed', updateMarkerVisibility);
-    mapInstance.current.addListener('bounds_changed', updateMarkerVisibility);
-    
-    // 초기 마커 가시성 설정
-    updateMarkerVisibility();
-    
-    console.log('간단한 클러스터링 완료 - 줌 기반 마커 표시');
-  }, []);
-
-  // 개별 마커 호버 이벤트 재설정 함수
-  const resetIndividualMarkerHoverEvents = useCallback(() => {
-    console.log('개별 마커 호버 이벤트 재설정');
-    
-    markersRef.current.forEach(marker => {
-      if (!marker) return;
-      
-      const property = (marker as any).property;
-      if (!property) return;
-
-      // 기존 호버 이벤트 리스너 제거
-      if ((marker as any).hoverListeners) {
-        window.google.maps.event.removeListener((marker as any).hoverListeners.mouseover);
-        window.google.maps.event.removeListener((marker as any).hoverListeners.mouseout);
-      }
-
-      // 새로운 호버 이벤트 리스너 추가
-      (marker as any).hoverListeners = {
-        mouseover: marker.addListener('mouseover', () => {
-          console.log('개별 마커 호버 (재설정):', property.title);
-          
-          // 선택된 마커는 호버 효과 적용하지 않음
-          const isSelected = selectedMarkerId === property.id;
-          if (isSelected) {
-            console.log('선택된 마커이므로 호버 효과 적용하지 않음');
-            return;
-          }
-          
-          setHoveredMarkerId(property.id);
-          
-          // 호버 시 시각적 피드백
-          marker.setIcon({
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                  </filter>
-                </defs>
-                <circle cx="17" cy="17" r="16" fill="#1e40af" stroke="#000000" stroke-width="2" filter="url(#shadow)"/>
-                <text x="17" y="20" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="11" font-weight="bold">1</text>
-              </svg>
-            `),
-            scaledSize: new window.google.maps.Size(34, 34),
-            anchor: new window.google.maps.Point(17, 17)
-          });
-          
-          // 호버 시 툴팁 업데이트
-          marker.setTitle(`${property.title} - ${property.price}만원 (호버)`);
-        }),
-        mouseout: marker.addListener('mouseout', () => {
-          console.log('개별 마커 호버 해제 (재설정):', property.title);
-          
-          // 선택된 마커는 호버 해제 효과 적용하지 않음
-          const isSelected = selectedMarkerId === property.id;
-          if (isSelected) {
-            console.log('선택된 마커이므로 호버 해제 효과 적용하지 않음');
-            return;
-          }
-          
-          setHoveredMarkerId(null);
-          
-          // 호버 해제 시 원래 스타일로 복원
-          marker.setIcon({
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                  </filter>
-                </defs>
-                <circle cx="15" cy="15" r="14" fill="#3b82f6" stroke="#000000" stroke-width="1.5" filter="url(#shadow)"/>
-                <text x="15" y="18" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">1</text>
-              </svg>
-            `),
-            scaledSize: new window.google.maps.Size(30, 30),
-            anchor: new window.google.maps.Point(15, 15)
-          });
-          
-          // 호버 해제 시 툴팁 복원
-          marker.setTitle(`${property.title} - ${property.price}만원`);
-        })
-      };
-    });
-  }, [selectedMarkerId]);
-
-  // 마커 스타일 업데이트 함수
-  const updateMarkerStyles = useCallback(() => {
-    if (clustererRef.current) {
-      // 클러스터러가 있는 경우, 클러스터러를 다시 렌더링
-      clustererRef.current.render();
-    } else {
-      // 클러스터러가 없는 경우, 개별 마커 스타일 업데이트
-      markersRef.current.forEach(marker => {
-        if (!marker) return;
-        
-        const property = (marker as any).property;
-        if (!property) return;
-
-        const isSelected = selectedMarkerId === property.id;
-        const isHovered = hoveredMarkerId === property.id;
-        
-        let markerColor = '#3b82f6'; // 기본 파란색
-        let markerSize = 30;
-        
-        if (isSelected) {
-          markerColor = '#ef4444'; // 선택된 경우 빨간색
-          markerSize = 38;
-        } else if (isHovered) {
-          markerColor = '#000000'; // 호버된 경우 검은색
-          markerSize = 34;
-        }
-        
-        const centerPoint = markerSize / 2;
-        const fontSize = Math.max(8, markerSize * 0.3);
-        
-        marker.setIcon({
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="${markerSize}" height="${markerSize}" viewBox="0 0 ${markerSize} ${markerSize}" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                </filter>
-              </defs>
-              <circle cx="${centerPoint}" cy="${centerPoint}" r="${centerPoint - 1}" fill="${markerColor}" stroke="#000000" stroke-width="1.5" filter="url(#shadow)"/>
-              <text x="${centerPoint}" y="${centerPoint + fontSize/3}" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold">1</text>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(markerSize, markerSize),
-          anchor: new window.google.maps.Point(centerPoint, centerPoint)
-        });
-
-        // 호버 상태에 따른 툴팁 업데이트
-        if (isHovered) {
-          marker.setTitle(`${property.title} - ${property.price}만원 (호버)`);
-        } else if (isSelected) {
-          marker.setTitle(`${property.title} - ${property.price}만원 (선택됨)`);
-        } else {
-          marker.setTitle(`${property.title} - ${property.price}만원`);
-        }
-      });
-    }
-  }, [selectedMarkerId, hoveredMarkerId]);
-
-  // 디바운싱을 적용한 마커 스타일 업데이트 함수
-  const debouncedUpdateStyles = useCallback(() => {
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
-    
-    updateTimeoutRef.current = setTimeout(() => {
-      updateMarkerStyles();
-    }, 100);
-  }, [updateMarkerStyles]);
+  const clustersRef = useRef<any[]>([]);
+  
+  // 선택 상태 관리 - 깜빡임 방지를 위해 ref 사용
+  const selectedMarkerIdRef = useRef<string | null>(null);
+  const selectedClusterIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    console.log('GoogleMap 컴포넌트 마운트됨');
-    
-    // 지도 초기화 함수
-    const initializeMap = () => {
-      console.log('지도 초기화 시도...');
-      console.log('mapRef.current:', !!mapRef.current);
-      console.log('window.google:', !!window.google);
-      console.log('window.google.maps:', !!(window.google && window.google.maps));
-      
-      if (!mapRef.current) {
-        console.log('지도 컨테이너가 없음');
-        return;
-      }
-      
+    if (!mapRef.current) return;
+
+    const initMap = () => {
       if (!window.google || !window.google.maps) {
-        console.log('Google Maps API가 로드되지 않음');
+        if (retryCount < 5) {
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+            initMap();
+          }, 2000);
+        } else {
+          setError('지도를 로드할 수 없습니다. 인터넷 연결을 확인해주세요.');
+        }
         return;
       }
-      
-      if (mapInstance.current) {
-        console.log('지도가 이미 초기화됨');
-        return;
-      }
-      
+
       try {
-        console.log('지도 생성 시작...');
+        setError(null);
+        
+        const incheonCenter = { lat: 37.4000, lng: 126.7052 };
+        
         const map = new window.google.maps.Map(mapRef.current, {
-          center: { lat: 37.5665, lng: 126.9780 }, // 서울시 중심
-          zoom: 10, // 서울시 전체가 보이는 줌 레벨
+          center: incheonCenter,
+          zoom: 11,
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
-          zoomControl: false,
+          zoomControl: true,
           mapTypeControl: false,
           scaleControl: false,
           streetViewControl: false,
           rotateControl: false,
           fullscreenControl: false,
           gestureHandling: 'greedy',
-          backgroundColor: '#ffffff',
           disableDefaultUI: true,
           clickableIcons: false,
-          restriction: {
-            latLngBounds: {
-              north: 38.8, // 북쪽 경계 (강원도 북부)
-              south: 34.5, // 남쪽 경계 (전라남도 남부, 제주도 제외)
-              west: 125.0, // 서쪽 경계 (인천 서해안)
-              east: 131.5  // 동쪽 경계 (강원도 동해안)
-            },
-            strictBounds: true
-          },
-          // 클러스터링 관련 설정 - 원래 상태로 복원
-          maxZoom: 20, // 최대 줌 레벨을 높여서 모든 줌 레벨에서 마커 표시
+          draggable: true,
+          scrollwheel: true,
+          optimized: true,
+          backgroundColor: '#f8fafc',
+          tilt: 0,
+          heading: 0,
+          maxZoom: 18,
           minZoom: 6,
-          // 클러스터 분할 방지를 위한 추가 설정
+          styles: [],
+          noClear: true,
           zoomControlOptions: {
-            position: window.google.maps.ControlPosition.TOP_RIGHT,
+            position: window.google.maps.ControlPosition.RIGHT_TOP,
             style: window.google.maps.ZoomControlStyle.SMALL
-          }
+          },
+          overviewMapControl: false,
+          panControl: false,
+          keyboardShortcuts: false,
+          isFractionalZoomEnabled: true,
+          fitBounds: false,
+          preserveViewport: true
         });
-        
+
         mapInstance.current = map;
-        console.log('지도 생성 완료');
-        
-        // 지도 로드 완료 후 마커 생성
-        map.addListener('idle', () => {
-          console.log('지도 idle 이벤트');
-          setIsMapLoaded(true);
+
+        map.panTo(incheonCenter);
+        map.setZoom(11);
+
+        map.addListener('tilesloaded', () => {
+          setIsLoaded(true);
+          setError(null);
         });
 
-        // 줌 변경 이벤트 리스너 추가
         map.addListener('zoom_changed', () => {
-          const currentZoom = map.getZoom();
-          console.log('줌 레벨 변경:', currentZoom);
-          
-          // 모든 줌 레벨에서 마커 호버 이벤트 재설정
+          // 줌 변경 시 클러스터 업데이트
           setTimeout(() => {
-            resetIndividualMarkerHoverEvents();
+            updateClusters();
           }, 100);
-          
-          // 즉시 마커 스타일 업데이트 (줌 변경은 즉시 반영)
-          updateMarkerStyles();
-          
-          // 줌 레벨에 따른 추가 처리
-          if (currentZoom && currentZoom > 15) {
-            console.log('높은 줌 레벨에서 개별 마커 표시');
-          }
-        });
-
-        // 지도 이동 이벤트 리스너 추가
-        map.addListener('bounds_changed', () => {
-          // 디바운싱된 마커 스타일 업데이트 (지도 이동은 디바운싱 적용)
-          debouncedUpdateStyles();
         });
         
-        setIsMapLoaded(true);
-        setMapError(null);
+        map.addListener('error', (error: any) => {
+          console.error('지도 오류:', error);
+          setError('지도를 로드하는 중 오류가 발생했습니다.');
+        });
         
       } catch (error) {
         console.error('지도 초기화 오류:', error);
-        setMapError('지도를 로드할 수 없습니다.');
-        setIsMapLoaded(false);
+        setError('지도를 초기화할 수 없습니다.');
       }
     };
 
-    // Google Maps API 로딩 이벤트 리스너
-    const handleGoogleMapsLoaded = () => {
-      console.log('Google Maps API 로딩 완료');
-      setTimeout(initializeMap, 100);
-    };
+    initMap();
+  }, [retryCount]);
 
-    const handleGoogleMapsError = () => {
-      console.log('Google Maps API 로딩 오류');
-      setMapError('Google Maps API를 로드할 수 없습니다.');
-      setIsMapLoaded(false);
-    };
-
-    // MarkerClusterer 로딩 완료 이벤트 리스너
-    const handleMarkerClustererLoaded = () => {
-      console.log('MarkerClusterer 라이브러리 로딩 완료');
-      // 마커가 이미 생성되어 있다면 클러스터러 초기화
-      if (markersRef.current.length > 0 && mapInstance.current) {
-        console.log('기존 마커에 대해 MarkerClusterer 초기화');
-        createMarkers();
-      }
-    };
-
-    // 클러스터 선택 해제 이벤트 리스너
-    const handleResetClusterSelection = () => {
-      console.log('클러스터 선택 해제 이벤트');
-      setInternalSelectedClusterId(null);
-    };
-
-    // 마커 선택 해제 이벤트 리스너
-    const handleResetMarkerSelection = () => {
-      console.log('마커 선택 해제 이벤트');
-      setHoveredMarkerId(null);
-      
-      // 모든 마커를 원래 스타일로 복원
-      markersRef.current.forEach(marker => {
-        if (marker) {
-          const property = (marker as any).property;
-          if (property) {
-            marker.setIcon({
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.3)"/>
-                    </filter>
-                  </defs>
-                  <circle cx="15" cy="15" r="14" fill="#3b82f6" stroke="#000000" stroke-width="1.5" filter="url(#shadow)"/>
-                  <text x="15" y="18" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">1</text>
-                </svg>
-              `),
-              scaledSize: new window.google.maps.Size(30, 30),
-              anchor: new window.google.maps.Point(15, 15)
-            });
-            marker.setTitle(`${property.title} - ${property.price}만원`);
-          }
-        }
-      });
-    };
-
-    // 이미 로드된 경우 바로 초기화
-    if (window.google && window.google.maps) {
-      console.log('Google Maps API가 이미 로드됨');
-      setTimeout(initializeMap, 100);
+  // 클러스터링 거리 계산 함수
+  const getClusterDistance = (zoom: number) => {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+      if (zoom < 8) return 0.2;
+      if (zoom < 10) return 0.1;
+      if (zoom < 12) return 0.05;
+      if (zoom < 13) return 0.025;
+      return 0;
     } else {
-      console.log('Google Maps API 로딩 대기...');
-      window.addEventListener('googleMapsLoaded', handleGoogleMapsLoaded);
-      window.addEventListener('googleMapsError', handleGoogleMapsError);
+      if (zoom < 8) return 0.25;
+      if (zoom < 10) return 0.15;
+      if (zoom < 12) return 0.08;
+      if (zoom < 13) return 0.03;
+      return 0;
+    }
+  };
+
+  // 고정된 마커 아이콘 생성
+  const createMarkerIcon = () => {
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="14" fill="#3b82f6" stroke="white" stroke-width="2"/>
+          <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">1</text>
+        </svg>
+      `),
+      scaledSize: new window.google.maps.Size(32, 32),
+      anchor: new window.google.maps.Point(16, 16)
+    };
+  };
+
+  // 선택된 마커 아이콘 생성
+  const createSelectedMarkerIcon = () => {
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="16" fill="#1e40af" stroke="white" stroke-width="3"/>
+          <text x="18" y="23" text-anchor="middle" fill="white" font-size="13" font-weight="bold">1</text>
+        </svg>
+      `),
+      scaledSize: new window.google.maps.Size(36, 36),
+      anchor: new window.google.maps.Point(18, 18)
+    };
+  };
+
+  // 고정된 클러스터 아이콘 생성
+  const createClusterIcon = (count: number) => {
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="18" fill="#3b82f6" stroke="white" stroke-width="3"/>
+          <text x="20" y="25" text-anchor="middle" fill="white" font-size="14" font-weight="bold">${count}</text>
+        </svg>
+      `),
+      scaledSize: new window.google.maps.Size(40, 40),
+      anchor: new window.google.maps.Point(20, 20)
+    };
+  };
+
+  // 선택된 클러스터 아이콘 생성
+  const createSelectedClusterIcon = (count: number) => {
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="22" cy="22" r="20" fill="#1e40af" stroke="white" stroke-width="4"/>
+          <text x="22" y="28" text-anchor="middle" fill="white" font-size="15" font-weight="bold">${count}</text>
+        </svg>
+      `),
+      scaledSize: new window.google.maps.Size(44, 44),
+      anchor: new window.google.maps.Point(22, 22)
+    };
+  };
+
+  // 수동 클러스터링 함수
+  const updateClusters = () => {
+    if (!mapInstance.current || !window.google) return;
+
+    // 현재 선택 상태 저장
+    const currentSelectedMarkerId = selectedMarkerIdRef.current;
+    const currentSelectedClusterId = selectedClusterIdRef.current;
+
+    // 기존 클러스터 제거
+    clustersRef.current.forEach(cluster => {
+      try {
+        cluster.setMap(null);
+      } catch (err) {
+        console.error('클러스터 제거 오류:', err);
+      }
+    });
+    clustersRef.current = [];
+
+    const zoom = mapInstance.current.getZoom();
+    const clusterDistance = getClusterDistance(zoom);
+    
+    if (clusterDistance === 0) {
+      // 개별 마커 표시
+      markersRef.current.forEach(marker => {
+        marker.setIcon(createMarkerIcon());
+        marker.setMap(mapInstance.current);
+        
+        // 선택효과가 포함된 클릭 이벤트
+        marker.addListener('click', () => {
+          // 이전 선택된 마커 스타일 복원
+          if (selectedMarkerIdRef.current && selectedMarkerIdRef.current !== marker.property.id) {
+            const previousMarker = markersRef.current.find(m => m.property.id === selectedMarkerIdRef.current);
+            if (previousMarker) {
+              previousMarker.setIcon(createMarkerIcon());
+            }
+          }
+          
+          // 이전 선택된 클러스터 스타일 복원
+          if (selectedClusterIdRef.current) {
+            const previousCluster = clustersRef.current.find(c => c.clusterId === selectedClusterIdRef.current);
+            if (previousCluster) {
+              previousCluster.setIcon(createClusterIcon(previousCluster.clusterCount));
+            }
+            selectedClusterIdRef.current = null;
+          }
+          
+          // 현재 마커 선택 상태 업데이트
+          selectedMarkerIdRef.current = marker.property.id;
+          
+          // 선택된 마커 스타일 적용
+          marker.setIcon(createSelectedMarkerIcon());
+          
+          // 매물목록 업데이트
+          if (onMarkerClick) {
+            onMarkerClick(marker.property);
+          }
+        });
+      });
+      return;
     }
 
-    // MarkerClusterer 로딩 완료 이벤트 리스너 등록
-    window.addEventListener('markerClustererLoaded', handleMarkerClustererLoaded);
+    // 클러스터링 로직
+    const groups: Array<{
+      center: { lat: number; lng: number };
+      markers: any[];
+      properties: Property[];
+    }> = [];
 
-    // 초기화 이벤트 리스너
-    const handleResetMap = () => {
-      console.log('지도 초기화 이벤트');
-      if (mapInstance.current) {
-        mapInstance.current.setCenter({ lat: 37.5665, lng: 126.9780 }); // 서울시 중심
-        mapInstance.current.setZoom(10); // 서울시 전체가 보이는 줌 레벨
+    markersRef.current.forEach(marker => {
+      const position = marker.getPosition();
+      const lat = position.lat();
+      const lng = position.lng();
+      
+      let addedToGroup = false;
+      let closestGroup = null;
+      let minDistance = Infinity;
+      
+      for (const group of groups) {
+        const distance = Math.sqrt(
+          Math.pow(lat - group.center.lat, 2) + Math.pow(lng - group.center.lng, 2)
+        );
         
-        // 초기화 버튼 클릭 시에만 호버 상태 초기화
-        setHoveredMarkerId(null);
-        setInternalSelectedClusterId(null);
-        
-        // 클러스터 호버 순환 타이머 정리
-        if (clusterHoverIntervalRef.current) {
-          clearInterval(clusterHoverIntervalRef.current);
-          clusterHoverIntervalRef.current = null;
+        if (distance <= clusterDistance && distance < minDistance) {
+          minDistance = distance;
+          closestGroup = group;
         }
       }
-    };
+      
+      if (closestGroup) {
+        closestGroup.markers.push(marker);
+        closestGroup.properties.push(marker.property);
+        
+        const totalLat = closestGroup.markers.reduce((sum, m) => sum + m.getPosition().lat(), 0);
+        const totalLng = closestGroup.markers.reduce((sum, m) => sum + m.getPosition().lng(), 0);
+        closestGroup.center = {
+          lat: totalLat / closestGroup.markers.length,
+          lng: totalLng / closestGroup.markers.length
+        };
+        
+        addedToGroup = true;
+      }
+      
+      if (!addedToGroup) {
+        groups.push({
+          center: { lat, lng },
+          markers: [marker],
+          properties: [marker.property]
+        });
+      }
+    });
 
-    // 매물 업데이트 이벤트 리스너
-    const handlePropertiesUpdated = (event: CustomEvent) => {
-      console.log('매물 업데이트 이벤트');
+    groups.forEach((group) => {
+      if (group.markers.length === 1) {
+        // 개별 마커
+        const marker = group.markers[0];
+        const property = group.properties[0];
+        
+        marker.setIcon(createMarkerIcon());
+        marker.setMap(mapInstance.current);
+        
+        // 선택효과가 포함된 클릭 이벤트
+        marker.addListener('click', () => {
+          // 이전 선택된 마커 스타일 복원
+          if (selectedMarkerIdRef.current && selectedMarkerIdRef.current !== marker.property.id) {
+            const previousMarker = markersRef.current.find(m => m.property.id === selectedMarkerIdRef.current);
+            if (previousMarker) {
+              previousMarker.setIcon(createMarkerIcon());
+            }
+          }
+          
+          // 이전 선택된 클러스터 스타일 복원
+          if (selectedClusterIdRef.current) {
+            const previousCluster = clustersRef.current.find(c => c.clusterId === selectedClusterIdRef.current);
+            if (previousCluster) {
+              previousCluster.setIcon(createClusterIcon(previousCluster.clusterCount));
+            }
+          }
+          
+          // 현재 마커 선택 상태 업데이트
+          selectedMarkerIdRef.current = marker.property.id;
+          
+          // 선택된 마커 스타일 적용
+          marker.setIcon(createSelectedMarkerIcon());
+          
+          // 매물목록 업데이트
+          if (onMarkerClick) {
+            onMarkerClick(property);
+          }
+        });
+        
+      } else {
+        // 클러스터
+        const cluster = new window.google.maps.Marker({
+          position: group.center,
+          map: mapInstance.current,
+          zIndex: 10,
+          icon: createClusterIcon(group.markers.length)
+        });
+
+        // 클러스터 ID 설정
+        const clusterId = `cluster_${group.center.lat.toFixed(4)}_${group.center.lng.toFixed(4)}_${group.markers.length}`;
+        cluster.clusterId = clusterId;
+        cluster.clusterCount = group.markers.length;
+        cluster.clusterProperties = group.properties;
+
+        // 개별 마커 숨기기
+        group.markers.forEach(marker => {
+          marker.setMap(null);
+        });
+        
+        // 선택효과가 포함된 클릭 이벤트
+        cluster.addListener('click', () => {
+          // 이전 선택된 마커 스타일 복원
+          if (selectedMarkerIdRef.current) {
+            const previousMarker = markersRef.current.find(m => m.property.id === selectedMarkerIdRef.current);
+            if (previousMarker) {
+              previousMarker.setIcon(createMarkerIcon());
+            }
+            selectedMarkerIdRef.current = null;
+          }
+          
+          // 이전 선택된 클러스터 스타일 복원
+          if (selectedClusterIdRef.current && selectedClusterIdRef.current !== clusterId) {
+            const previousCluster = clustersRef.current.find(c => c.clusterId === selectedClusterIdRef.current);
+            if (previousCluster) {
+              previousCluster.setIcon(createClusterIcon(previousCluster.clusterCount));
+            }
+          }
+          
+          // 현재 클러스터 선택 상태 업데이트
+          selectedClusterIdRef.current = clusterId;
+          
+          // 선택된 클러스터 스타일 적용
+          cluster.setIcon(createSelectedClusterIcon(group.markers.length));
+          
+          // 매물목록 업데이트
+          if (onClusterClick) {
+            onClusterClick(group.properties);
+          }
+        });
+        
+        clustersRef.current.push(cluster);
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (!mapInstance.current || !window.google || !isLoaded) {
+      return;
+    }
+
+    try {
+      // 기존 마커 제거
+      markersRef.current.forEach(marker => {
+        try {
+          marker.setMap(null);
+        } catch (err) {
+          console.error('마커 제거 오류:', err);
+        }
+      });
+      markersRef.current = [];
+
+      // 기존 클러스터 제거
+      clustersRef.current.forEach(cluster => {
+        try {
+          cluster.setMap(null);
+        } catch (err) {
+          console.error('클러스터 제거 오류:', err);
+        }
+      });
+      clustersRef.current = [];
+
+      // 새 마커 생성
+      properties.forEach((property) => {
+        if (!property.location) {
+          return;
+        }
+
+        try {
+          const marker = new window.google.maps.Marker({
+            position: { lat: property.location.lat, lng: property.location.lng },
+            map: null,
+            title: property.address,
+            zIndex: 1,
+            optimized: true,
+            clickable: true,
+            draggable: false,
+            animation: null,
+            icon: createMarkerIcon()
+          });
+
+          marker.property = property;
+          markersRef.current.push(marker);
+        } catch (err) {
+          console.error('마커 생성 오류:', err);
+        }
+      });
+
       setTimeout(() => {
-        createMarkers();
-      }, 200);
-    };
+        updateClusters();
+      }, 100);
 
-    window.addEventListener('resetFilters', handleResetMap);
-    window.addEventListener('propertiesUpdated', handlePropertiesUpdated as EventListener);
-    window.addEventListener('resetClusterSelection', handleResetClusterSelection);
-    window.addEventListener('resetMarkerSelection', handleResetMarkerSelection);
+    } catch (error) {
+      console.error('마커 생성 전체 오류:', error);
+      setError('마커를 생성하는 중 오류가 발생했습니다.');
+    }
 
     return () => {
-      console.log('GoogleMap 컴포넌트 언마운트');
-      window.removeEventListener('googleMapsLoaded', handleGoogleMapsLoaded);
-      window.removeEventListener('googleMapsError', handleGoogleMapsError);
-      window.removeEventListener('markerClustererLoaded', handleMarkerClustererLoaded);
-      window.removeEventListener('resetFilters', handleResetMap);
-      window.removeEventListener('propertiesUpdated', handlePropertiesUpdated as EventListener);
-      window.removeEventListener('resetClusterSelection', handleResetClusterSelection);
-      window.removeEventListener('resetMarkerSelection', handleResetMarkerSelection);
-      
-      // 타이머 정리
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
+      try {
+        markersRef.current.forEach(marker => {
+          try {
+            marker.setMap(null);
+          } catch (err) {
+            console.error('마커 정리 오류:', err);
+          }
+        });
+        clustersRef.current.forEach(cluster => {
+          try {
+            cluster.setMap(null);
+          } catch (err) {
+            console.error('클러스터 정리 오류:', err);
+          }
+        });
+      } catch (err) {
+        console.error('정리 과정 오류:', err);
+      }
+    };
+  }, [properties, isLoaded]);
+
+  useImperativeHandle(ref, () => ({
+    setCenter: (position: { lat: number; lng: number } = { lat: 37.4000, lng: 126.7052 }) => {
+      if (mapInstance.current) {
+        mapInstance.current.panTo(position);
+      }
+    },
+    setZoom: (zoom: number) => {
+      if (mapInstance.current) {
+        mapInstance.current.setZoom(zoom);
+      }
+    },
+    resetMarkers: () => {
+      if (mapInstance.current) {
+        const incheonCenter = { lat: 37.4000, lng: 126.7052 };
+        mapInstance.current.panTo(incheonCenter);
+        mapInstance.current.setZoom(11);
       }
       
-      // 클러스터러 정리
-      if (clustererRef.current) {
-        clustererRef.current.clearMarkers();
-        clustererRef.current = null;
-      }
-      
-      // 마커 정리
+      // 마커 재생성
       markersRef.current.forEach(marker => {
-        if (marker && marker.setMap) {
+        try {
           marker.setMap(null);
+        } catch (err) {
+          console.error('마커 제거 오류:', err);
         }
       });
       markersRef.current = [];
       
-      // 클러스터 호버 순환 타이머 정리
-      if (clusterHoverIntervalRef.current) {
-        clearInterval(clusterHoverIntervalRef.current);
-      }
-    };
-  }, [createMarkers, updateMarkerStyles, debouncedUpdateStyles, createSimpleClusters, resetIndividualMarkerHoverEvents]);
-
-  useEffect(() => {
-    if (mapInstance.current && isMapLoaded && properties.length > 0) {
-      console.log('마커 생성 useEffect - 조건 만족');
-      console.log('properties 개수:', properties.length);
-      createMarkers();
-    } else {
-      console.log('마커 생성 useEffect - 조건 불만족', {
-        hasMap: !!mapInstance.current,
-        isLoaded: isMapLoaded,
-        propertiesCount: properties.length
+      clustersRef.current.forEach(cluster => {
+        try {
+          cluster.setMap(null);
+        } catch (err) {
+          console.error('클러스터 제거 오류:', err);
+        }
       });
-    }
-  }, [properties, isMapLoaded, createMarkers]);
+      clustersRef.current = [];
+      
+      properties.forEach((property) => {
+        if (!property.location) {
+          return;
+        }
 
-  useEffect(() => {
-    if (mapInstance.current && isMapLoaded && markersRef.current.length > 0) {
-      console.log('클러스터 업데이트 useEffect');
-      updateMarkerStyles();
-    }
-  }, [selectedMarkerId, hoveredMarkerId, updateMarkerStyles, isMapLoaded]);
+        try {
+          const marker = new window.google.maps.Marker({
+            position: { lat: property.location.lat, lng: property.location.lng },
+            map: null,
+            title: property.address,
+            zIndex: 1,
+            optimized: true,
+            clickable: true,
+            draggable: false,
+            animation: null,
+            icon: createMarkerIcon()
+          });
 
-  // 클러스터 선택 상태 변경 시 스타일 업데이트
-  useEffect(() => {
-    if (mapInstance.current && isMapLoaded && clustererRef.current) {
-      console.log('클러스터 선택 상태 변경:', internalSelectedClusterId);
+          marker.property = property;
+          markersRef.current.push(marker);
+        } catch (err) {
+          console.error('마커 재생성 오류:', err);
+        }
+      });
+      
+      setTimeout(() => {
+        updateClusters();
+      }, 100);
     }
-  }, [internalSelectedClusterId, isMapLoaded]);
+  }));
 
   return (
     <MapContainer>
-      <div 
-        ref={mapRef} 
-        style={{ 
-          width: '100%', 
-          height: '100%',
-          position: 'relative'
-        }} 
-      />
-      {!isMapLoaded && (
+      <MapDiv ref={mapRef} />
+      {!isLoaded && !error && (
         <div style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(248, 250, 252, 0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          color: '#6b7280',
+          fontSize: '1.2rem',
+          textAlign: 'center',
+          zIndex: 1000
         }}>
-          {mapError ? (
-            <MapError>
-              <h3>지도 로드 오류</h3>
-              <p>{mapError}</p>
-            </MapError>
-          ) : (
-            <div style={{
-              textAlign: 'center',
-              color: '#6b7280',
-              fontSize: '1.2rem',
-              fontWeight: 500
-            }}>
-              지도를 로드하는 중...
-            </div>
-          )}
+          지도를 로드하는 중...
+        </div>
+      )}
+      {error && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          color: '#dc2626',
+          fontSize: '1rem',
+          textAlign: 'center',
+          zIndex: 1000,
+          background: 'rgba(255, 255, 255, 0.95)',
+          padding: '1rem',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          maxWidth: '80%'
+        }}>
+          <div style={{ marginBottom: '1rem' }}>{error}</div>
+          <button
+            onClick={() => {
+              setError(null);
+              setRetryCount(0);
+              setIsLoaded(false);
+            }}
+            style={{
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+              cursor: 'pointer'
+            }}
+          >
+            다시 시도
+          </button>
         </div>
       )}
     </MapContainer>
   );
+});
+
+// 커스텀 비교 함수로 불필요한 리렌더링 방지
+const areEqual = (prevProps: any, nextProps: any) => {
+  // properties 배열이 변경되었는지만 확인
+  if (prevProps.properties.length !== nextProps.properties.length) {
+    return false;
+  }
+  
+  // properties의 id만 비교하여 실제 변경사항이 있는지 확인
+  const prevIds = prevProps.properties.map((p: Property) => p.id).sort();
+  const nextIds = nextProps.properties.map((p: Property) => p.id).sort();
+  
+  return JSON.stringify(prevIds) === JSON.stringify(nextIds);
 };
 
-export default GoogleMap; 
+export default memo(GoogleMap, areEqual); 

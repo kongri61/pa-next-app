@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import Header from './components/Header';
-import HomePage from './pages/HomePage';
+import HomePage, { HomePageRef } from './pages/HomePage';
 import AddPropertyModal from './components/AddPropertyModal';
 import LoginModal from './components/LoginModal';
 import GlobalStyle from './styles/GlobalStyle';
@@ -15,6 +15,11 @@ const AppContainer = styled.div`
 
 const MainContent = styled.main`
   flex: 1;
+  margin-top: 0; // 헤더 여백 제거
+
+  @media (max-width: 768px) {
+    margin-top: 0; // 모바일에서도 헤더 여백 제거
+  }
 `;
 
 function App() {
@@ -32,6 +37,7 @@ function App() {
     deposit: ''
   });
   const [newProperties, setNewProperties] = useState<Property[]>([]);
+  const homePageRef = useRef<HomePageRef>(null);
 
   // 로그인 상태 확인
   useEffect(() => {
@@ -71,6 +77,18 @@ function App() {
     return isLoggedIn && isAdmin;
   };
 
+  // 지도 초기화 함수
+  const handleMapReset = () => {
+    console.log('App.tsx - handleMapReset 호출됨');
+    console.log('homePageRef.current:', homePageRef.current);
+    if (homePageRef.current) {
+      console.log('지도 리셋 실행');
+      homePageRef.current.resetMap();
+    } else {
+      console.log('homePageRef.current가 null입니다');
+    }
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -87,9 +105,11 @@ function App() {
           isLoggedIn={isLoggedIn}
           onLoginClick={() => setIsLoginModalOpen(true)}
           onLogoutClick={handleLogout}
+          onMapReset={handleMapReset}
         />
         <MainContent>
           <HomePage 
+            ref={homePageRef}
             searchTerm={searchTerm}
             addressSearch={addressSearch}
             filters={filters}
