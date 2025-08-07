@@ -154,6 +154,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
     };
 
     initMap();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryCount]);
 
   // 클러스터링 거리 계산 함수
@@ -234,10 +235,6 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
   // 수동 클러스터링 함수
   const updateClusters = () => {
     if (!mapInstance.current || !window.google) return;
-
-    // 현재 선택 상태 저장
-    const currentSelectedMarkerId = selectedMarkerIdRef.current;
-    const currentSelectedClusterId = selectedClusterIdRef.current;
 
     // 기존 클러스터 제거
     clustersRef.current.forEach(cluster => {
@@ -518,6 +515,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         console.error('정리 과정 오류:', err);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties, isLoaded]);
 
   useImperativeHandle(ref, () => ({

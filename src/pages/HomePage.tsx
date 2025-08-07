@@ -905,6 +905,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     properties: displayProperties,
     onMarkerClick: handleMarkerClick,
     onClusterClick: handleClusterClick
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [displayProperties]); // handleMarkerClick, handleClusterClick 의존성 제거
 
   return (

@@ -231,12 +231,6 @@ const PropertyInfoGrid = styled.div`
   position: relative;
 `;
 
-const PropertyInfoColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
 const PropertyInfoItem = styled.div`
   display: flex;
   justify-content: space-between;
