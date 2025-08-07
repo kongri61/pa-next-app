@@ -4,60 +4,56 @@ import GoogleMap, { GoogleMapRef } from '../components/GoogleMap';
 import PropertyDetailModal from '../components/PropertyDetailModal';
 import { Property } from '../types';
 
-// 모바일 우선 3개 섹션 구조
+// PC용 2개 섹션 구조 (데스크톱 우선)
 const HomeContainer = styled.div`
   display: flex;
-  flex-direction: column;
-  height: calc(100vh - 80px);
+  flex-direction: row;
+  height: calc(100vh - 120px);
   min-height: 600px;
-  position: fixed;
-  top: 80px;
+  position: relative;
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 1;
   background: #f8fafc;
-  overflow: hidden; /* visible에서 hidden으로 변경 */
+  overflow: hidden;
   margin: 0;
   padding: 0;
   gap: 0;
-  width: 100%; /* 100vw에서 100%로 변경 */
+  width: 100%;
   box-sizing: border-box;
-  /* 모바일 스크롤 방지 */
-  touch-action: none;
-  -webkit-overflow-scrolling: touch;
 
   @media (max-width: 768px) {
+    flex-direction: column;
     top: 60px;
     height: calc(50vh);
     margin: 0;
     padding: 0;
     gap: 0;
-    overflow: hidden; /* visible에서 hidden으로 변경 */
+    overflow: hidden;
     position: fixed;
     z-index: 1;
-    width: 100%; /* 100vw에서 100%로 변경 */
+    width: 100%;
     box-sizing: border-box;
-    /* 모바일에서 지도 스크롤 방지 */
     touch-action: none;
     -webkit-overflow-scrolling: touch;
   }
 `;
 
-// 1. 지도 섹션
+// 1. 지도 섹션 (PC용)
 const MapSection = styled.div`
-  flex: 0 0 55%;
+  flex: 0 0 60%;
   position: relative;
   background: white;
   border-radius: 0;
   box-shadow: none;
-  overflow: hidden; /* visible에서 hidden으로 변경 */
+  overflow: hidden;
   z-index: 1;
   margin: 0;
   padding: 0;
-  width: 100%; /* 100vw에서 100%로 변경 */
+  width: 100%;
   box-sizing: border-box;
-  /* 지도 스크롤 방지 */
   touch-action: pan-x pan-y pinch-zoom;
   -webkit-overflow-scrolling: touch;
   
@@ -65,30 +61,28 @@ const MapSection = styled.div`
     flex: 0 0 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* visible에서 hidden으로 변경 */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     height: 100%;
-    width: 100%; /* 100vw에서 100%로 변경 */
+    width: 100%;
     box-sizing: border-box;
-    /* 모바일에서 지도 스크롤 방지 */
     touch-action: pan-x pan-y pinch-zoom;
     -webkit-overflow-scrolling: touch;
   }
   
   @media (max-width: 480px) {
     flex: 0 0 100%;
-    width: 100%; /* 100vw에서 100%로 변경 */
+    width: 100%;
     box-sizing: border-box;
-    /* 모바일에서 지도 스크롤 방지 */
     touch-action: pan-x pan-y pinch-zoom;
     -webkit-overflow-scrolling: touch;
   }
 `;
 
-// 2. 매물 목록 섹션 (하단 55%에서 45%로 감소) - 데스크톱용
+// 2. 매물 목록 섹션 (PC용)
 const PropertyListSection = styled.div`
-  flex: 0 0 45%;
+  flex: 0 0 40%;
   background: white;
   border-top: none;
   border: none;
