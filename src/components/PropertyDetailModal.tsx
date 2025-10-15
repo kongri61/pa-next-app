@@ -24,7 +24,7 @@ const ModalContent = styled.div`
   background: white;
   border-radius: 8px;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1200px;
   height: 90vh;
   display: flex;
   overflow: hidden;
@@ -33,12 +33,21 @@ const ModalContent = styled.div`
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  
+  @media (max-width: 768px) {
+    max-width: 95vw;
+    height: 95vh;
+  }
 `;
 
 const LeftPanel = styled.div`
   width: 100%;
-  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  padding: 2rem 2rem 1.5rem 2rem;
   overflow-y: auto;
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem 1rem 1rem 1rem;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -234,19 +243,33 @@ const PropertyInfoGrid = styled.div`
 const PropertyInfoItem = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
+  align-items: flex-start;
+  padding: 0.75rem 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.875rem;
+  gap: 1rem;
   
   &:last-child {
     border-bottom: none;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.5rem 0;
+    font-size: 0.8rem;
+    gap: 0.5rem;
   }
 `;
 
 const PropertyInfoLabel = styled.span`
   color: #64748b;
   font-weight: 500;
-  min-width: 80px;
+  min-width: 100px;
+  flex-shrink: 0;
+  
+  @media (max-width: 480px) {
+    min-width: 90px;
+    font-size: 0.8rem;
+  }
 `;
 
 const PropertyInfoValue = styled.span`
@@ -254,6 +277,13 @@ const PropertyInfoValue = styled.span`
   font-weight: 600;
   text-align: right;
   flex: 1;
+  word-break: break-word;
+  line-height: 1.4;
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
 `;
 
 const ContactInfo = styled.div`
@@ -379,12 +409,39 @@ const ImageContainer = styled.div`
 `;
 
 const formatPrice = (price: number) => {
-  if (price >= 100000000) {
-    return `${Math.floor(price / 100000000)}억원`;
-  } else if (price >= 10000) {
-    return `${Math.floor(price / 10000)}만원`;
+  console.log('모달 formatPrice 호출됨:', price, typeof price);
+  
+  if (!price || price <= 0) {
+    console.log('모달: 가격이 0이거나 없음');
+    return '가격 정보 없음';
   }
-  return `${price.toLocaleString()}원`;
+  
+  if (price >= 100000000) {
+    // 1억 이상인 경우
+    const eok = Math.floor(price / 100000000);
+    const man = Math.floor((price % 100000000) / 10000);
+    if (man > 0) {
+      const result = `${eok}억 ${man}만원`;
+      console.log('모달: 1억 이상 결과:', result);
+      return result;
+    }
+    const result = `${eok}억원`;
+    console.log('모달: 1억 결과:', result);
+    return result;
+  } else if (price >= 10000) {
+    // 1만원 이상 1억 미만인 경우
+    const result = `${Math.floor(price / 10000)}만원`;
+    console.log('모달: 1만원 이상 결과:', result);
+    return result;
+  } else if (price > 0) {
+    // 1만원 미만인 경우
+    const result = `${price.toLocaleString()}원`;
+    console.log('모달: 1만원 미만 결과:', result);
+    return result;
+  }
+  
+  console.log('모달: 기본값 반환');
+  return '가격 정보 없음';
 };
 
 const maskAddress = (address: string) => {
@@ -579,7 +636,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                 매물번호<br />
                 {property.id}
               </PropertyNumberBox>
-              <PropertyTitle>{property.title}</PropertyTitle>
+              <PropertyTitle style={{ display: 'none' }}>{property.title}</PropertyTitle>
             </HeaderLeft>
             {property.confirmedDate && (
               <ConfirmedDateBox>확인매물 {property.confirmedDate}</ConfirmedDateBox>
@@ -882,14 +939,42 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                 <PropertyInfoLabel>매매가</PropertyInfoLabel>
                 <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
               </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.type === 'rent' 
-                    ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
-                    : '-'}
-                </PropertyInfoValue>
-              </PropertyInfoItem>
+              {property.type === 'rent' && (
+                <>
+                  <PropertyInfoItem>
+                    <PropertyInfoLabel>보증금</PropertyInfoLabel>
+                    <PropertyInfoValue>
+                      {(() => {
+                        console.log('=== 모달 보증금 표시 디버깅 ===');
+                        console.log('매물 ID:', property.id);
+                        console.log('보증금:', property.deposit);
+                        console.log('보증금 조건:', property.deposit && property.deposit > 0);
+                        
+                        if (property.deposit && property.deposit > 0) {
+                          return formatPrice(property.deposit);
+                        }
+                        return '정보 없음';
+                      })()}
+                    </PropertyInfoValue>
+                  </PropertyInfoItem>
+                  <PropertyInfoItem>
+                    <PropertyInfoLabel>월세</PropertyInfoLabel>
+                    <PropertyInfoValue>
+                      {(() => {
+                        console.log('=== 모달 월세 표시 디버깅 ===');
+                        console.log('매물 ID:', property.id);
+                        console.log('월세:', property.price);
+                        console.log('월세 조건:', property.price && property.price > 0);
+                        
+                        if (property.price && property.price > 0) {
+                          return formatPrice(property.price);
+                        }
+                        return '정보 없음';
+                      })()}
+                    </PropertyInfoValue>
+                  </PropertyInfoItem>
+                </>
+              )}
               <PropertyInfoItem>
                 <PropertyInfoLabel>관리비</PropertyInfoLabel>
                 <PropertyInfoValue>-</PropertyInfoValue>
@@ -900,8 +985,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
               </PropertyInfoItem>
               <PropertyInfoItem>
                 <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
+                <PropertyInfoValue style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                  <span>{Math.round(property.area / 3.3058)}평</span>
+                  <span style={{ color: '#6b7280' }}>({Math.round(property.area)}㎡)</span>
                 </PropertyInfoValue>
               </PropertyInfoItem>
               <PropertyInfoItem>

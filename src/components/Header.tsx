@@ -52,20 +52,22 @@ const HeaderTopRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   background: #fff; /* 배경색 명시적 설정 */
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
+  flex-wrap: nowrap; /* 줄바꿈 방지 */
 
   @media (max-width: 768px) {
-    gap: 0.5rem;
+    gap: 0.3rem;
     background: #fff;
     width: 100%;
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
+    flex-wrap: nowrap; /* 줄바꿈 방지 */
   }
 `;
 
@@ -95,25 +97,116 @@ const FilterRow = styled.div`
   }
 `;
 
+// 매물번호 검색창 스타일 추가
+const PropertyNumberSearchContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  min-width: 140px;
+  max-width: 200px;
+  flex-shrink: 1;
+  
+  @media (max-width: 768px) {
+    display: none; // 모바일에서는 숨김
+  }
+  
+  @media (max-width: 1024px) {
+    min-width: 120px;
+    max-width: 160px;
+    padding: 0.25rem 0.4rem;
+  }
+`;
+
+const PropertyNumberSearchInput = styled.input`
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.8rem;
+  color: #374151;
+  width: 100%;
+  min-width: 80px;
+  
+  &::placeholder {
+    color: #9ca3af;
+    font-size: 0.75rem;
+  }
+`;
+
+const PropertyNumberSearchButton = styled.button`
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  
+  &:hover {
+    background: #2563eb;
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+// 모바일용 매물번호 검색 버튼
+const MobilePropertyNumberButton = styled.button`
+  display: none;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+  
+  &:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
 const LogoSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
+  gap: 0.5rem;
+  flex-shrink: 1;
+  min-width: 0;
 
   @media (max-width: 768px) {
-    gap: 0.5rem;
+    gap: 0.3rem;
   }
 `;
 
 const Logo = styled.img`
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 
   @media (max-width: 768px) {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
   }
 `;
 
@@ -128,26 +221,26 @@ const CompanyInfo = styled.div`
 `;
 
 const CompanyName = styled.h1`
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: bold;
   color: #1f2937;
   margin: 0;
   line-height: 1.1;
 
   @media (max-width: 768px) {
-    font-size: 1.25rem;
+    font-size: 1rem;
   }
 `;
 
 const CompanyType = styled.p`
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #6b7280;
   margin: 0;
   white-space: nowrap;
   line-height: 1.1;
 
   @media (max-width: 768px) {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
   }
 `;
 
@@ -569,11 +662,12 @@ const DepositButton = styled.button<{ isSelected?: boolean; isActive?: boolean; 
 `;
 
 interface HeaderProps {
-  onAddProperty: () => void;
   searchTerm?: string;
   onSearchChange?: (value: string) => void;
   addressSearch?: string;
   onAddressSearchChange?: (value: string) => void;
+  propertyNumberSearch?: string; // 매물번호 검색 추가
+  onPropertyNumberSearch?: (value: string) => void; // 매물번호 검색 핸들러 추가
   filters?: {
     type: string;
     propertyType: string;
@@ -582,26 +676,21 @@ interface HeaderProps {
     deposit: string;
   };
   onFilterChange?: (filters: any) => void;
-  isAdmin?: boolean; // 관리자 권한 추가
-  isLoggedIn?: boolean; // 로그인 상태 추가
-  onLoginClick?: () => void; // 로그인 클릭 핸들러 추가
-  onLogoutClick?: () => void; // 로그아웃 클릭 핸들러 추가
   onMapReset?: () => void; // 지도 리셋 핸들러 추가
+  onRefresh?: () => void; // 새로고침 핸들러 추가
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  onAddProperty, 
+const Header: React.FC<HeaderProps> = ({
   searchTerm = '', 
   onSearchChange,
   addressSearch = '',
   onAddressSearchChange,
+  propertyNumberSearch = '',
+  onPropertyNumberSearch,
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
   onFilterChange,
-  isAdmin,
-  isLoggedIn,
-  onLoginClick,
-  onLogoutClick,
-  onMapReset
+  onMapReset,
+  onRefresh
 }) => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
@@ -610,6 +699,31 @@ const Header: React.FC<HeaderProps> = ({
   const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
   const [selectedDeposits, setSelectedDeposits] = useState<string[]>([]);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [propertyNumberInput, setPropertyNumberInput] = useState(propertyNumberSearch); // 매물번호 입력 상태 추가
+
+  // 매물번호 검색 입력값 변경 핸들러
+  const handlePropertyNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPropertyNumberInput(e.target.value);
+  };
+
+  // 매물번호 검색 실행 핸들러
+  const handlePropertyNumberSearch = () => {
+    if (onPropertyNumberSearch && propertyNumberInput.trim()) {
+      onPropertyNumberSearch(propertyNumberInput.trim());
+    }
+  };
+
+  // 매물번호 검색 입력값에서 Enter 키 처리
+  const handlePropertyNumberKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handlePropertyNumberSearch();
+    }
+  };
+
+  // propertyNumberSearch prop이 변경될 때 로컬 상태 동기화
+  React.useEffect(() => {
+    setPropertyNumberInput(propertyNumberSearch);
+  }, [propertyNumberSearch]);
 
   // filters 객체가 변경될 때 로컬 상태 동기화
   React.useEffect(() => {
@@ -662,8 +776,7 @@ const Header: React.FC<HeaderProps> = ({
 
   // 보증금 옵션들
   const depositOptions = [
-    '~100만', '~500만', '~1천만', 
-    '~2천만', '~3천만', '~4천만'
+    '~100만', '500만', '1000만', '2000만', '3000만', '4000만~'
   ];
 
   // 면적 옵션들 (1차원 배열로 변경)
@@ -825,11 +938,16 @@ const Header: React.FC<HeaderProps> = ({
       setSelectedPrices([]);
       setPriceRange({ min: '', max: '' });
     }
-
+    
     if (newSelectedDeposits.length === 1) {
-      setDepositRange({ min: newSelectedDeposits[0], max: newSelectedDeposits[0] });
+      if (newSelectedDeposits[0] === '~100만') {
+        setDepositRange({ min: '최소값', max: '100만' });
+      } else if (newSelectedDeposits[0] === '4000만~') {
+        setDepositRange({ min: '4000만', max: '최대값' });
+      } else {
+        setDepositRange({ min: newSelectedDeposits[0], max: newSelectedDeposits[0] });
+      }
     } else if (newSelectedDeposits.length === 2) {
-      // 보증금 값에서 숫자만 추출하여 정렬
       const sorted = newSelectedDeposits.sort((a, b) => {
         let aValue = 0;
         let bValue = 0;
@@ -848,7 +966,19 @@ const Header: React.FC<HeaderProps> = ({
         
         return aValue - bValue;
       });
-      setDepositRange({ min: sorted[0], max: sorted[1] });
+      
+      // 최소값과 최대값 처리
+      let minValue = sorted[0];
+      let maxValue = sorted[1];
+      
+      if (sorted[0] === '~100만') {
+        minValue = '최소값';
+      }
+      if (sorted[1] === '4000만~') {
+        maxValue = '최대값';
+      }
+      
+      setDepositRange({ min: minValue, max: maxValue });
     } else {
       setDepositRange({ min: '', max: '' });
     }
@@ -1000,7 +1130,7 @@ const Header: React.FC<HeaderProps> = ({
       if (selectedAreas.length === 1) {
         // 단일 값 선택 시
         if (selectedAreas[0] === '~5평') {
-          return '0~5평';
+          return '~5평';
         } else if (selectedAreas[0] === '200평~') {
           return '200평~';
         }
@@ -1012,7 +1142,7 @@ const Header: React.FC<HeaderProps> = ({
           return aValue - bValue;
         });
         
-        // 범위 표시 시 "~5평"을 "0"으로 변환
+        // 범위 표시 시 평 단위로 표시
         let minDisplay = sorted[0];
         let maxDisplay = sorted[1];
         
@@ -1032,38 +1162,34 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   // 면적을 m²로 환산하는 함수
-  const convertPyeongToSquareMeters = (pyeong: string) => {
-    const num = parseFloat(pyeong.replace(/[평~]/g, ''));
-    if (isNaN(num)) return '';
-    const squareMeters = Math.round(num * 3.3058);
-    return `<span style="color: #dc2626;">(${squareMeters}m²)</span>`;
-  };
+  // const convertPyeongToSquareMeters = (pyeong: string) => {
+  //   const num = parseFloat(pyeong.replace(/[평~]/g, ''));
+  //   if (isNaN(num)) return '';
+  //   const squareMeters = Math.round(num * 3.3058);
+  //   return `<span style="color: #dc2626;">(${squareMeters}m²)</span>`;
+  // };
 
   const getAreaTitleHTML = () => {
     if (areaRange.min && areaRange.max) {
-      let minText = areaRange.min;
-      let maxText = areaRange.max;
-      
-      // m² 변환을 위한 실제 값 계산
-      let minM2Text = '';
-      let maxM2Text = '';
-      
-      if (areaRange.min === '0') {
-        minM2Text = '<span style="color: #dc2626;">(0m²)</span>';
+      // 특수한 경우 처리
+      if (areaRange.min === '0' && areaRange.max === '5') {
+        // ~5평 선택 시
+        const m2Value = Math.round(5 * 3.3058);
+        return `면적 <span style="margin-left: 0.5rem;">~5평</span><span style="color: #dc2626; margin-left: 0.25rem;">(${m2Value}m²)</span>`;
+      } else if (areaRange.min === '200' && areaRange.max === '최대값') {
+        // 200평~ 선택 시
+        const m2Value = Math.round(200 * 3.3058);
+        return `면적 <span style="margin-left: 0.5rem;">200평~</span><span style="color: #dc2626; margin-left: 0.25rem;">(${m2Value}m²~)</span>`;
+      } else if (areaRange.min === areaRange.max) {
+        // 단일 값 선택 시
+        const m2Value = Math.round(parseFloat(areaRange.min) * 3.3058);
+        return `면적 <span style="margin-left: 0.5rem;">${areaRange.min}평</span><span style="color: #dc2626; margin-left: 0.25rem;">(${m2Value}m²)</span>`;
       } else {
-        minM2Text = convertPyeongToSquareMeters(minText);
+        // 범위 선택 시
+        const minM2Value = Math.round(parseFloat(areaRange.min) * 3.3058);
+        const maxM2Value = Math.round(parseFloat(areaRange.max) * 3.3058);
+        return `면적 <span style="margin-left: 0.5rem;">${areaRange.min}평</span><span style="color: #dc2626; margin-left: 0.25rem;">~</span><span style="margin-left: 0.25rem;">${areaRange.max}평</span><span style="color: #dc2626; margin-left: 0.25rem;">(${minM2Value}m²~${maxM2Value}m²)</span>`;
       }
-      
-      if (areaRange.max === '최대값') {
-        maxM2Text = '<span style="color: #dc2626;">(최대m²)</span>';
-      } else {
-        maxM2Text = convertPyeongToSquareMeters(maxText);
-      }
-      
-      if (areaRange.min === areaRange.max) {
-        return `면적 <span style="margin-left: 0.5rem;">${minM2Text}</span>`;
-      }
-      return `면적 <span style="margin-left: 0.5rem;">${minM2Text}</span><span style="color: #dc2626; margin-left: 0.25rem;">~</span><span style="margin-left: 0.25rem;">${maxM2Text}</span>`;
     }
     return '면적';
   };
@@ -1163,6 +1289,30 @@ const Header: React.FC<HeaderProps> = ({
             </CompanyInfo>
           </LogoSection>
           
+          {/* 매물번호 검색창 (PC용) */}
+          <PropertyNumberSearchContainer>
+            <PropertyNumberSearchInput
+              type="text"
+              placeholder="매물번호로 검색"
+              value={propertyNumberInput}
+              onChange={handlePropertyNumberInputChange}
+              onKeyPress={handlePropertyNumberKeyPress}
+            />
+            <PropertyNumberSearchButton onClick={handlePropertyNumberSearch}>
+              검색
+            </PropertyNumberSearchButton>
+          </PropertyNumberSearchContainer>
+
+          {/* 모바일용 매물번호 검색 버튼 */}
+          <MobilePropertyNumberButton onClick={() => {
+            const propertyNumber = prompt('매물번호를 입력하세요:');
+            if (propertyNumber && propertyNumber.trim()) {
+              onPropertyNumberSearch?.(propertyNumber.trim());
+            }
+          }}>
+            🔍 매물번호
+          </MobilePropertyNumberButton>
+          
           <ResetButton onClick={() => {
             console.log('초기화 버튼 클릭됨');
             console.log('onMapReset 함수:', onMapReset);
@@ -1175,6 +1325,7 @@ const Header: React.FC<HeaderProps> = ({
             setPriceRange({ min: '', max: '' });
             setDepositRange({ min: '', max: '' });
             setOpenDropdown(null);
+            setPropertyNumberInput(''); // 매물번호 검색 초기화
             
             // 필터 초기화
             if (onFilterChange) {
@@ -1189,6 +1340,12 @@ const Header: React.FC<HeaderProps> = ({
               console.log('필터 초기화 완료');
             }
             
+            // 매물번호 검색 초기화
+            if (onPropertyNumberSearch) {
+              onPropertyNumberSearch('');
+              console.log('매물번호 검색 초기화 완료');
+            }
+            
             // 지도 리셋
             if (onMapReset) {
               console.log('지도 리셋 함수 호출');
@@ -1199,6 +1356,17 @@ const Header: React.FC<HeaderProps> = ({
             }
           }}>
             초기화
+          </ResetButton>
+          
+          <ResetButton onClick={() => {
+            console.log('새로고침 버튼 클릭됨');
+            if (onRefresh) {
+              onRefresh();
+            } else {
+              window.location.reload();
+            }
+          }} style={{ display: 'none' }}>
+            새로고침
           </ResetButton>
         </HeaderTopRow>
 
@@ -1463,13 +1631,17 @@ const Header: React.FC<HeaderProps> = ({
                         isActive={(() => {
                           if (depositRange.min === '' || depositRange.max === '') return false;
                           
-                          // '~100만' 특별 처리
-                          if (deposit === '~100만' && depositRange.min === '~100만') return true;
+                          // '~100만'과 '4000만~' 특별 처리
+                          if (deposit === '~100만' && depositRange.min === '최소값') return true;
+                          if (deposit === '4000만~' && depositRange.max === '최대값') return true;
                           
                           return depositRange.min === deposit || depositRange.max === deposit;
                         })()}
                         isInRange={(() => {
                           if (depositRange.min === '' || depositRange.max === '') return false;
+                          
+                          // '~100만'과 '4000만~' 특별 처리
+                          if (deposit === '~100만' || deposit === '4000만~') return false;
                           
                           let depositValue = 0;
                           if (deposit.includes('천만')) {
@@ -1481,14 +1653,21 @@ const Header: React.FC<HeaderProps> = ({
                           let minValue = 0;
                           let maxValue = 999;
                           
-                          if (depositRange.min !== '') {
+                          // 최소값 처리
+                          if (depositRange.min === '최소값') {
+                            minValue = 0; // '~100만' 선택 시
+                          } else {
                             if (depositRange.min.includes('천만')) {
                               minValue = parseInt(depositRange.min.replace(/[~천만]/g, '')) * 1000;
                             } else {
                               minValue = parseInt(depositRange.min.replace(/[~만]/g, ''));
                             }
                           }
-                          if (depositRange.max !== '') {
+                          
+                          // 최대값 처리
+                          if (depositRange.max === '최대값') {
+                            maxValue = 999; // '4000만~' 선택 시
+                          } else {
                             if (depositRange.max.includes('천만')) {
                               maxValue = parseInt(depositRange.max.replace(/[~천만]/g, '')) * 1000;
                             } else {

@@ -2,6 +2,9 @@ import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import * as XLSX from 'xlsx';
 import { Property } from '../types';
+import { addMultipleProperties } from '../firebase/propertyService';
+import { useFirebase } from '../contexts/FirebaseContext';
+import SyncManager from './SyncManager';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -313,7 +316,9 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showSyncManager, setShowSyncManager] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useFirebase();
 
   // 주소검색 관련 상태
   const [addressSearch, setAddressSearch] = useState('');
@@ -475,6 +480,11 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
       return;
     }
 
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
 
@@ -555,7 +565,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
             
             try {
               // 기본값 설정
-              const id = row[propertyNumberIndex]?.toString() || `auto_${Date.now()}_${i}`;
               const title = row[headers.findIndex(header => header?.toLowerCase().includes('매물제목'))]?.toString() || '제목 없음';
               const description = row[headers.findIndex(header => header?.toLowerCase().includes('매물설명'))]?.toString() || '설명 없음';
               const type = row[headers.findIndex(header => header?.toLowerCase().includes('거래유형'))]?.toString()?.toLowerCase().includes('임대') ? 'rent' : 'sale';
@@ -594,8 +603,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
               const contactPhone = row[headers.findIndex(header => header?.toLowerCase().includes('연락처전화번호'))]?.toString() || '02-0000-0000';
               const contactEmail = row[headers.findIndex(header => header?.toLowerCase().includes('연락처이메일'))]?.toString() || 'contact@realestate.com';
               
-              const property: Property = {
-                id,
+              const property: Omit<Property, 'id' | 'createdAt'> = {
                 title,
                 description,
                 price,
@@ -607,19 +615,20 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
                 bedrooms,
                 bathrooms,
                 area,
-                images: ['https://via.placeholder.com/300x200'],
+                images: ['/images/default-property.svg'],
                 contact: {
                   name: contactName,
                   phone: contactPhone,
                   email: contactEmail
                 },
                 features: [],
-                createdAt: new Date(),
                 isActive: true,
                 confirmedDate: confirmedDate || undefined,
                 floor: floor || undefined,
                 parking,
-                elevator
+                elevator,
+                createdBy: user.uid,
+                updatedBy: user.uid
               };
               
               console.log(`매물 ${i} 생성:`, property);
@@ -633,12 +642,25 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           console.log('변환된 매물 개수:', processedData.length);
           
           if (processedData.length > 0) {
+            // Firebase에 매물 저장
+            const propertyIds = await addMultipleProperties(processedData);
+            console.log('Firebase에 저장된 매물 ID들:', propertyIds);
+            
             // 부모 컴포넌트에 매물 추가 알림
             if (onPropertyAdded) {
-              onPropertyAdded(processedData);
+              // ID를 포함한 완전한 Property 객체로 변환
+              const completeProperties: Property[] = processedData.map((property, index) => ({
+                ...property,
+                id: propertyIds[index],
+                createdAt: new Date()
+              }));
+              onPropertyAdded(completeProperties);
             }
             
-            alert(`총 ${processedData.length}개의 매물이 지도에 등록되었습니다.`);
+            // 페이지 새로고침으로 즉시 반영
+            // window.location.reload();
+            
+            alert(`총 ${processedData.length}개의 매물이 성공적으로 등록되었습니다. 페이지를 새로고침하여 확인하세요.`);
             onClose(); // 모달 닫기
           } else {
             alert('처리할 수 있는 매물 데이터가 없습니다.');
@@ -756,6 +778,11 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
     return lowerValue.includes('가능') || lowerValue.includes('있음') || lowerValue.includes('true') || lowerValue.includes('1');
   };
 
+  const handleSyncComplete = () => {
+    // 동기화 완료 후 처리
+    console.log('동기화가 완료되었습니다.');
+  };
+
   return (
     <ModalOverlay onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
@@ -765,6 +792,30 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         </ModalHeader>
 
         <UploadSection>
+          {/* 동기화 관리자 섹션 */}
+          {user && (
+            <div style={{ marginBottom: '1rem' }}>
+              <button
+                onClick={() => setShowSyncManager(!showSyncManager)}
+                style={{
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                {showSyncManager ? '📊 동기화 관리 숨기기' : '📊 데이터 동기화 관리'}
+              </button>
+              
+              {showSyncManager && (
+                <SyncManager onSyncComplete={handleSyncComplete} />
+              )}
+            </div>
+          )}
+
           <TemplateSection>
             <TemplateTitle>📋 엑셀 템플릿 다운로드</TemplateTitle>
             <TemplateDescription>
