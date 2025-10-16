@@ -427,5 +427,6 @@ export const getImage = (id: string) => indexedDB.getImage(id);
 export const saveSetting = (key: string, value: any) => indexedDB.saveSetting(key, value);
 export const getSetting = (key: string) => indexedDB.getSetting(key);
 export const getDatabaseInfo = () => indexedDB.getDatabaseInfo();
+export const clearAllProperties = () => indexedDB.clearAllData();
 export const deleteDatabase = () => indexedDB.deleteDatabase();
 export const migrateFromLocalStorage = () => indexedDB.migrateFromLocalStorage(); 
