@@ -6,6 +6,9 @@ import AddPropertyModal from './components/AddPropertyModal';
 import LoginModal from './components/LoginModal';
 import GlobalStyle from './styles/GlobalStyle';
 import { Property } from './types';
+import { initHybridDataManager } from './utils/hybridDataManager';
+import { FirebaseProvider } from './contexts/FirebaseContext';
+import FirebaseDebugger from './components/FirebaseDebugger';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -30,6 +33,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [addressSearch, setAddressSearch] = useState('');
+  const [propertyNumberSearch, setPropertyNumberSearch] = useState(''); // 매물번호 검색 상태 추가
   const [filters, setFilters] = useState({
     type: '',
     propertyType: '',
@@ -38,6 +42,8 @@ function App() {
     deposit: ''
   });
   const [newProperties, setNewProperties] = useState<Property[]>([]);
+  const [isDataManagerInitialized, setIsDataManagerInitialized] = useState(false);
+  const [showDebugger, setShowDebugger] = useState(false);
   const homePageRef = useRef<HomePageRef>(null);
 
   // 로그인 상태 확인
@@ -59,6 +65,23 @@ function App() {
       setIsLoggedIn(false);
       setIsAdmin(false);
     }
+  }, []);
+
+  // 하이브리드 데이터 관리자 초기화
+  useEffect(() => {
+    const initializeDataManager = async () => {
+      try {
+        await initHybridDataManager();
+        setIsDataManagerInitialized(true);
+        console.log('하이브리드 데이터 관리자 초기화 완료');
+      } catch (error) {
+        console.error('하이브리드 데이터 관리자 초기화 실패:', error);
+        // 초기화 실패해도 앱은 계속 실행
+        setIsDataManagerInitialized(true);
+      }
+    };
+
+    initializeDataManager();
   }, []);
 
   // 매물 추가 처리 함수
@@ -212,18 +235,21 @@ function App() {
 
   // 지도 초기화 함수
   const handleMapReset = () => {
-    console.log('App.tsx - handleMapReset 호출됨');
-    console.log('homePageRef.current:', homePageRef.current);
     if (homePageRef.current) {
-      console.log('지도 리셋 실행');
       homePageRef.current.resetMap();
-    } else {
-      console.log('homePageRef.current가 null입니다');
     }
   };
 
+  const handleRefresh = () => {
+    console.log('App - handleRefresh 호출됨');
+    window.location.reload();
+  };
+
+  // 개발 환경에서만 디버거 표시
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   return (
-    <>
+    <FirebaseProvider>
       <GlobalStyle />
       <AppContainer>
         <Header 
@@ -233,27 +259,69 @@ function App() {
           onSearchChange={setSearchTerm}
           addressSearch={addressSearch}
           onAddressSearchChange={setAddressSearch}
+          propertyNumberSearch={propertyNumberSearch}
+          onPropertyNumberSearch={setPropertyNumberSearch}
           filters={filters}
           onFilterChange={setFilters}
-          isAdmin={checkAdminStatus()}
-          isLoggedIn={isLoggedIn}
-          onLoginClick={() => setIsLoginModalOpen(true)}
-          onLogoutClick={handleLogout}
           onMapReset={handleMapReset}
+          onRefresh={handleRefresh}
         />
         <MainContent>
-          <HomePage 
-            ref={homePageRef}
-            searchTerm={searchTerm}
-            addressSearch={addressSearch}
-            filters={filters}
-            onFilterChange={setFilters}
-            onSearchChange={setSearchTerm} // 검색어 변경 핸들러 추가
-            onPropertyAdded={handlePropertyAdded}
-            isAdmin={checkAdminStatus()}
-            newProperties={newProperties}
-          />
+          {isDataManagerInitialized ? (
+            <HomePage 
+              ref={homePageRef}
+              searchTerm={searchTerm}
+              addressSearch={addressSearch}
+              propertyNumberSearch={propertyNumberSearch}
+              filters={filters}
+              onFilterChange={setFilters}
+              onSearchChange={setSearchTerm} // 검색어 변경 핸들러 추가
+              onPropertyAdded={handlePropertyAdded}
+              isAdmin={checkAdminStatus()}
+              newProperties={newProperties}
+            />
+          ) : (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '100vh',
+              fontSize: '1.2rem',
+              color: '#666'
+            }}>
+              데이터베이스 초기화 중...
+            </div>
+          )}
         </MainContent>
+        
+        {/* 개발 환경에서만 디버거 표시 */}
+        {isDevelopment && (
+          <>
+            {!showDebugger && (
+              <button
+                onClick={() => setShowDebugger(true)}
+                style={{
+                  position: 'fixed',
+                  top: '10px',
+                  right: '10px',
+                  background: '#1f2937',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  zIndex: 9998
+                }}
+              >
+                🔧 Debug
+              </button>
+            )}
+            {showDebugger && (
+              <FirebaseDebugger onClose={() => setShowDebugger(false)} />
+            )}
+          </>
+        )}
       </AppContainer>
       
       {isAddPropertyModalOpen && (
@@ -275,8 +343,8 @@ function App() {
         onClose={() => setIsLoginModalOpen(false)}
         onLogin={handleLogin}
       />
-    </>
+    </FirebaseProvider>
   );
 }
 
-export default App; 
+export default App;

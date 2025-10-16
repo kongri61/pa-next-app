@@ -1,34 +1,54 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { config, validateEnvironment } from '../config/environment';
 
-// Firebase 설정 (Firebase 콘솔에서 제공된 실제 설정)
-const firebaseConfig = {
-  apiKey: "AIzaSyBS-gmLGCxE8kRWc5FIQJ7UHaSfXU3eCgM",
-  authDomain: "pa-realestate-sync-cb990.firebaseapp.com",
-  projectId: "pa-realestate-sync-cb990",
-  storageBucket: "pa-realestate-sync-cb990.firebasestorage.app",
-  messagingSenderId: "383158087769",
-  appId: "1:383158087769:web:10b2b80a0f3c7552f54148"
-};
+// 환경변수 검증
+validateEnvironment();
 
-let app: any = null;
-let db: any = null;
+// Firebase 설정 - 환경변수가 없으면 기본값 사용
+const firebaseConfig = config.firebase;
 
+// Firebase 앱 초기화
+let app: FirebaseApp;
 try {
-  // Firebase 앱 초기화
   app = initializeApp(firebaseConfig);
-  
-  // Firestore 데이터베이스 초기화
-  db = getFirestore(app);
-  
-  console.log('🔥 Firebase 초기화 성공');
+  console.log('Firebase 앱 초기화 성공:', firebaseConfig.projectId);
 } catch (error) {
-  console.warn('⚠️ Firebase 초기화 실패 (데모 모드):', error);
-  // Firebase 없이도 앱이 작동하도록 null 유지
+  console.error('Firebase 앱 초기화 실패:', error);
+  throw error;
 }
 
-// Firebase 에뮬레이터 연결 비활성화 (실제 Firebase 사용)
-console.log('🌐 실제 Firebase 사용 (에뮬레이터 비활성화)');
+// Firestore 데이터베이스 초기화
+let db: Firestore;
+try {
+  db = getFirestore(app);
+  console.log('Firestore 초기화 성공');
+} catch (error) {
+  console.error('Firestore 초기화 실패:', error);
+  throw error;
+}
 
-export { db };
+// Firebase 인증 초기화
+let auth: Auth;
+try {
+  auth = getAuth(app);
+  console.log('Firebase Auth 초기화 성공');
+} catch (error) {
+  console.error('Firebase Auth 초기화 실패:', error);
+  throw error;
+}
+
+// Firebase Storage 초기화
+let storage: FirebaseStorage;
+try {
+  storage = getStorage(app);
+  console.log('Firebase Storage 초기화 성공');
+} catch (error) {
+  console.error('Firebase Storage 초기화 실패:', error);
+  throw error;
+}
+
+export { db, auth, storage };
 export default app; 

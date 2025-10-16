@@ -29,6 +29,10 @@ export interface Property {
   floor?: string; // 층수 (예: "2/5층")
   parking?: boolean; // 주차 가능 여부
   elevator?: boolean; // 엘리베이터 유무
+  // Firebase 관련 필드들
+  createdBy?: string; // 생성한 사용자 ID
+  updatedBy?: string; // 수정한 사용자 ID
+  updatedAt?: Date; // 수정 날짜
 }
 
 export interface MapMarker {
