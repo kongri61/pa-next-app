@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkreal_estate_map_site=self.webpackChunkreal_estate_map_site||[]).push([[79],{79:(e,s,t)=>{t.d(s,{getCurrentUser:()=>a});t(982);var r=t(322);const a=()=>r.j2.currentUser}}]);
+//# sourceMappingURL=79.46e85543.chunk.js.map
