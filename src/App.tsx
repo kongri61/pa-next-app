@@ -265,6 +265,10 @@ function App() {
           onFilterChange={setFilters}
           onMapReset={handleMapReset}
           onRefresh={handleRefresh}
+          isLoggedIn={isLoggedIn}
+          isAdmin={isAdmin}
+          onLoginClick={() => setIsLoginModalOpen(true)}
+          onLogoutClick={handleLogout}
         />
         <MainContent>
           {isDataManagerInitialized ? (
