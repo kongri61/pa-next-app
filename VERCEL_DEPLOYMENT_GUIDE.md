@@ -15,6 +15,10 @@ Vercel 대시보드에서 다음 환경 변수를 설정해야 합니다:
 Name: REACT_APP_GOOGLE_MAPS_API_KEY
 Value: AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk
 Environment: Production, Preview, Development
+
+Name: KAKAO_API_KEY
+Value: [카카오 개발자센터에서 발급받은 REST API 키]
+Environment: Production, Preview, Development
 ```
 
 ### 3. 배포 재시작
@@ -26,6 +30,7 @@ Environment: Production, Preview, Development
 프로젝트 루트에 `.env.local` 파일 생성:
 ```
 REACT_APP_GOOGLE_MAPS_API_KEY=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk
+KAKAO_API_KEY=your_kakao_api_key_here
 ```
 
 ### 2. 개발 서버 시작

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { Property } from '../types';
 
@@ -13,7 +13,7 @@ const ModalOverlay = styled.div`
   align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding: 6rem 1rem 1rem 1rem;
+  padding: 4rem 1rem 1rem 1rem;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -24,8 +24,8 @@ const ModalContent = styled.div`
   background: white;
   border-radius: 8px;
   width: 100%;
-  max-width: 1000px;
-  height: 90vh;
+  max-width: 800px;
+  height: 85vh;
   display: flex;
   overflow: hidden;
   position: relative;
@@ -37,7 +37,7 @@ const ModalContent = styled.div`
 
 const LeftPanel = styled.div`
   width: 100%;
-  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  padding: 2.5rem 1rem 1rem 1rem;
   overflow-y: auto;
 `;
 
@@ -69,11 +69,17 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   gap: 1rem;
 `;
 
 const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const HeaderRight = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -89,21 +95,130 @@ const PropertyNumberBox = styled.div`
   font-weight: 500;
 `;
 
-const PropertyTitle = styled.h1`
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin: 0;
-`;
-
 const ConfirmedDateBox = styled.div`
   background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  border: 0.05px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  color: #059669;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+`;
+
+const EditButton = styled.button`
+  background: #3b82f6;
+  color: white;
+  border: none;
   border-radius: 4px;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
-  color: #059669;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #2563eb;
+  }
+`;
+
+const SaveButton = styled.button`
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #059669;
+  }
+`;
+
+const CancelButton = styled.button`
+  background: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #4b5563;
+  }
+`;
+
+const DeleteButton = styled.button`
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #c82333;
+  }
+`;
+
+const EditInput = styled.input`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const EditTextarea = styled.textarea`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  resize: vertical;
+  min-height: 80px;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const EditSelect = styled.select`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
 `;
 
 const ImageSection = styled.div`
@@ -117,6 +232,14 @@ const MainImage = styled.img`
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 0.25rem;
+`;
+
+const ImageContainer = styled.div`
+  position: relative;
+  width: 100%;
+  height: 280px;
+  border-radius: 8px;
+  overflow: hidden;
 `;
 
 const ImageCounter = styled.div`
@@ -200,22 +323,33 @@ const ImageUploadButton = styled.button`
   &:active {
     transform: scale(0.95);
   }
+`;
 
-  /* 카메라 아이콘을 정확히 중앙에 유지 */
-  & > span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    line-height: 1;
-    font-size: inherit;
-    position: relative;
-    top: 0;
-    left: 0;
-    transform: none;
-    margin: 0;
-    padding: 0;
+const ImageDeleteButton = styled.button`
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(220, 38, 38, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 `;
 
@@ -342,49 +476,19 @@ const MapPlaceholder = styled.div`
   border-radius: 8px;
 `;
 
-const ImageDeleteButton = styled.button`
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(220, 38, 38, 0.9);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: rgba(220, 38, 38, 1);
-    transform: scale(1.1);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const ImageContainer = styled.div`
-  position: relative;
-  width: 100%;
-  height: 280px;
-  border-radius: 8px;
-  overflow: hidden;
-`;
-
 const formatPrice = (price: number) => {
-  if (price >= 100000000) {
-    return `${Math.floor(price / 100000000)}억원`;
-  } else if (price >= 10000) {
-    return `${Math.floor(price / 10000)}만원`;
+  // 매매가는 억원 단위로 저장되어 있음
+  if (price >= 1) {
+    return price % 1 === 0 ? `${price}억원` : `${price}억원`;
+  } else if (price >= 0.1) {
+    return `${price}억원`;
   }
-  return `${price.toLocaleString()}원`;
+  return `${price}억원`;
+};
+
+const formatDeposit = (deposit: number) => {
+  // 보증금은 만원 단위로 저장되어 있음 - 만원 단위로만 표시
+  return `${deposit}만원`;
 };
 
 const maskAddress = (address: string) => {
@@ -398,13 +502,158 @@ interface PropertyDetailModalProps {
   property: Property;
   onClose: () => void;
   onPropertyUpdate?: (updatedProperty: Property) => void;
-  isAdmin?: boolean; // 관리자 권한 추가
+  onPropertyDelete?: (propertyId: string) => void;
+  isAdmin?: boolean;
 }
 
-const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onClose, onPropertyUpdate, isAdmin = false }) => {
+const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ 
+  property, 
+  onClose, 
+  onPropertyUpdate, 
+  onPropertyDelete, 
+  isAdmin = false 
+}) => {
   const [currentImages, setCurrentImages] = useState<string[]>(property.images || []);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [mapImages, setMapImages] = useState<string[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editData, setEditData] = useState<Property>(property);
+  const [showMap, setShowMap] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 수정 모드 토글 함수
+  const toggleEditMode = () => {
+    if (isEditMode) {
+      setEditData(property);
+    }
+    setIsEditMode(!isEditMode);
+  };
+
+  // 수정 데이터 저장 함수
+  const handleSave = () => {
+    if (onPropertyUpdate) {
+      onPropertyUpdate(editData);
+    }
+    setIsEditMode(false);
+  };
+
+  // 수정 데이터 변경 핸들러
+  const handleEditChange = (field: keyof Property, value: any) => {
+    setEditData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // 수정 데이터 변경 핸들러 (중첩 객체용)
+  const handleNestedEditChange = (parentField: string, childField: string, value: any) => {
+    setEditData(prev => {
+      const parent = prev[parentField as keyof Property] as any;
+      return {
+        ...prev,
+        [parentField]: {
+          ...parent,
+          [childField]: value
+        }
+      };
+    });
+  };
+
+  // 매물 삭제 함수
+  const handleDeleteProperty = () => {
+    console.log('🗑️ 매물 삭제 시도:', property.id, property.title);
+    console.log('onPropertyDelete 함수 존재:', !!onPropertyDelete);
+
+    const isConfirmed = window.confirm(
+      `정말로 매물 "${editData.title}" (매물번호: ${editData.id})을(를) 삭제하시겠습니까?\n\n삭제된 매물은 복구할 수 없습니다.`
+    );
+
+    if (isConfirmed) {
+      console.log('✅ 삭제 확인됨, 삭제 실행');
+      if (onPropertyDelete) {
+        onPropertyDelete(property.id);
+        console.log('✅ onPropertyDelete 호출 완료');
+      } else {
+        console.error('❌ onPropertyDelete 함수가 없습니다!');
+        alert('삭제 기능이 제대로 연결되지 않았습니다. 페이지를 새로고침해주세요.');
+      }
+      onClose();
+    } else {
+      console.log('❌ 삭제 취소됨');
+    }
+  };
+
+  // 이미지 업로드 핸들러
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 파일 선택됨:', e.target.files?.length || 0);
+    
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      console.log('📄 선택된 파일:', file.name, file.type, file.size);
+      
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imageUrl = event.target?.result as string;
+          console.log('🖼️ 이미지 로드 완료, URL 길이:', imageUrl.length);
+          
+          const newImages = [...currentImages, imageUrl];
+          setCurrentImages(newImages);
+          const updatedProperty = { ...editData, images: newImages };
+          setEditData(updatedProperty);
+          
+          // 즉시 저장
+          if (onPropertyUpdate) {
+            console.log('💾 매물 정보 저장 중...');
+            onPropertyUpdate(updatedProperty);
+            console.log('✅ 매물 정보 저장 완료');
+          } else {
+            console.warn('⚠️ onPropertyUpdate 함수가 없습니다');
+          }
+          
+          console.log('📷 이미지 업로드 완료:', file.name);
+        };
+        
+        reader.onerror = (error) => {
+          console.error('❌ 파일 읽기 오류:', error);
+          alert('파일을 읽는 중 오류가 발생했습니다.');
+        };
+        
+        reader.readAsDataURL(file);
+      } else {
+        console.warn('⚠️ 이미지 파일이 아님:', file.type);
+        alert('이미지 파일만 업로드 가능합니다.');
+      }
+    } else {
+      console.log('📁 파일이 선택되지 않음');
+    }
+    
+    // 파일 입력 초기화 (같은 파일을 다시 선택할 수 있도록)
+    e.target.value = '';
+  };
+
+  // 이미지 삭제 핸들러
+  const handleImageDelete = (index: number) => {
+    const newImages = currentImages.filter((_, i) => i !== index);
+    setCurrentImages(newImages);
+    const updatedProperty = { ...editData, images: newImages };
+    setEditData(updatedProperty);
+    
+    // 즉시 저장
+    if (onPropertyUpdate) {
+      onPropertyUpdate(updatedProperty);
+    }
+    
+    if (currentImageIndex >= newImages.length) {
+      setCurrentImageIndex(Math.max(0, newImages.length - 1));
+    }
+    console.log('🗑️ 이미지 삭제 완료:', index);
+  };
+
+  // 지도 토글 핸들러
+  const toggleMap = () => {
+    setShowMap(!showMap);
+  };
 
   // 펌방지 기능
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -423,745 +672,114 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
 
   // useEffect 의존성 배열 수정
   React.useEffect(() => {
-    console.log('=== 매물 변경 감지 ===');
-    console.log('매물 ID:', property.id);
-    console.log('매물 이미지 개수:', property.images?.length || 0);
-    
-    // localStorage에서 저장된 이미지들을 로드
-    const savedMainImages = localStorage.getItem(`mainImages_${property.id}`);
-    console.log('저장된 메인 이미지:', savedMainImages);
-    
-    if (savedMainImages && savedMainImages !== 'null' && savedMainImages !== '[]') {
-      try {
-        const parsedImages = JSON.parse(savedMainImages);
-        console.log('파싱된 메인 이미지:', parsedImages.length, '개');
-        
-        if (Array.isArray(parsedImages) && parsedImages.length > 0) {
-          setCurrentImages(parsedImages);
-          console.log('localStorage 이미지 적용 완료');
-        } else {
-          console.log('파싱된 메인 이미지가 빈 배열이거나 유효하지 않음');
-          setCurrentImages(property.images || []);
-        }
-      } catch (error) {
-        console.error('메인 이미지 파싱 오류:', error);
-        setCurrentImages(property.images || []);
-      }
-    } else {
-      console.log('저장된 메인 이미지 없음, 기본 이미지 사용');
-      setCurrentImages(property.images || []);
-    }
-    
-    // 지도 이미지도 로드
-    const savedMapImages = localStorage.getItem(`mapImages_${property.id}`);
-    console.log('저장된 지도 이미지:', savedMapImages);
-    
-    if (savedMapImages && savedMapImages !== 'null' && savedMapImages !== '[]') {
-      try {
-        const parsedMapImages = JSON.parse(savedMapImages);
-        console.log('파싱된 지도 이미지:', parsedMapImages.length, '개');
-        
-        if (Array.isArray(parsedMapImages) && parsedMapImages.length > 0) {
-          setMapImages(parsedMapImages);
-          console.log('localStorage 지도 이미지 적용 완료');
-        } else {
-          console.log('파싱된 지도 이미지가 빈 배열이거나 유효하지 않음');
-          setMapImages([]);
-        }
-      } catch (error) {
-        console.error('지도 이미지 파싱 오류:', error);
-        setMapImages([]);
-      }
-    } else {
-      console.log('저장된 지도 이미지 없음');
-      setMapImages([]);
-    }
-    
+    setEditData(property);
+    setCurrentImages(property.images || []);
     setCurrentImageIndex(0);
-  }, [property.id, property.images]);
-
-  // currentImages가 변경될 때마다 localStorage에 저장
-  React.useEffect(() => {
-    console.log('=== 메인 이미지 상태 변경 ===', currentImages.length, '개');
-    localStorage.setItem(`mainImages_${property.id}`, JSON.stringify(currentImages));
-  }, [currentImages, property.id]);
-
-  // mapImages는 업로드 시에만 저장하므로 useEffect 제거
-  // React.useEffect(() => {
-  //   console.log('=== 지도 이미지 상태 변경 ===', mapImages.length, '개');
-  //   const mapImagesKey = `mapImages_${property.id}`;
-  //   localStorage.setItem(mapImagesKey, JSON.stringify(mapImages));
-  //   console.log('지도 이미지 저장 완료, 키:', mapImagesKey);
-  // }, [mapImages, property.id]);
-
-  // 이미지 삭제 함수
-  const handleDeleteImage = (imageIndex: number) => {
-    console.log('=== 이미지 삭제 시작 ===');
-    console.log('삭제할 이미지 인덱스:', imageIndex);
-    console.log('현재 이미지 개수:', currentImages.length);
-    
-    const updatedImages = currentImages.filter((_, index) => index !== imageIndex);
-    console.log('삭제 후 이미지 개수:', updatedImages.length);
-    
-    setCurrentImages(updatedImages);
-    
-    // 현재 이미지 인덱스 조정
-    if (updatedImages.length === 0) {
-      setCurrentImageIndex(0);
-    } else if (currentImageIndex >= updatedImages.length) {
-      setCurrentImageIndex(updatedImages.length - 1);
-    }
-    
-    // localStorage에 저장
-    const storageKey = `mainImages_${property.id}`;
-    if (updatedImages.length > 0) {
-      localStorage.setItem(storageKey, JSON.stringify(updatedImages));
-      console.log('localStorage 업데이트 완료');
-    } else {
-      // 모든 이미지가 삭제된 경우 localStorage에서 제거
-      localStorage.removeItem(storageKey);
-      console.log('localStorage에서 이미지 키 제거');
-    }
-    
-    // 부모 컴포넌트 업데이트
-    if (onPropertyUpdate) {
-      const updatedProperty = {
-        ...property,
-        images: updatedImages
-      };
-      onPropertyUpdate(updatedProperty);
-      console.log('부모 컴포넌트 업데이트 완료');
-    }
-    
-    console.log('=== 이미지 삭제 완료 ===');
-  };
-
-  // 지도 이미지 삭제 함수
-  const handleDeleteMapImage = (imageIndex: number) => {
-    console.log('=== 지도 이미지 삭제 시작 ===');
-    console.log('삭제할 지도 이미지 인덱스:', imageIndex);
-    console.log('현재 지도 이미지 개수:', mapImages.length);
-    
-    const updatedMapImages = mapImages.filter((_, index) => index !== imageIndex);
-    console.log('삭제 후 지도 이미지 개수:', updatedMapImages.length);
-    
-    setMapImages(updatedMapImages);
-    
-    // localStorage에 저장
-    const storageKey = `mapImages_${property.id}`;
-    if (updatedMapImages.length > 0) {
-      localStorage.setItem(storageKey, JSON.stringify(updatedMapImages));
-      console.log('지도 이미지 localStorage 업데이트 완료');
-    } else {
-      // 모든 지도 이미지가 삭제된 경우 localStorage에서 제거
-      localStorage.removeItem(storageKey);
-      console.log('localStorage에서 지도 이미지 키 제거');
-    }
-    
-    console.log('=== 지도 이미지 삭제 완료 ===');
-  };
+  }, [property]);
 
   return (
-    <ModalOverlay 
-      onClick={onClose}
-      onContextMenu={handleContextMenu}
-      onDragStart={handleDragStart}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-    >
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <CloseButton onClick={onClose}>&times;</CloseButton>
-        
-        <LeftPanel>
-          <Header>
-            <HeaderLeft>
-              <PropertyNumberBox>
-                매물번호<br />
-                {property.id}
-              </PropertyNumberBox>
-              <PropertyTitle>{property.title}</PropertyTitle>
-            </HeaderLeft>
-            {property.confirmedDate && (
-              <ConfirmedDateBox>확인매물 {property.confirmedDate}</ConfirmedDateBox>
-            )}
-          </Header>
-
-          <ImageSection>
-            {currentImages.length > 0 ? (
-              <>
-                <ImageNavigationButton 
-                  className="prev" 
-                  onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))} 
-                  disabled={currentImageIndex === 0}
-                >
-                  &lt;
-                </ImageNavigationButton>
-                <ImageNavigationButton 
-                  className="next" 
-                  onClick={() => setCurrentImageIndex(prev => Math.min(currentImages.length - 1, prev + 1))} 
-                  disabled={currentImageIndex === currentImages.length - 1}
-                >
-                  &gt;
-                </ImageNavigationButton>
-                <ImageContainer>
-                  <MainImage src={currentImages[currentImageIndex]} alt={property.title} />
-                  {isAdmin && (
-                    <ImageDeleteButton 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleDeleteImage(currentImageIndex);
-                      }}
-                      title="이미지 삭제"
-                    >
-                      ×
-                    </ImageDeleteButton>
-                  )}
-                </ImageContainer>
-                <ImageCounter>{currentImageIndex + 1}/{currentImages.length}</ImageCounter>
-                {isAdmin && (
-                  <ImageUploadButton 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('=== 상단 이미지 업로드 버튼 클릭됨 ===');
-                      
-                      // 파일 입력 요소를 동적으로 생성
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.multiple = true;
-                      input.style.display = 'none';
-                      
-                      input.onchange = (event) => {
-                        console.log('=== 파일 선택됨 ===');
-                        const target = event.target as HTMLInputElement;
-                        console.log('파일 목록:', target.files);
-                        console.log('파일 개수:', target.files?.length);
-                        
-                        if (target.files && target.files.length > 0) {
-                          const file = target.files[0];
-                          console.log('첫 번째 파일:', file.name, file.size, file.type);
-                          
-                          const reader = new FileReader();
-                          reader.onload = (e) => {
-                            console.log('파일 읽기 완료');
-                            const result = e.target?.result;
-                            console.log('읽기 결과:', result ? '성공' : '실패');
-                            
-                            if (result) {
-                              const newImages = [...currentImages, result as string];
-                              console.log('새 이미지 배열:', newImages.length);
-                              setCurrentImages(newImages);
-                              // 새 이미지가 추가되면 마지막 이미지(새로 추가된 이미지)로 이동
-                              setCurrentImageIndex(newImages.length - 1);
-                              console.log('이미지 상태 업데이트 완료');
-                              
-                              // localStorage에 저장
-                              const storageKey = `mainImages_${property.id}`;
-                              const imageData = JSON.stringify(newImages);
-                              console.log('localStorage 저장 시작');
-                              console.log('저장 키:', storageKey);
-                              console.log('저장할 데이터 길이:', imageData.length);
-                              console.log('저장할 데이터 타입:', typeof imageData);
-                              console.log('저장할 데이터 시작 부분:', imageData.substring(0, 100));
-                              
-                              // 기존 Unsplash 이미지 제거
-                              const existingData = localStorage.getItem(storageKey);
-                              if (existingData && existingData.includes('unsplash.com')) {
-                                console.log('기존 Unsplash 이미지 제거');
-                                localStorage.removeItem(storageKey);
-                              }
-                              
-                              localStorage.setItem(storageKey, imageData);
-                              console.log('localStorage 저장 완료');
-                              
-                              // 저장 확인
-                              const savedData = localStorage.getItem(storageKey);
-                              console.log('저장 확인:', savedData ? '성공' : '실패');
-                              if (savedData) {
-                                const parsedData = JSON.parse(savedData);
-                                console.log('파싱된 저장 데이터:', parsedData.length, '개');
-                              }
-                              
-                              // 부모 컴포넌트 업데이트
-                              if (onPropertyUpdate) {
-                                const updatedProperty = {
-                                  ...property,
-                                  images: newImages
-                                };
-                                onPropertyUpdate(updatedProperty);
-                                console.log('부모 컴포넌트 업데이트 완료');
-                              }
-                              
-                              console.log('=== 이미지 업로드 완료 ===');
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      };
-                      
-                      document.body.appendChild(input);
-                      input.click();
-                      document.body.removeChild(input);
-                    }}
-                    title="이미지 업로드"
-                  >
-                    <span style={{ 
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '100%',
-                      height: '100%',
-                      lineHeight: '1',
-                      fontSize: 'inherit',
-                      margin: 0,
-                      padding: 0
-                    }}>
-                      
-                    </span>
-                  </ImageUploadButton>
+    <>
+      <ModalOverlay 
+        onClick={(e) => {
+          // 모달 배경 클릭 시에만 닫기
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+        onContextMenu={handleContextMenu}
+        onDragStart={handleDragStart}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+      >
+        <ModalContent 
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <CloseButton onClick={onClose}>&times;</CloseButton>
+          
+          <LeftPanel>
+            <Header>
+              <HeaderLeft>
+                <PropertyNumberBox>
+                  매물번호<br />
+                  {editData.id}
+                </PropertyNumberBox>
+              </HeaderLeft>
+              <HeaderRight>
+                {isEditMode ? (
+                  <>
+                    <CancelButton onClick={toggleEditMode}>취소</CancelButton>
+                    <SaveButton onClick={handleSave}>저장</SaveButton>
+                  </>
+                ) : (
+                  <>
+                    {isAdmin && (
+                      <EditButton onClick={toggleEditMode}>수정</EditButton>
+                    )}
+                    {isAdmin && (
+                      <DeleteButton onClick={handleDeleteProperty}>삭제</DeleteButton>
+                    )}
+                  </>
                 )}
-              </>
-            ) : (
-              <div style={{
-                width: '100%',
-                height: '280px',
-                background: '#f3f4f6',
-                border: '2px dashed #d1d5db',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6b7280',
-                fontSize: '1rem',
-                position: 'relative'
-              }}>
-                <ImageUploadButton
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('=== 빈 이미지 영역 업로드 버튼 클릭됨 ===');
-                    
-                    // 파일 입력 요소를 동적으로 생성
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.multiple = true;
-                    input.style.display = 'none';
-                    
-                    input.onchange = (event) => {
-                      console.log('=== 파일 선택됨 ===');
-                      const target = event.target as HTMLInputElement;
-                      console.log('파일 목록:', target.files);
-                      console.log('파일 개수:', target.files?.length);
-                      
-                      if (target.files && target.files.length > 0) {
-                        const file = target.files[0];
-                        console.log('첫 번째 파일:', file.name, file.size, file.type);
-                        
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          console.log('파일 읽기 완료');
-                          const result = e.target?.result;
-                          console.log('읽기 결과:', result ? '성공' : '실패');
-                          
-                          if (result) {
-                            const newImages = [result as string];
-                            console.log('새 이미지 배열:', newImages.length);
-                            setCurrentImages(newImages);
-                            setCurrentImageIndex(0);
-                            console.log('이미지 상태 업데이트 완료');
-                            
-                            // localStorage에 저장
-                            const storageKey = `mainImages_${property.id}`;
-                            const imageData = JSON.stringify(newImages);
-                            console.log('localStorage 저장 시작 (빈 영역)');
-                            console.log('저장 키:', storageKey);
-                            console.log('저장할 데이터 길이:', imageData.length);
-                            console.log('저장할 데이터 타입:', typeof imageData);
-                            console.log('저장할 데이터 시작 부분:', imageData.substring(0, 100));
-                            
-                            // 기존 Unsplash 이미지 제거
-                            const existingData = localStorage.getItem(storageKey);
-                            if (existingData && existingData.includes('unsplash.com')) {
-                              console.log('기존 Unsplash 이미지 제거 (빈 영역)');
-                              localStorage.removeItem(storageKey);
-                            }
-                            
-                            localStorage.setItem(storageKey, imageData);
-                            console.log('localStorage 저장 완료 (빈 영역)');
-                            
-                            // 저장 확인
-                            const savedData = localStorage.getItem(storageKey);
-                            console.log('저장 확인 (빈 영역):', savedData ? '성공' : '실패');
-                            if (savedData) {
-                              const parsedData = JSON.parse(savedData);
-                              console.log('저장된 이미지 개수 (빈 영역):', parsedData.length);
-                              console.log('저장된 데이터 타입:', typeof parsedData[0]);
-                              console.log('저장된 데이터 시작 부분:', parsedData[0]?.substring(0, 100));
-                              console.log('base64 포함 여부:', parsedData[0]?.includes('data:image/'));
-                            }
-                            
-                            // localStorage 전체 상태 확인
-                            console.log('=== 빈 영역 업로드 후 localStorage 전체 상태 ===');
-                            for (let i = 0; i < localStorage.length; i++) {
-                              const key = localStorage.key(i);
-                              if (key && key.includes('mainImages')) {
-                                console.log('발견된 메인 이미지 키:', key);
-                                const value = localStorage.getItem(key);
-                                console.log('값 길이:', value?.length || 0);
-                                console.log('값 시작 부분:', value?.substring(0, 100));
-                                console.log('base64 포함 여부:', value?.includes('data:image/'));
-                              }
-                            }
-                            
-                            if (onPropertyUpdate) {
-                              const updatedProperty = {
-                                ...property,
-                                images: newImages
-                              };
-                              onPropertyUpdate(updatedProperty);
-                              console.log('부모 컴포넌트 업데이트 완료');
-                            }
-                          }
-                        };
-                        
-                        reader.onerror = (error) => {
-                          console.error('파일 읽기 오류:', error);
-                        };
-                        
-                        console.log('파일 읽기 시작');
-                        reader.readAsDataURL(file);
-                      }
-                    };
-                    
-                    document.body.appendChild(input);
-                    input.click();
-                    document.body.removeChild(input);
-                  }}
-                >
-                  <span style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                    height: '100%',
-                    lineHeight: '1',
-                    fontSize: 'inherit',
-                    margin: 0,
-                    padding: 0
-                  }}>
-                    
-                  </span>
-                </ImageUploadButton>
-              </div>
-            )}
-          </ImageSection>
+              </HeaderRight>
+              <ConfirmedDateBox>
+                확인매물<br />
+                {editData.confirmedDate || '25.07.19'}
+              </ConfirmedDateBox>
+            </Header>
 
-          <InfoSection>
-            <SectionTitle>매물정보</SectionTitle>
-            <PropertyInfoGrid>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>주소</PropertyInfoLabel>
-                <PropertyInfoValue>{maskAddress(property.address)}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>매물종류</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.propertyType === 'commercial' ? '상가' :
-                   property.propertyType === 'office' ? '사무실' :
-                   property.propertyType === 'building' ? '건물' : '기타'}
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>거래유형</PropertyInfoLabel>
-                <PropertyInfoValue>{property.type === 'sale' ? '매매' : '임대'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>매매가</PropertyInfoLabel>
-                <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.type === 'rent' 
-                    ? `보증금 ${formatPrice(property.deposit || 0)} / 월세 ${formatPrice(property.price)}`
-                    : '-'}
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>관리비</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>융자금</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {Math.round(property.area / 3.3058)}평 ({property.area}㎡)
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.propertyType === 'commercial' ? '상업용' :
-                   property.propertyType === 'office' ? '사무용' :
-                   property.propertyType === 'building' ? '건물용' : '기타용도'}
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
-                <PropertyInfoValue>{property.floor || '-'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
-                <PropertyInfoValue>
-                  {property.bedrooms || 0}방 / {property.bathrooms || 0}화장실
-                </PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>난방유형</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>주차</PropertyInfoLabel>
-                <PropertyInfoValue>{property.parking ? '가능' : '불가능'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
-                <PropertyInfoValue>{property.elevator ? '있음' : '없음'}</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>사용승인일</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-              <PropertyInfoItem>
-                <PropertyInfoLabel>입주가능일</PropertyInfoLabel>
-                <PropertyInfoValue>-</PropertyInfoValue>
-              </PropertyInfoItem>
-            </PropertyInfoGrid>
-          </InfoSection>
-
-          <Section>
-            <SectionTitle>매물설명</SectionTitle>
-            <div>
-              {property.description}
-            </div>
-          </Section>
-
-          <Section>
-            <SectionTitle>연락처</SectionTitle>
-            <ContactInfo>
-              <ContactHeader>
-                <ContactName>{property.contact.name}</ContactName>
-              </ContactHeader>
-              <ContactItem>
-                <ContactLabel>전화번호</ContactLabel>
-                <ContactValue>{property.contact.phone}</ContactValue>
-              </ContactItem>
-              <ContactItem>
-                <ContactLabel>이메일</ContactLabel>
-                <ContactValue>{property.contact.email}</ContactValue>
-              </ContactItem>
-              <ContactItem>
-                <ContactLabel>주소</ContactLabel>
-                <ContactValue>{property.address}</ContactValue>
-              </ContactItem>
-            </ContactInfo>
-          </Section>
-
-          <Section>
-            <SectionTitle>위치정보</SectionTitle>
-            <MapPlaceholder>
-              {mapImages.length > 0 ? (
-                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <img 
-                    src={mapImages[0]} 
-                    alt="위치 정보" 
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  {isAdmin && (
-                    <ImageDeleteButton 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleDeleteMapImage(0);
-                      }}
-                      title="지도 이미지 삭제"
-                      style={{ 
-                        position: 'absolute',
-                        top: '0.5rem',
-                        right: '0.5rem'
-                      }}
-                    >
-                      ×
-                    </ImageDeleteButton>
-                  )}
-                  {mapImages.length > 1 && (
-                    <>
-                      <ImageNavigationButton 
-                        className="prev" 
-                        onClick={() => {
-                          // 지도 이미지 네비게이션 로직 추가 가능
+            <ImageSection>
+              {currentImages.length > 0 ? (
+                <>
+                  <ImageNavigationButton 
+                    className="prev" 
+                    onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))} 
+                    disabled={currentImageIndex === 0}
+                  >
+                    &lt;
+                  </ImageNavigationButton>
+                  <ImageNavigationButton 
+                    className="next" 
+                    onClick={() => setCurrentImageIndex(prev => Math.min(currentImages.length - 1, prev + 1))} 
+                    disabled={currentImageIndex === currentImages.length - 1}
+                  >
+                    &gt;
+                  </ImageNavigationButton>
+                  <ImageContainer>
+                    <MainImage src={currentImages[currentImageIndex]} alt={editData.title} />
+                    {isAdmin && (
+                      <ImageDeleteButton 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleImageDelete(currentImageIndex);
                         }}
-                        style={{ left: '0.5rem' }}
+                        title="이미지 삭제"
                       >
-                        &lt;
-                      </ImageNavigationButton>
-                      <ImageNavigationButton 
-                        className="next" 
-                        onClick={() => {
-                          // 지도 이미지 네비게이션 로직 추가 가능
-                        }}
-                        style={{ right: '0.5rem' }}
-                      >
-                        &gt;
-                      </ImageNavigationButton>
-                    </>
-                  )}
+                        ×
+                      </ImageDeleteButton>
+                    )}
+                  </ImageContainer>
+                  <ImageCounter>{currentImageIndex + 1}/{currentImages.length}</ImageCounter>
                   {isAdmin && (
                     <ImageUploadButton 
                       onClick={() => {
-                        console.log('=== 지도 이미지 업로드 버튼 클릭됨 ===');
-                        console.log('현재 지도 이미지 개수:', mapImages.length);
-                        
-                        // 파일 입력 요소를 동적으로 생성
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.multiple = true;
-                        input.style.display = 'none';
-                        
-                        input.onchange = async (event) => {
-                          console.log('=== 지도 이미지 파일 선택됨 ===');
-                          const target = event.target as HTMLInputElement;
-                          console.log('지도 이미지 파일 목록:', target.files);
-                          console.log('지도 이미지 파일 개수:', target.files?.length);
-                          
-                          if (target.files && target.files.length > 0) {
-                            try {
-                              // 파일 크기 체크 (5MB 제한)
-                              const maxSize = 5 * 1024 * 1024; // 5MB
-                              const validFiles = Array.from(target.files).filter(file => {
-                                if (file.size > maxSize) {
-                                  console.warn(`파일 ${file.name}이 너무 큽니다: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-                                  return false;
-                                }
-                                return true;
-                              });
-                              
-                              if (validFiles.length === 0) {
-                                console.error('유효한 파일이 없습니다.');
-                                return;
-                              }
-                              
-                              console.log('처리할 파일 개수:', validFiles.length);
-                              
-                              const filePromises = validFiles.map((file, index) => {
-                                console.log(`지도 이미지 파일 ${index + 1}:`, file.name, file.size, file.type);
-                                
-                                return new Promise<string>((resolve, reject) => {
-                                  const reader = new FileReader();
-                                  
-                                  reader.onload = (e) => {
-                                    console.log(`지도 이미지 ${index + 1} 읽기 완료`);
-                                    if (e.target?.result) {
-                                      resolve(e.target.result as string);
-                                    } else {
-                                      reject(new Error(`지도 이미지 ${index + 1} 읽기 실패`));
-                                    }
-                                  };
-                                  
-                                  reader.onerror = (error) => {
-                                    console.error(`지도 이미지 ${index + 1} 읽기 오류:`, error);
-                                    reject(error);
-                                  };
-                                  
-                                  console.log(`지도 이미지 ${index + 1} 읽기 시작`);
-                                  reader.readAsDataURL(file);
-                                });
-                              });
-                              
-                              console.log('모든 파일 읽기 시작...');
-                              const newMapImages = await Promise.all(filePromises);
-                              console.log('모든 파일 읽기 완료:', newMapImages.length, '개');
-                              
-                              const updatedMapImages = [...mapImages, ...newMapImages];
-                              console.log('업데이트될 지도 이미지 배열:', updatedMapImages.length, '개');
-                              
-                              // 먼저 localStorage에 저장
-                              const mapImagesKey = `mapImages_${property.id}`;
-                              const mapImagesData = JSON.stringify(updatedMapImages);
-                              console.log('localStorage에 저장될 데이터 길이:', mapImagesData.length);
-                              localStorage.setItem(mapImagesKey, mapImagesData);
-                              console.log('지도 이미지 localStorage 저장 완료, 키:', mapImagesKey);
-                              
-                              // 그 다음 상태 업데이트
-                              setMapImages(updatedMapImages);
-                              
-                              // 저장 확인
-                              const saved = localStorage.getItem(mapImagesKey);
-                              console.log('저장 확인:', saved ? JSON.parse(saved).length + '개' : '저장 실패');
-                              
-                              // 즉시 저장된 데이터 확인
-                              setTimeout(() => {
-                                const verifySaved = localStorage.getItem(mapImagesKey);
-                                console.log('저장 검증:', verifySaved ? JSON.parse(verifySaved).length + '개' : '검증 실패');
-                                
-                                // localStorage 전체 상태 확인
-                                console.log('=== 업로드 후 localStorage 전체 상태 ===');
-                                for (let i = 0; i < localStorage.length; i++) {
-                                  const key = localStorage.key(i);
-                                  if (key && key.includes('mapImages')) {
-                                    console.log('발견된 지도 이미지 키:', key);
-                                    const value = localStorage.getItem(key);
-                                    console.log('값 길이:', value?.length || 0);
-                                    console.log('값이 null인가?:', value === null);
-                                    console.log('값이 "null"인가?:', value === 'null');
-                                  }
-                                }
-                              }, 100);
-                              
-                            } catch (error) {
-                              console.error('지도 이미지 업로드 중 오류:', error);
-                            }
-                          }
-                        };
-                        
-                        document.body.appendChild(input);
-                        input.click();
-                        document.body.removeChild(input);
+                        console.log('📷 사진업로드 버튼 클릭');
+                        fileInputRef.current?.click();
                       }}
-                      style={{ bottom: '1rem', right: '1rem' }}
+                      title="이미지 업로드"
                     >
-                      <span style={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                        lineHeight: '1',
-                        fontSize: 'inherit',
-                        margin: 0,
-                        padding: 0
-                      }}>
-                        
-                      </span>
+                      📷
                     </ImageUploadButton>
                   )}
-                </div>
+                </>
               ) : (
                 <div style={{
                   width: '100%',
-                  height: '100%',
+                  height: '280px',
+                  background: '#f3f4f6',
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1170,146 +788,417 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                   position: 'relative'
                 }}>
                   {isAdmin && (
-                    <ImageUploadButton 
+                    <ImageUploadButton
                       onClick={() => {
-                        console.log('=== 지도 이미지 업로드 버튼 클릭됨 ===');
-                        console.log('현재 지도 이미지 개수:', mapImages.length);
-                        
-                        // 파일 입력 요소를 동적으로 생성
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.multiple = true;
-                        input.style.display = 'none';
-                        
-                        input.onchange = async (event) => {
-                          console.log('=== 지도 이미지 파일 선택됨 ===');
-                          const target = event.target as HTMLInputElement;
-                          console.log('지도 이미지 파일 목록:', target.files);
-                          console.log('지도 이미지 파일 개수:', target.files?.length);
-                          
-                          if (target.files && target.files.length > 0) {
-                            try {
-                              // 파일 크기 체크 (5MB 제한)
-                              const maxSize = 5 * 1024 * 1024; // 5MB
-                              const validFiles = Array.from(target.files).filter(file => {
-                                if (file.size > maxSize) {
-                                  console.warn(`파일 ${file.name}이 너무 큽니다: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-                                  return false;
-                                }
-                                return true;
-                              });
-                              
-                              if (validFiles.length === 0) {
-                                console.error('유효한 파일이 없습니다.');
-                                return;
-                              }
-                              
-                              console.log('처리할 파일 개수:', validFiles.length);
-                              
-                              const filePromises = validFiles.map((file, index) => {
-                                console.log(`지도 이미지 파일 ${index + 1}:`, file.name, file.size, file.type);
-                                
-                                return new Promise<string>((resolve, reject) => {
-                                  const reader = new FileReader();
-                                  
-                                  reader.onload = (e) => {
-                                    console.log(`지도 이미지 ${index + 1} 읽기 완료`);
-                                    if (e.target?.result) {
-                                      resolve(e.target.result as string);
-                                    } else {
-                                      reject(new Error(`지도 이미지 ${index + 1} 읽기 실패`));
-                                    }
-                                  };
-                                  
-                                  reader.onerror = (error) => {
-                                    console.error(`지도 이미지 ${index + 1} 읽기 오류:`, error);
-                                    reject(error);
-                                  };
-                                  
-                                  console.log(`지도 이미지 ${index + 1} 읽기 시작`);
-                                  reader.readAsDataURL(file);
-                                });
-                              });
-                              
-                              console.log('모든 파일 읽기 시작...');
-                              const newMapImages = await Promise.all(filePromises);
-                              console.log('모든 파일 읽기 완료:', newMapImages.length, '개');
-                              
-                              const updatedMapImages = [...mapImages, ...newMapImages];
-                              console.log('업데이트될 지도 이미지 배열:', updatedMapImages.length, '개');
-                              
-                              // 먼저 localStorage에 저장
-                              const mapImagesKey = `mapImages_${property.id}`;
-                              const mapImagesData = JSON.stringify(updatedMapImages);
-                              console.log('localStorage에 저장될 데이터 길이:', mapImagesData.length);
-                              localStorage.setItem(mapImagesKey, mapImagesData);
-                              console.log('지도 이미지 localStorage 저장 완료, 키:', mapImagesKey);
-                              
-                              // 그 다음 상태 업데이트
-                              setMapImages(updatedMapImages);
-                              
-                              // 저장 확인
-                              const saved = localStorage.getItem(mapImagesKey);
-                              console.log('저장 확인:', saved ? JSON.parse(saved).length + '개' : '저장 실패');
-                              
-                              // 즉시 저장된 데이터 확인
-                              setTimeout(() => {
-                                const verifySaved = localStorage.getItem(mapImagesKey);
-                                console.log('저장 검증:', verifySaved ? JSON.parse(verifySaved).length + '개' : '검증 실패');
-                                
-                                // localStorage 전체 상태 확인
-                                console.log('=== 업로드 후 localStorage 전체 상태 ===');
-                                for (let i = 0; i < localStorage.length; i++) {
-                                  const key = localStorage.key(i);
-                                  if (key && key.includes('mapImages')) {
-                                    console.log('발견된 지도 이미지 키:', key);
-                                    const value = localStorage.getItem(key);
-                                    console.log('값 길이:', value?.length || 0);
-                                    console.log('값이 null인가?:', value === null);
-                                    console.log('값이 "null"인가?:', value === 'null');
-                                  }
-                                }
-                              }, 100);
-                              
-                            } catch (error) {
-                              console.error('지도 이미지 업로드 중 오류:', error);
-                            }
-                          }
-                        };
-                        
-                        document.body.appendChild(input);
-                        input.click();
-                        document.body.removeChild(input);
-                      }}
-                      style={{ 
-                        position: 'absolute',
-                        bottom: '1rem',
-                        right: '1rem'
+                        console.log('📷 사진업로드 버튼 클릭 (빈 상태)');
+                        fileInputRef.current?.click();
                       }}
                     >
-                      <span style={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                        lineHeight: '1',
-                        fontSize: 'inherit',
-                        margin: 0,
-                        padding: 0
-                      }}>
-                        
-                      </span>
+                      📷
                     </ImageUploadButton>
                   )}
                 </div>
               )}
-            </MapPlaceholder>
-          </Section>
-        </LeftPanel>
-      </ModalContent>
-    </ModalOverlay>
+            </ImageSection>
+
+            <InfoSection>
+              <SectionTitle>매물정보</SectionTitle>
+              <PropertyInfoGrid>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>주소</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.address}
+                        onChange={(e) => handleEditChange('address', e.target.value)}
+                        placeholder="주소를 입력하세요"
+                      />
+                    ) : (
+                      maskAddress(editData.address)
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>매물종류</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditSelect
+                        value={editData.propertyType}
+                        onChange={(e) => handleEditChange('propertyType', e.target.value)}
+                      >
+                        <option value="commercial">상가</option>
+                        <option value="office">사무실</option>
+                        <option value="building">건물</option>
+                        <option value="other">기타</option>
+                      </EditSelect>
+                    ) : (
+                      editData.propertyType === 'commercial' ? '상가' :
+                      editData.propertyType === 'office' ? '사무실' :
+                      editData.propertyType === 'building' ? '건물' : '기타'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>거래유형</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditSelect
+                        value={editData.type}
+                        onChange={(e) => handleEditChange('type', e.target.value)}
+                      >
+                        <option value="sale">매매</option>
+                        <option value="rent">임대</option>
+                      </EditSelect>
+                    ) : (
+                      editData.type === 'sale' ? '매매' : '임대'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>매매가</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        type="number"
+                        value={editData.price}
+                        onChange={(e) => handleEditChange('price', parseInt(e.target.value) || 0)}
+                        placeholder="매매가를 입력하세요 (만원)"
+                      />
+                    ) : (
+                      editData.type === 'sale' ? formatPrice(editData.price) : '-'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <EditInput
+                          type="number"
+                          value={editData.deposit || 0}
+                          onChange={(e) => handleEditChange('deposit', parseInt(e.target.value) || 0)}
+                          placeholder="보증금 (만원)"
+                          style={{ flex: 1 }}
+                        />
+                        <EditInput
+                          type="number"
+                          value={editData.type === 'rent' ? (editData.rentPrice || 0) : 0}
+                          onChange={(e) => handleEditChange('rentPrice', parseInt(e.target.value) || 0)}
+                          placeholder="임대료 (만원)"
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    ) : (
+                      editData.type === 'rent' 
+                        ? `보증금 ${formatDeposit(editData.deposit || 0)} / 월세 ${editData.rentPrice || 0}만원`
+                        : '-'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <EditInput
+                          type="number"
+                          step="0.1"
+                          value={Math.round(editData.area / 3.3058)}
+                          onChange={(e) => {
+                            const pyeongValue = parseFloat(e.target.value) || 0;
+                            const m2Value = pyeongValue * 3.3058;
+                            handleEditChange('area', m2Value);
+                          }}
+                          placeholder="면적을 입력하세요 (평)"
+                          style={{ flex: 1 }}
+                        />
+                        <span style={{ 
+                          fontSize: '14px',
+                          color: '#6b7280',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          평
+                        </span>
+                        <span style={{ 
+                          fontSize: '14px',
+                          color: '#6b7280',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          ({Math.round(editData.area)}㎡)
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          padding: '4px 8px', 
+                          backgroundColor: '#f8fafc', 
+                          borderRadius: '4px',
+                          border: 'none',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {Math.round(editData.area / 3.3058)}평
+                        </span>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          padding: '4px 8px', 
+                          backgroundColor: '#f8fafc', 
+                          borderRadius: '4px',
+                          border: 'none',
+                          fontSize: '14px',
+                          color: '#6b7280'
+                        }}>
+                          ({editData.area}㎡)
+                        </span>
+                      </div>
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.floor || ''}
+                        onChange={(e) => handleEditChange('floor', e.target.value)}
+                        placeholder="예: 2/5층"
+                      />
+                    ) : (
+                      editData.floor || '-'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>주차</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditSelect
+                        value={editData.parking ? 'true' : 'false'}
+                        onChange={(e) => handleEditChange('parking', e.target.value === 'true')}
+                      >
+                        <option value="true">가능</option>
+                        <option value="false">불가능</option>
+                      </EditSelect>
+                    ) : (
+                      editData.parking ? '가능' : '불가능'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditSelect
+                        value={editData.elevator ? 'true' : 'false'}
+                        onChange={(e) => handleEditChange('elevator', e.target.value === 'true')}
+                      >
+                        <option value="true">있음</option>
+                        <option value="false">없음</option>
+                      </EditSelect>
+                    ) : (
+                      editData.elevator ? '있음' : '없음'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+              </PropertyInfoGrid>
+            </InfoSection>
+
+            <Section>
+              <SectionTitle>매물설명</SectionTitle>
+              <div>
+                {isEditMode ? (
+                  <EditTextarea
+                    value={editData.description}
+                    onChange={(e) => handleEditChange('description', e.target.value)}
+                    placeholder="매물 설명을 입력하세요"
+                  />
+                ) : (
+                  editData.description
+                )}
+              </div>
+            </Section>
+
+            <Section>
+              <SectionTitle>연락처</SectionTitle>
+              <ContactInfo>
+                <ContactHeader>
+                  <ContactName>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.contact.name}
+                        onChange={(e) => handleNestedEditChange('contact', 'name', e.target.value)}
+                        placeholder="연락처명을 입력하세요"
+                      />
+                    ) : (
+                      editData.contact.name
+                    )}
+                  </ContactName>
+                </ContactHeader>
+                <ContactItem>
+                  <ContactLabel>전화번호</ContactLabel>
+                  <ContactValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.contact.phone}
+                        onChange={(e) => handleNestedEditChange('contact', 'phone', e.target.value)}
+                        placeholder="전화번호를 입력하세요"
+                      />
+                    ) : (
+                      editData.contact.phone
+                    )}
+                  </ContactValue>
+                </ContactItem>
+                <ContactItem>
+                  <ContactLabel>이메일</ContactLabel>
+                  <ContactValue>
+                    {isEditMode ? (
+                      <EditInput
+                        type="email"
+                        value={editData.contact.email}
+                        onChange={(e) => handleNestedEditChange('contact', 'email', e.target.value)}
+                        placeholder="이메일을 입력하세요"
+                      />
+                    ) : (
+                      editData.contact.email
+                    )}
+                  </ContactValue>
+                </ContactItem>
+              </ContactInfo>
+            </Section>
+
+            <Section>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <SectionTitle>위치정보</SectionTitle>
+                <button
+                  onClick={toggleMap}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: showMap ? '#dc2626' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {showMap ? '지도 숨기기' : '지도 보기'}
+                </button>
+              </div>
+              
+              {showMap && (
+                <div style={{ 
+                  height: '300px', 
+                  marginBottom: '1rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  overflow: 'hidden'
+                }}>
+                  <iframe
+                    title="매물 위치 지도"
+                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk&q=${editData.location.lat},${editData.location.lng}&zoom=15`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              )}
+              
+              {isEditMode ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <EditInput
+                      type="number"
+                      step="0.000001"
+                      value={editData.location.lat}
+                      onChange={(e) => handleNestedEditChange('location', 'lat', parseFloat(e.target.value) || 0)}
+                      placeholder="위도 (Latitude)"
+                      style={{ flex: 1 }}
+                    />
+                    <EditInput
+                      type="number"
+                      step="0.000001"
+                      value={editData.location.lng}
+                      onChange={(e) => handleNestedEditChange('location', 'lng', parseFloat(e.target.value) || 0)}
+                      placeholder="경도 (Longitude)"
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', textAlign: 'center' }}>
+                    현재 좌표: {editData.location.lat.toFixed(6)}, {editData.location.lng.toFixed(6)}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        console.log('🔄 주소로 좌표 재검색 중...');
+                        const response = await fetch('/api/kakao-geocoding', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ address: editData.address }),
+                        });
+                        const result = await response.json();
+                        if (result.lat && result.lng) {
+                          handleNestedEditChange('location', 'lat', result.lat);
+                          handleNestedEditChange('location', 'lng', result.lng);
+                          console.log('✅ 좌표 업데이트 완료:', result);
+                        }
+                      } catch (error) {
+                        console.error('❌ 좌표 업데이트 실패:', error);
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    🔄 주소로 좌표 재검색
+                  </button>
+                </div>
+              ) : (
+                <div style={{ 
+                  padding: '1rem', 
+                  background: '#f8fafc', 
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  color: '#6b7280'
+                }}>
+                  <div>위도: {editData.location.lat.toFixed(6)}</div>
+                  <div>경도: {editData.location.lng.toFixed(6)}</div>
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
+                    주소: {editData.address}
+                  </div>
+                </div>
+              )}
+            </Section>
+          </LeftPanel>
+        </ModalContent>
+        
+        {/* 숨겨진 파일 입력 */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          style={{ 
+            position: 'absolute',
+            top: '-9999px',
+            left: '-9999px',
+            visibility: 'hidden',
+            pointerEvents: 'none'
+          }}
+        />
+      </ModalOverlay>
+    </>
   );
 };
 

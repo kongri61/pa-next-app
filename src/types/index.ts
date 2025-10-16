@@ -4,6 +4,7 @@ export interface Property {
   description: string;
   price: number;
   deposit?: number; // 보증금 (원)
+  rentPrice?: number; // 임대료 (원)
   type: 'sale' | 'rent';
   propertyType: 'commercial' | 'office' | 'building' | 'other';
   address: string;

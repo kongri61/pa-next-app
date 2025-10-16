@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import logoImage from '../assets/logo.png';
+import paLogo from '../assets/pa-logo.png';
+import { firebaseSync } from '../utils/firebaseSync';
 
 const HeaderContainer = styled.header`
   background: #fff;
@@ -8,182 +9,150 @@ const HeaderContainer = styled.header`
   padding: 1rem 2rem;
   position: sticky;
   top: 0;
-  z-index: 1000; /* z-index를 100에서 1000으로 높임 */
-  /* 하얀 박스 문제 해결을 위한 추가 설정 */
+  z-index: 1000;
   overflow: hidden;
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
-
-  @media (max-width: 768px) {
-    padding: 0.5rem 1rem;
-    height: auto;
-    z-index: 1000; /* 모바일에서도 z-index를 1000으로 높임 */
-    position: sticky; /* sticky 유지 */
-    top: 0;
-    overflow: hidden;
-    width: 100%;
-    max-width: 100vw;
-    box-sizing: border-box;
-  }
+  border-bottom: 1px solid #e5e7eb;
 `;
 
 const MainSection = styled.div`
   display: flex;
-  flex-direction: column;
-  max-width: 1200px;
-  margin: 0 auto;
-  gap: 0.75rem;
-  background: #fff; /* 배경색 명시적 설정 */
-  width: 100%;
-  box-sizing: border-box;
-  overflow: hidden;
-
-  @media (max-width: 768px) {
-    gap: 0.5rem;
-    background: #fff;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-`;
-
-const HeaderTopRow = styled.div`
-  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  background: #fff; /* 배경색 명시적 설정 */
+  max-width: 1400px; // 1200px에서 1400px로 증가
+  margin: 0 auto;
+  gap: 1rem;
+  background: #fff;
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
-  position: relative;
-
-  @media (max-width: 768px) {
-    gap: 0.5rem;
-    background: #fff;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-    position: relative;
-  }
 `;
 
-const FilterRow = styled.div`
+// 왼쪽 섹션 (로고 + 회사명)
+const LeftSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.4rem; /* 0.3rem에서 0.4rem으로 간격 더 늘림 */
-  justify-content: space-between; /* flex-start에서 space-between으로 변경 */
-  position: relative;
-  overflow: hidden; /* visible에서 hidden으로 변경 */
-  background: #fff; /* 배경색 명시적 설정 */
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.5rem 0.5rem; /* 좌우 패딩 추가 */
-  min-height: 60px; /* 최소 높이 설정 */
-  flex-wrap: nowrap; /* 줄바꿈 방지 */
+  gap: 1rem; // 0.75rem에서 1rem으로 증가
+  flex-shrink: 0;
+  min-width: 200px; // 로고 영역 최소 너비 추가
+`;
 
-  @media (max-width: 768px) {
-    gap: 0.3rem; /* 모바일에서 간격 줄임 */
-    overflow: hidden; /* visible에서 hidden으로 변경 */
-    background: #fff;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.4rem 0.3rem; /* 모바일에서도 좌우 패딩 추가 */
-    min-height: 60px; /* 모바일 최소 높이 증가 */
-    flex-wrap: nowrap; /* 줄바꿈 방지 */
-  }
+// 중앙 섹션 (검색 + 필터)
+const CenterSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+  max-width: 800px; // 최대 너비 제한 추가
+`;
+
+// 오른쪽 섹션 (버튼들)
+const RightSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; // 0.5rem에서 0.75rem으로 증가
+  flex-shrink: 0;
+  min-width: 300px; // 최소 너비 추가
 `;
 
 const LogoSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
-
-  @media (max-width: 768px) {
-    gap: 0.5rem;
-  }
+  gap: 0.5rem;
+  min-width: 150px; // 로고 섹션 최소 너비 추가
 `;
 
-const Logo = styled.img`
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-
-  @media (max-width: 768px) {
-    width: 36px;
-    height: 36px;
-  }
-`;
-
-const CompanyInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-
-  @media (max-width: 768px) {
-    gap: 0.05rem;
-  }
-`;
-
-const CompanyName = styled.h1`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin: 0;
-  line-height: 1.1;
-
-  @media (max-width: 768px) {
-    font-size: 1.25rem;
-  }
-`;
-
-const CompanyType = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-  white-space: nowrap;
-  line-height: 1.1;
-
-  @media (max-width: 768px) {
-    font-size: 0.75rem;
-  }
-`;
-
-const FilterButton = styled.button<{ isActive?: boolean }>`
-  padding: 0.5rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: ${props => props.isActive ? '#f3f4f6' : '#ffffff'};
-  color: #374151;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
+const Logo = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  white-space: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 0.75rem; // 1.5rem에서 0.75rem으로 줄임
+  min-width: 120px;
+  transition: gap 0.3s ease;
+`;
 
+const CompanyName = styled.div`
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+
+  .company-main {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #000000;
+  }
+
+  .company-sub {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #6b7280;
+  }
+`;
+
+// 검색 필드
+const SearchInput = styled.input`
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  min-width: 200px;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+// 필터 버튼 (기본 상태)
+const FilterButtonDefault = styled.button`
+  padding: 0.5rem 0.75rem;
+  background: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  
   &:hover {
     background: #f9fafb;
     border-color: #9ca3af;
   }
+`;
 
-  @media (max-width: 768px) {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.75rem;
-    flex: 1;
-    justify-content: center;
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap; /* 줄바꿈 제거, 말줄임표로 처리 */
+// 액션 버튼
+const ActionButton = styled.button`
+  padding: 0.5rem 0.75rem; // 1rem에서 0.75rem으로 줄임
+  background: #4b5563;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap; // 텍스트 줄바꿈 방지
+  
+  &:hover {
+    background: #374151;
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
   }
 `;
 
@@ -202,6 +171,8 @@ const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean }>`
   display: ${props => props.isOpen ? 'block' : 'none'};
   min-width: 200px;
   max-width: ${props => props.isWide ? '1200px' : '500px'};
+  max-height: calc(100vh - 200px); /* 화면 높이에서 헤더 높이와 여백을 뺀 값 */
+  overflow-y: auto; /* 스크롤 활성화 */
   white-space: nowrap;
   opacity: ${props => props.isOpen ? '1' : '0'};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
@@ -218,27 +189,6 @@ const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean }>`
     background: white;
     border-left: 1px solid #d1d5db;
     border-top: 1px solid #d1d5db;
-  }
-
-  @media (max-width: 768px) {
-    position: fixed;
-    top: 120px; /* 헤더 높이 + 여백 */
-    left: 0;
-    right: 0;
-    transform: none;
-    max-width: 100vw;
-    width: 100vw;
-    margin: 0;
-    max-height: calc(100vh - 140px); /* 화면 높이에서 헤더 높이와 여백을 뺀 값 */
-    overflow-y: auto;
-    border-radius: 0;
-    z-index: 999999;
-    background: #fff;
-    box-sizing: border-box;
-    
-    &::before {
-      display: none;
-    }
   }
 `;
 
@@ -327,36 +277,6 @@ const FilterButtonContainer = styled.div`
   }
 `;
 
-const ResetButton = styled.button`
-  padding: 0.5rem 1rem;
-  background: #6b7280;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  margin-left: 0; /* 1.5rem에서 0으로 변경 */
-  margin-right: 0.5rem; /* 우측 여백 추가하여 안쪽으로 이동 */
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0; /* 크기 고정 */
-
-  &:hover {
-    background: #4b5563;
-  }
-
-  @media (max-width: 768px) {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.75rem;
-    margin-left: 0; /* 0.8rem에서 0으로 변경 */
-    margin-right: 0.3rem; /* 모바일에서도 우측 여백 추가 */
-    position: relative;
-    z-index: 1;
-    flex-shrink: 0; /* 크기 고정 */
-  }
-`;
-
 const AreaSection = styled.div`
   padding: 1rem;
 `;
@@ -372,11 +292,6 @@ const AreaSlider = styled.div`
   grid-template-columns: repeat(6, 1fr);
   gap: 0.4rem;
   margin-bottom: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.3rem;
-  }
 `;
 
 const AreaButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isInRange?: boolean }>`
@@ -409,11 +324,6 @@ const AreaButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isI
   &:hover {
     background: ${props => props.isActive ? '#1e3a8a' : '#f3f4f6'};
   }
-
-  @media (max-width: 768px) {
-    font-size: 10px;
-    padding: 0.3rem 0.2rem;
-  }
 `;
 
 const PriceSection = styled.div`
@@ -433,11 +343,6 @@ const PriceGrid = styled.div`
   gap: 0.4rem;
   margin-bottom: 0.75rem;
   width: 100%;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.3rem;
-  }
 `;
 
 const PriceButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isInRange?: boolean }>`
@@ -493,10 +398,6 @@ const RangeInput = styled.input`
     outline: none;
     border-color: #2563eb;
   }
-
-  @media (max-width: 768px) {
-    max-width: 100px;
-  }
 `;
 
 const RangeSeparator = styled.span`
@@ -521,11 +422,6 @@ const DepositSlider = styled.div`
   margin-bottom: 0.75rem;
   width: 100%;
   max-width: 100%;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.3rem;
-  }
 `;
 
 const DepositButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isInRange?: boolean }>`
@@ -570,6 +466,7 @@ const DepositButton = styled.button<{ isSelected?: boolean; isActive?: boolean; 
 
 interface HeaderProps {
   onAddProperty: () => void;
+  onBulkPropertyUpload?: () => void; // 대량매물등록 핸들러 추가
   searchTerm?: string;
   onSearchChange?: (value: string) => void;
   addressSearch?: string;
@@ -591,6 +488,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ 
   onAddProperty, 
+  onBulkPropertyUpload, // 대량매물등록 핸들러 추가
   searchTerm = '', 
   onSearchChange,
   addressSearch = '',
@@ -603,6 +501,10 @@ const Header: React.FC<HeaderProps> = ({
   onLogoutClick,
   onMapReset
 }) => {
+  // 디버깅: 관리자 상태 확인
+  console.log('🔧 Header 렌더링 - isLoggedIn:', isLoggedIn, 'isAdmin:', isAdmin);
+  console.log('🔧 관리자 버튼 표시 조건:', isLoggedIn && isAdmin);
+  
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [depositRange, setDepositRange] = useState({ min: '', max: '' });
@@ -610,30 +512,109 @@ const Header: React.FC<HeaderProps> = ({
   const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
   const [selectedDeposits, setSelectedDeposits] = useState<string[]>([]);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  
+  // 선택된 가격들 (범위 형식 포함)
+  const cleanSelectedPrices = useMemo(() => {
+    return selectedPrices;
+  }, [selectedPrices]);
 
   // filters 객체가 변경될 때 로컬 상태 동기화
   React.useEffect(() => {
-    console.log('=== filters 변경 감지 ===');
-    console.log('filters.price:', filters.price);
-    console.log('filters.deposit:', filters.deposit);
-    console.log('filters.area:', filters.area);
-    
     // price 필터 동기화
     if (filters.price) {
-      const priceArray = filters.price.split(',').filter(p => p.trim() !== '');
-      setSelectedPrices(priceArray);
-      console.log('selectedPrices 업데이트:', priceArray);
+      // 범위 형식 (예: "5억~10억", "최소값~1억", "500억~최대값")을 파싱하여 selectedPrices 설정
+      if (filters.price.includes('~')) {
+        const [minStr, maxStr] = filters.price.split('~');
+        
+        // 범위를 매매가 옵션으로 변환
+        let minOption = '';
+        let maxOption = '';
+        
+        if (minStr === '최소값') {
+          minOption = '~1억';
+        } else {
+          minOption = `${minStr.replace(/[억]/g, '')}억`;
+        }
+        
+        if (maxStr === '최대값') {
+          maxOption = '500억~';
+        } else {
+          maxOption = `${maxStr.replace(/[억]/g, '')}억`;
+        }
+        
+        if (minStr === maxStr) {
+          // 단일 값인 경우
+          if (minStr === '최소값') {
+            setSelectedPrices(['~1억']);
+            setPriceRange({ min: '최소값', max: '1억' });
+          } else if (minStr === '최대값') {
+            setSelectedPrices(['500억~']);
+            setPriceRange({ min: '500억', max: '최대값' });
+          } else {
+            const value = minStr.replace(/[억]/g, '');
+            setSelectedPrices([`${value}억`]);
+            setPriceRange({ min: `${value}억`, max: `${value}억` });
+          }
+        } else {
+          // 범위인 경우
+          setSelectedPrices([minOption, maxOption]);
+          setPriceRange({ min: minStr, max: maxStr });
+        }
+      } else {
+        // 단일 값 형식
+        const priceArray = filters.price.split(',').filter(p => p.trim() !== '');
+        setSelectedPrices(priceArray);
+      }
     } else {
       setSelectedPrices([]);
+      setPriceRange({ min: '', max: '' });
     }
     
     // deposit 필터 동기화
     if (filters.deposit) {
-      const depositArray = filters.deposit.split(',').filter(d => d.trim() !== '');
-      setSelectedDeposits(depositArray);
-      console.log('selectedDeposits 업데이트:', depositArray);
+      // 새로운 범위 형식 (예: "0~100", "1000~3000")을 파싱하여 selectedDeposits 설정
+      if (filters.deposit.includes('~')) {
+        const [minStr, maxStr] = filters.deposit.split('~');
+        const min = parseInt(minStr);
+        const max = maxStr === '9999' ? 9999 : parseInt(maxStr);
+        
+        // 범위를 보증금 옵션으로 변환
+        let minOption = '';
+        let maxOption = '';
+        
+        if (min === 0) {
+          minOption = '~100만';
+        } else {
+          minOption = `${min}만`;
+        }
+        
+        if (max === 9999) {
+          maxOption = '4000만~';
+        } else {
+          maxOption = `${max}만`;
+        }
+        
+        if (min === max) {
+          setSelectedDeposits([minOption]);
+          if (min === 0) {
+            setDepositRange({ min: '0', max: '100' });
+          } else {
+            setDepositRange({ min: min.toString(), max: min.toString() });
+          }
+        } else {
+          setSelectedDeposits([minOption, maxOption]);
+          setDepositRange({ 
+            min: min === 0 ? '0' : min.toString(), 
+            max: max === 9999 ? '최대값' : max.toString() 
+          });
+        }
+      } else {
+        setSelectedDeposits([]);
+        setDepositRange({ min: '', max: '' });
+      }
     } else {
       setSelectedDeposits([]);
+      setDepositRange({ min: '', max: '' });
     }
     
     // area 필터 동기화
@@ -646,7 +627,6 @@ const Header: React.FC<HeaderProps> = ({
         return area + '평';
       });
       setSelectedAreas(convertedAreas);
-      console.log('selectedAreas 업데이트:', convertedAreas);
     } else {
       setSelectedAreas([]);
     }
@@ -662,8 +642,7 @@ const Header: React.FC<HeaderProps> = ({
 
   // 보증금 옵션들
   const depositOptions = [
-    '~100만', '~500만', '~1천만', 
-    '~2천만', '~3천만', '~4천만'
+    '~100만', '500만', '1000만', '2000만', '3000만', '4000만~'
   ];
 
   // 면적 옵션들 (1차원 배열로 변경)
@@ -690,15 +669,8 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleDropdownToggle = (filterType: string) => {
-    console.log('=== 필터 드롭다운 토글 ===');
-    console.log('필터 타입:', filterType);
-    console.log('현재 열린 드롭다운:', openDropdown);
-    
     const newDropdown = openDropdown === filterType ? null : filterType;
     setOpenDropdown(newDropdown);
-    
-    console.log('새 드롭다운 상태:', newDropdown);
-    console.log('드롭다운이 열렸는지:', newDropdown !== null);
     
     // 팝업창을 열 때 자동 스크롤
     if (newDropdown) {
@@ -721,54 +693,87 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleOptionSelect = (filterType: string, value: string) => {
-    console.log('=== 필터 옵션 선택 ===');
-    console.log('필터 타입:', filterType);
-    console.log('선택된 값:', value);
-    console.log('현재 필터:', filters);
-    
     const newFilters = {
       ...filters,
       [filterType]: filters[filterType as keyof typeof filters] === value ? '' : value
     };
     
-    console.log('새 필터:', newFilters);
     onFilterChange?.(newFilters);
     // 팝업 자동 닫기 제거 - 오직 외부 클릭 시에만 닫힘
   };
 
   const handlePriceSelect = (price: string) => {
+    console.log('🔧 매매가 버튼 클릭:', price);
+    console.log('🔧 현재 선택된 버튼들:', selectedPrices);
+    
     let newSelectedPrices = [...selectedPrices];
     
     if (newSelectedPrices.includes(price)) {
       newSelectedPrices = newSelectedPrices.filter(p => p !== price);
+      console.log('🔧 선택 해제:', newSelectedPrices);
     } else {
       if (newSelectedPrices.length >= 2) {
         newSelectedPrices = [newSelectedPrices[1], price];
+        console.log('🔧 2개 초과 - 첫 번째 제거 후 새로 추가:', newSelectedPrices);
       } else {
         newSelectedPrices.push(price);
+        console.log('🔧 새로 추가:', newSelectedPrices);
       }
     }
     
-    setSelectedPrices(newSelectedPrices);
+    // 중복 제거 (보증금과 동일한 방식)
+    const uniquePrices = newSelectedPrices.filter((item, index) => newSelectedPrices.indexOf(item) === index);
     
-    // 매매가 선택 시 보증금 초기화
-    if (newSelectedPrices.length > 0) {
-      setSelectedDeposits([]);
-      setDepositRange({ min: '', max: '' });
+    // ~1억 선택 시 1억이 중복으로 선택되지 않도록 강제 처리 (단, ~1억이 선택된 상태에서만)
+    if (uniquePrices.includes('~1억') && uniquePrices.includes('1억')) {
+      const finalPrices = uniquePrices.filter(p => p !== '1억');
+      setSelectedPrices(finalPrices);
+      newSelectedPrices = finalPrices;
+    } else {
+      setSelectedPrices(uniquePrices);
+      newSelectedPrices = uniquePrices;
     }
     
-    if (newSelectedPrices.length === 1) {
-      if (newSelectedPrices[0] === '~1억') {
+    console.log('🔧 최종 선택된 버튼들:', newSelectedPrices);
+    
+    // 매매가 범위 필터 로직 (보증금과 동일한 시스템)
+    if (newSelectedPrices.length === 0) {
+      // 선택 해제된 경우
+      setPriceRange({ min: '', max: '' });
+    } else if (newSelectedPrices.length === 1) {
+      const selectedPrice = newSelectedPrices[0];
+      
+      // 단일 값 선택 시 범위 설정
+      if (selectedPrice === '~1억') {
         setPriceRange({ min: '최소값', max: '1억' });
-      } else if (newSelectedPrices[0] === '500억~') {
+      } else if (selectedPrice === '500억~') {
         setPriceRange({ min: '500억', max: '최대값' });
       } else {
-        setPriceRange({ min: newSelectedPrices[0], max: newSelectedPrices[0] });
+        // 3억, 5억, 8억, 10억, 15억, 20억, 30억, 50억의 경우 해당 값으로 범위 설정
+        setPriceRange({ min: selectedPrice, max: selectedPrice });
       }
     } else if (newSelectedPrices.length === 2) {
+      // 두 값 선택 시 범위 설정
       const sorted = newSelectedPrices.sort((a, b) => {
-        const aValue = parseInt(a.replace(/[억~]/g, ''));
-        const bValue = parseInt(b.replace(/[억~]/g, ''));
+        let aValue = 0;
+        let bValue = 0;
+        
+        if (a === '~1억') {
+          aValue = 0;
+        } else if (a === '500억~') {
+          aValue = 500;
+        } else {
+          aValue = parseInt(a.replace(/[억~]/g, ''));
+        }
+        
+        if (b === '~1억') {
+          bValue = 0;
+        } else if (b === '500억~') {
+          bValue = 500;
+        } else {
+          bValue = parseInt(b.replace(/[억~]/g, ''));
+        }
+        
         return aValue - bValue;
       });
       
@@ -784,26 +789,79 @@ const Header: React.FC<HeaderProps> = ({
       }
       
       setPriceRange({ min: minValue, max: maxValue });
-    } else {
-      setPriceRange({ min: '', max: '' });
     }
 
-    // App.tsx로 필터 값 전달
+    // App.tsx로 필터 값 전달 - 범위 형식으로 전달
+    let filterValue = '';
+    if (newSelectedPrices.length === 0) {
+      // 선택 해제된 경우
+      filterValue = '';
+    } else if (newSelectedPrices.length === 1) {
+      const selectedPrice = newSelectedPrices[0];
+      if (selectedPrice === '~1억') {
+        filterValue = '최소값~1억';
+      } else if (selectedPrice === '500억~') {
+        filterValue = '500억~최대값';
+      } else {
+        const value = selectedPrice.replace(/[~억]/g, '');
+        filterValue = `${value}억~${value}억`;
+      }
+    } else if (newSelectedPrices.length === 2) {
+      const sorted = newSelectedPrices.sort((a, b) => {
+        let aValue = 0;
+        let bValue = 0;
+        
+        if (a === '~1억') {
+          aValue = 0;
+        } else if (a === '500억~') {
+          aValue = 500;
+        } else {
+          aValue = parseInt(a.replace(/[~억]/g, ''));
+        }
+        
+        if (b === '~1억') {
+          bValue = 0;
+        } else if (b === '500억~') {
+          bValue = 500;
+        } else {
+          bValue = parseInt(b.replace(/[~억]/g, ''));
+        }
+        
+        return aValue - bValue;
+      });
+      
+      // 최소값과 최대값 처리
+      let minValue = sorted[0];
+      let maxValue = sorted[1];
+      
+      if (sorted[0] === '~1억') {
+        minValue = '최소값';
+      }
+      if (sorted[1] === '500억~') {
+        maxValue = '최대값';
+      }
+      
+      filterValue = `${minValue}~${maxValue}`;
+    }
+    
+    console.log('🔧 매매가 필터 값 생성:', {
+      선택된버튼들: newSelectedPrices,
+      생성된필터값: filterValue,
+      범위설정: priceRange
+    });
+    
     const newFilters = {
       ...filters,
-      price: newSelectedPrices.length > 0 ? `${newSelectedPrices.join(',')}` : '',
-      deposit: '' // 매매가 선택 시 보증금 필터 초기화
+      price: filterValue
     };
+    
+    console.log('🔧 최종 전달할 필터:', newFilters);
     onFilterChange?.(newFilters);
     
     // 팝업 자동 닫기 제거 - 오직 외부 클릭 시에만 닫힘
   };
 
   const handleDepositSelect = (deposit: string) => {
-    console.log('=== 보증금 선택 함수 ===');
-    console.log('선택된 보증금:', deposit);
-    console.log('현재 selectedDeposits:', selectedDeposits);
-    
     let newSelectedDeposits = [...selectedDeposits];
     
     if (newSelectedDeposits.includes(deposit)) {
@@ -816,48 +874,142 @@ const Header: React.FC<HeaderProps> = ({
       }
     }
     
-    console.log('새로운 selectedDeposits:', newSelectedDeposits);
+    // ~100만 중복 완전 제거
+    const uniqueDeposits = newSelectedDeposits.filter((item, index) => newSelectedDeposits.indexOf(item) === index);
     
-    setSelectedDeposits(newSelectedDeposits);
-    
-    // 보증금 선택 시 매매가 초기화
-    if (newSelectedDeposits.length > 0) {
-      setSelectedPrices([]);
-      setPriceRange({ min: '', max: '' });
+    // ~100만 선택 시 100만이 중복으로 선택되지 않도록 강제 처리 (단, ~100만이 선택된 상태에서만)
+    if (uniqueDeposits.includes('~100만') && uniqueDeposits.includes('100만')) {
+      const finalDeposits = uniqueDeposits.filter(d => d !== '100만');
+      setSelectedDeposits(finalDeposits);
+      newSelectedDeposits = finalDeposits;
+    } else {
+      setSelectedDeposits(uniqueDeposits);
+      newSelectedDeposits = uniqueDeposits;
     }
-
-    if (newSelectedDeposits.length === 1) {
-      setDepositRange({ min: newSelectedDeposits[0], max: newSelectedDeposits[0] });
+    
+    // 보증금 범위 필터 로직 수정 (매매가와 동일한 시스템)
+    if (newSelectedDeposits.length === 0) {
+      // 선택 해제된 경우
+      setDepositRange({ min: '', max: '' });
+    } else if (newSelectedDeposits.length === 1) {
+      const selectedDeposit = newSelectedDeposits[0];
+      
+      // 단일 값 선택 시 범위 설정
+      if (selectedDeposit === '~100만') {
+        setDepositRange({ min: '0', max: '100' });
+      } else if (selectedDeposit === '4000만~') {
+        setDepositRange({ min: '4000', max: '최대값' });
+      } else {
+        // 500만, 1000만, 2000만, 3000만의 경우 해당 값으로 범위 설정
+        const depositValue = selectedDeposit.replace(/[~만]/g, '');
+        setDepositRange({ min: depositValue, max: depositValue });
+      }
     } else if (newSelectedDeposits.length === 2) {
-      // 보증금 값에서 숫자만 추출하여 정렬
+      // 두 값 선택 시 범위 설정
       const sorted = newSelectedDeposits.sort((a, b) => {
         let aValue = 0;
         let bValue = 0;
         
-        if (a.includes('천만')) {
-          aValue = parseInt(a.replace(/[~천만]/g, '')) * 1000;
+        if (a === '~100만') {
+          aValue = 0;
+        } else if (a === '4000만~') {
+          aValue = 4000;
         } else {
           aValue = parseInt(a.replace(/[~만]/g, ''));
         }
         
-        if (b.includes('천만')) {
-          bValue = parseInt(b.replace(/[~천만]/g, '')) * 1000;
+        if (b === '~100만') {
+          bValue = 0;
+        } else if (b === '4000만~') {
+          bValue = 4000;
         } else {
           bValue = parseInt(b.replace(/[~만]/g, ''));
         }
         
         return aValue - bValue;
       });
-      setDepositRange({ min: sorted[0], max: sorted[1] });
+      
+      // 범위 설정
+      let minValue = '';
+      let maxValue = '';
+      
+      if (sorted[0] === '~100만') {
+        minValue = '0';
+      } else {
+        minValue = sorted[0].replace(/[~만]/g, '');
+      }
+      
+      if (sorted[1] === '4000만~') {
+        maxValue = '최대값';
+      } else {
+        maxValue = sorted[1].replace(/[~만]/g, '');
+      }
+      
+      setDepositRange({ min: minValue, max: maxValue });
     } else {
       setDepositRange({ min: '', max: '' });
     }
 
-    // App.tsx로 필터 값 전달
+    // App.tsx로 필터 값 전달 - 범위 형식으로 전달
+    let filterValue = '';
+    if (newSelectedDeposits.length === 0) {
+      // 선택 해제된 경우
+      filterValue = '';
+    } else if (newSelectedDeposits.length === 1) {
+      const selectedDeposit = newSelectedDeposits[0];
+      if (selectedDeposit === '~100만') {
+        filterValue = '0~100';
+      } else if (selectedDeposit === '4000만~') {
+        filterValue = '4000~9999';
+      } else {
+        const value = selectedDeposit.replace(/[~만]/g, '');
+        filterValue = `${value}~${value}`;
+      }
+    } else if (newSelectedDeposits.length === 2) {
+      const sorted = newSelectedDeposits.sort((a, b) => {
+        let aValue = 0;
+        let bValue = 0;
+        
+        if (a === '~100만') {
+          aValue = 0;
+        } else if (a === '4000만~') {
+          aValue = 4000;
+        } else {
+          aValue = parseInt(a.replace(/[~만]/g, ''));
+        }
+        
+        if (b === '~100만') {
+          bValue = 0;
+        } else if (b === '4000만~') {
+          bValue = 4000;
+        } else {
+          bValue = parseInt(b.replace(/[~만]/g, ''));
+        }
+        
+        return aValue - bValue;
+      });
+      
+      let minValue = 0;
+      let maxValue = 0;
+      
+      if (sorted[0] === '~100만') {
+        minValue = 0;
+      } else {
+        minValue = parseInt(sorted[0].replace(/[~만]/g, ''));
+      }
+      
+      if (sorted[1] === '4000만~') {
+        maxValue = 9999;
+      } else {
+        maxValue = parseInt(sorted[1].replace(/[~만]/g, ''));
+      }
+      
+      filterValue = `${minValue}~${maxValue}`;
+    }
+    
     const newFilters = {
       ...filters,
-      deposit: newSelectedDeposits.length > 0 ? `${newSelectedDeposits.join(',')}` : '',
-      price: '' // 보증금 선택 시 매매가 필터 초기화
+      deposit: filterValue
     };
     onFilterChange?.(newFilters);
     
@@ -927,19 +1079,8 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const getFilterDisplayText = (filterType: string) => {
-    console.log('=== getFilterDisplayText 호출됨 ===');
-    console.log('filterType:', filterType);
-    console.log('selectedPrices:', selectedPrices);
-    console.log('selectedDeposits:', selectedDeposits);
-    
     if (filterType === 'price') {
       let displayText = '';
-      
-      console.log('=== 금액 필터 디버깅 ===');
-      console.log('selectedPrices:', selectedPrices);
-      console.log('selectedDeposits:', selectedDeposits);
-      console.log('filters.price:', filters.price);
-      console.log('filters.deposit:', filters.deposit);
       
       // 매매가 선택 여부 확인
       if (selectedPrices.length > 0) {
@@ -953,38 +1094,80 @@ const Header: React.FC<HeaderProps> = ({
           });
           displayText = `${sorted[0]}~${sorted[1]}`;
         }
-        console.log('매매가 표시 텍스트:', displayText);
       }
       
       // 보증금 선택 여부 확인 (매매가가 선택되지 않은 경우에만)
       if (selectedDeposits.length > 0 && selectedPrices.length === 0) {
+        // 중복 완전 제거
+        const uniqueDeposits = selectedDeposits.filter((item, index) => selectedDeposits.indexOf(item) === index);
+        
+        // ~100만이 있으면 100만 제거
+        const finalDeposits = uniqueDeposits.includes('~100만') 
+          ? uniqueDeposits.filter(d => d !== '100만')
+          : uniqueDeposits;
+        
         let depositText = '';
-        if (selectedDeposits.length === 1) {
-          depositText = selectedDeposits[0];
-        } else if (selectedDeposits.length === 2) {
-          const sorted = selectedDeposits.sort((a, b) => {
+        if (finalDeposits.length === 1) {
+          // 단일 값 선택 시
+          if (finalDeposits[0] === '~100만') {
+            depositText = '0~100만';
+          } else if (finalDeposits[0] === '4000만~') {
+            depositText = '4000만~';
+          } else {
+            depositText = finalDeposits[0];
+          }
+        } else if (finalDeposits.length === 2) {
+          // 두 값 선택 시 범위 표시
+          const sorted = finalDeposits.sort((a, b) => {
             let aValue = 0;
             let bValue = 0;
-            if (a.includes('천만')) {
-              aValue = parseInt(a.replace(/[~천만]/g, '')) * 1000;
+            
+            if (a === '~100만') {
+              aValue = 0;
+            } else if (a === '4000만~') {
+              aValue = 4000;
             } else {
               aValue = parseInt(a.replace(/[~만]/g, ''));
             }
-            if (b.includes('천만')) {
-              bValue = parseInt(b.replace(/[~천만]/g, '')) * 1000;
+            
+            if (b === '~100만') {
+              bValue = 0;
+            } else if (b === '4000만~') {
+              bValue = 4000;
             } else {
               bValue = parseInt(b.replace(/[~만]/g, ''));
             }
+            
             return aValue - bValue;
           });
-          depositText = `${sorted[0]}~${sorted[1]}`;
+          
+          // 범위 표시 형식으로 변환
+          let minDisplay = '';
+          let maxDisplay = '';
+          
+          if (sorted[0] === '~100만') {
+            minDisplay = '0~100만';
+          } else {
+            minDisplay = sorted[0];
+          }
+          
+          if (sorted[1] === '4000만~') {
+            maxDisplay = '4000만~';
+          } else {
+            maxDisplay = sorted[1];
+          }
+          
+          // 같은 값이면 중복 제거
+          if (minDisplay === maxDisplay) {
+            depositText = minDisplay;
+          } else {
+            depositText = `${minDisplay}~${maxDisplay}`;
+          }
         }
         
         displayText = depositText;
-        console.log('보증금 표시 텍스트:', displayText);
       }
       
-      console.log('최종 표시 텍스트:', displayText);
       return displayText || '금액';
     }
     
@@ -1096,49 +1279,29 @@ const Header: React.FC<HeaderProps> = ({
   // 외부 클릭 시 드롭다운 닫기
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      console.log('=== 외부 클릭 이벤트 발생 ===');
-      console.log('현재 열린 드롭다운:', openDropdown);
-      
       if (openDropdown) {
         const target = event.target as Element;
-        console.log('클릭된 요소:', target);
-        console.log('클릭된 요소 클래스:', target.className);
-        console.log('클릭된 요소 태그:', target.tagName);
         
         // 필터 드롭다운 영역이 아닌 곳을 클릭했는지 확인
         const isFilterDropdown = target.closest('.filter-dropdown');
-        console.log('필터 드롭다운 영역 클릭 여부:', !!isFilterDropdown);
         
         // 필터 드롭다운 영역이 아닌 곳을 클릭한 경우에만 닫기
         if (!isFilterDropdown) {
-          console.log('드롭다운 닫기 실행');
           setOpenDropdown(null);
-        } else {
-          console.log('드롭다운 유지');
         }
       }
     };
 
     const handleTouchOutside = (event: TouchEvent) => {
-      console.log('=== 외부 터치 이벤트 발생 ===');
-      console.log('현재 열린 드롭다운:', openDropdown);
-      
       if (openDropdown) {
         const target = event.target as Element;
-        console.log('터치된 요소:', target);
-        console.log('터치된 요소 클래스:', target.className);
-        console.log('터치된 요소 태그:', target.tagName);
         
         // 필터 드롭다운 영역이 아닌 곳을 터치했는지 확인
         const isFilterDropdown = target.closest('.filter-dropdown');
-        console.log('필터 드롭다운 영역 터치 여부:', !!isFilterDropdown);
         
         // 필터 드롭다운 영역이 아닌 곳을 터치한 경우에만 닫기
         if (!isFilterDropdown) {
-          console.log('드롭다운 닫기 실행 (터치)');
           setOpenDropdown(null);
-        } else {
-          console.log('드롭다운 유지 (터치)');
         }
       }
     };
@@ -1154,58 +1317,69 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <HeaderContainer>
       <MainSection>
-        <HeaderTopRow>
+        <LeftSection>
           <LogoSection>
-            <Logo src={logoImage} alt="피에이 로고" />
-            <CompanyInfo>
-              <CompanyName>피에이</CompanyName>
-              <CompanyType>공인중개사사무소</CompanyType>
-            </CompanyInfo>
+            <Logo>
+              <img 
+                src={paLogo} 
+                alt="PA 로고" 
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  // 이미지 로드 실패 시 대체 로고 표시
+                  const fallbackLogo = document.createElement('div');
+                  fallbackLogo.style.cssText = `
+                    width: 65px;
+                    height: 65px;
+                    border-radius: 8px;
+                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    border: none;
+                  `;
+                  fallbackLogo.textContent = 'PA';
+                  target.parentNode?.insertBefore(fallbackLogo, target);
+                }}
+                style={{
+                  width: '65px',
+                  height: '65px',
+                  borderRadius: '8px',
+                  objectFit: 'cover',
+                  boxShadow: 'none',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  outline: 'none'
+                }}
+              />
+              <CompanyName>
+                <div className="company-main">피에이</div>
+                <div className="company-sub">공인중개사사무소</div>
+              </CompanyName>
+            </Logo>
           </LogoSection>
-          
-          <ResetButton onClick={() => {
-            console.log('초기화 버튼 클릭됨');
-            console.log('onMapReset 함수:', onMapReset);
-            
-            // Header 컴포넌트 내부 필터 상태 초기화
-            setSelectedAreas([]);
-            setSelectedPrices([]);
-            setSelectedDeposits([]);
-            setAreaRange({ min: '', max: '' });
-            setPriceRange({ min: '', max: '' });
-            setDepositRange({ min: '', max: '' });
-            setOpenDropdown(null);
-            
-            // 필터 초기화
-            if (onFilterChange) {
-              const resetFilters = {
-                type: '',
-                propertyType: '',
-                area: '',
-                price: '',
-                deposit: ''
-              };
-              onFilterChange(resetFilters);
-              console.log('필터 초기화 완료');
-            }
-            
-            // 지도 리셋
-            if (onMapReset) {
-              console.log('지도 리셋 함수 호출');
-              onMapReset();
-            } else {
-              console.log('페이지 새로고침 실행');
-              window.location.reload();
-            }
-          }}>
-            초기화
-          </ResetButton>
-        </HeaderTopRow>
+        </LeftSection>
 
-        <FilterRow>
+        <CenterSection>
+          <SearchInput
+            type="text"
+            placeholder="매물번호, 제목, 주소 검색 (예: 1, P1, 상가)"
+            value={searchTerm}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                // 검색 실행 로직 (필요시 추가)
+              }
+            }}
+            title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 상가, 강남구"
+          />
+          
           <FilterButtonContainer className="filter-dropdown" style={{ overflow: 'visible', zIndex: 99999 }}>
-            <FilterButton
-              isActive={filters.type !== ''}
+            <FilterButtonDefault
               onClick={() => handleDropdownToggle('type')}
               data-filter="type"
               style={{
@@ -1214,7 +1388,7 @@ const Header: React.FC<HeaderProps> = ({
               }}
             >
               {getFilterDisplayText('type')}▼
-            </FilterButton>
+            </FilterButtonDefault>
             <FilterPopup isOpen={openDropdown === 'type'} isWide={filters.type !== ''}>
               <FilterPopupHeader>
                 <FilterPopupTitle>거래유형</FilterPopupTitle>
@@ -1233,10 +1407,9 @@ const Header: React.FC<HeaderProps> = ({
               </FilterPopupContent>
             </FilterPopup>
           </FilterButtonContainer>
-
+          
           <FilterButtonContainer className="filter-dropdown" style={{ overflow: 'visible', zIndex: 99999 }}>
-            <FilterButton
-              isActive={filters.propertyType !== ''}
+            <FilterButtonDefault
               onClick={() => handleDropdownToggle('propertyType')}
               data-filter="propertyType"
               style={{
@@ -1245,7 +1418,7 @@ const Header: React.FC<HeaderProps> = ({
               }}
             >
               {getFilterDisplayText('propertyType')}▼
-            </FilterButton>
+            </FilterButtonDefault>
             <FilterPopup isOpen={openDropdown === 'propertyType'} isWide={filters.propertyType !== ''}>
               <FilterPopupHeader>
                 <FilterPopupTitle>매물종류</FilterPopupTitle>
@@ -1264,10 +1437,9 @@ const Header: React.FC<HeaderProps> = ({
               </FilterPopupContent>
             </FilterPopup>
           </FilterButtonContainer>
-
+          
           <FilterButtonContainer className="filter-dropdown" style={{ overflow: 'visible', zIndex: 99999 }}>
-            <FilterButton
-              isActive={selectedAreas.length > 0}
+            <FilterButtonDefault
               onClick={() => handleDropdownToggle('area')}
               data-filter="area"
               style={{
@@ -1276,7 +1448,7 @@ const Header: React.FC<HeaderProps> = ({
               }}
             >
               {getFilterDisplayText('area')}▼
-            </FilterButton>
+            </FilterButtonDefault>
             <FilterPopup isOpen={openDropdown === 'area'} isWide={true}>
               <FilterPopupHeader>
                 <FilterPopupTitle>면적</FilterPopupTitle>
@@ -1339,14 +1511,52 @@ const Header: React.FC<HeaderProps> = ({
                       type="text"
                       placeholder="최소"
                       value={areaRange.min}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAreaRange({ ...areaRange, min: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newAreaRange = { ...areaRange, min: e.target.value };
+                        setAreaRange(newAreaRange);
+                        
+                        // 입력 필드 값이 변경될 때마다 필터 업데이트
+                        let filterValue = '';
+                        if (newAreaRange.min && newAreaRange.max) {
+                          filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
+                        } else if (newAreaRange.min) {
+                          filterValue = `${newAreaRange.min}~${newAreaRange.min}`;
+                        } else if (newAreaRange.max) {
+                          filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                        }
+                        
+                        const newFilters = {
+                          ...filters,
+                          area: filterValue
+                        };
+                        onFilterChange?.(newFilters);
+                      }}
                     />
                     <RangeSeparator>~</RangeSeparator>
                     <RangeInput
                       type="text"
                       placeholder="최대"
                       value={areaRange.max}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAreaRange({ ...areaRange, max: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newAreaRange = { ...areaRange, max: e.target.value };
+                        setAreaRange(newAreaRange);
+                        
+                        // 입력 필드 값이 변경될 때마다 필터 업데이트
+                        let filterValue = '';
+                        if (newAreaRange.min && newAreaRange.max) {
+                          filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
+                        } else if (newAreaRange.min) {
+                          filterValue = `${newAreaRange.min}~${newAreaRange.min}`;
+                        } else if (newAreaRange.max) {
+                          filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                        }
+                        
+                        const newFilters = {
+                          ...filters,
+                          area: filterValue
+                        };
+                        onFilterChange?.(newFilters);
+                      }}
                     />
                     <RangeSeparator>평</RangeSeparator>
                   </CustomRangeContainer>
@@ -1358,10 +1568,9 @@ const Header: React.FC<HeaderProps> = ({
               </FilterPopupContent>
             </FilterPopup>
           </FilterButtonContainer>
-
+          
           <FilterButtonContainer className="filter-dropdown">
-            <FilterButton
-              isActive={selectedPrices.length > 0 || selectedDeposits.length > 0}
+            <FilterButtonDefault
               onClick={() => handleDropdownToggle('price')}
               data-filter="price"
               style={{
@@ -1371,10 +1580,9 @@ const Header: React.FC<HeaderProps> = ({
             >
               {(() => {
                 const text = getFilterDisplayText('price');
-                console.log('금액 버튼 텍스트 렌더링:', text);
                 return text;
               })()}▼
-            </FilterButton>
+            </FilterButtonDefault>
             <FilterPopup isOpen={openDropdown === 'price'} isWide={true}>
               <FilterPopupHeader>
                 <FilterPopupTitle>금액</FilterPopupTitle>
@@ -1387,46 +1595,51 @@ const Header: React.FC<HeaderProps> = ({
                     {priceOptions.map((price) => (
                       <PriceButton
                         key={price}
-                        isSelected={selectedPrices.includes(price)}
                         isActive={(() => {
-                          if (priceRange.min === '' || priceRange.max === '') return false;
-                          
-                          // '~1억'과 '500억~' 특별 처리
-                          if (price === '~1억' && priceRange.min === '최소값') return true;
-                          if (price === '500억~' && priceRange.max === '최대값') return true;
-                          
-                          return priceRange.min === price || priceRange.max === price;
+                          // 선택된 버튼들 중에서 정확히 일치하는 것만 파란색으로 표시
+                          return cleanSelectedPrices.includes(price);
                         })()}
                         isInRange={(() => {
-                          if (priceRange.min === '' || priceRange.max === '') return false;
+                          if (cleanSelectedPrices.length !== 2) return false;
                           
-                          // '~1억'과 '500억~' 특별 처리
-                          if (price === '~1억' || price === '500억~') return false;
+                          // 선택된 두 값 사이의 범위에 있는지 확인
+                          const sortedPrices = cleanSelectedPrices.sort((a, b) => {
+                            let aValue = 0;
+                            let bValue = 0;
+                            
+                            if (a === '~1억') aValue = 0;
+                            else if (a === '500억~') aValue = 500;
+                            else aValue = parseFloat(a.replace(/[~억]/g, ''));
+                            
+                            if (b === '~1억') bValue = 0;
+                            else if (b === '500억~') bValue = 500;
+                            else bValue = parseFloat(b.replace(/[~억]/g, ''));
+                            
+                            return aValue - bValue;
+                          });
                           
-                          const priceValue = parseFloat(price.replace(/[~억]/g, ''));
-                          let minValue = 0;
-                          let maxValue = 999;
+                          const priceValue = (() => {
+                            if (price === '~1억') return 0;
+                            if (price === '500억~') return 500;
+                            return parseFloat(price.replace(/[~억]/g, ''));
+                          })();
                           
-                          // 최소값 처리
-                          if (priceRange.min === '최소값') {
-                            minValue = 0; // '~1억' 선택 시
-                          } else {
-                            minValue = parseFloat(priceRange.min.replace(/[~억]/g, ''));
-                          }
+                          const minValue = (() => {
+                            if (sortedPrices[0] === '~1억') return 0;
+                            if (sortedPrices[0] === '500억~') return 500;
+                            return parseFloat(sortedPrices[0].replace(/[~억]/g, ''));
+                          })();
                           
-                          // 최대값 처리
-                          if (priceRange.max === '최대값') {
-                            maxValue = 999; // '500억~' 선택 시
-                          } else {
-                            maxValue = parseFloat(priceRange.max.replace(/[~억]/g, ''));
-                          }
+                          const maxValue = (() => {
+                            if (sortedPrices[1] === '~1억') return 0;
+                            if (sortedPrices[1] === '500억~') return 500;
+                            return parseFloat(sortedPrices[1].replace(/[~억]/g, ''));
+                          })();
                           
                           return priceValue > minValue && priceValue < maxValue && 
-                                 !selectedPrices.includes(price) &&
-                                 price !== priceRange.min && price !== priceRange.max;
+                                 !cleanSelectedPrices.includes(price);
                         })()}
                         onClick={() => {
-                          console.log('매매가 버튼 클릭됨:', price);
                           handlePriceSelect(price);
                         }}
                       >
@@ -1440,14 +1653,52 @@ const Header: React.FC<HeaderProps> = ({
                       type="text"
                       placeholder="최소"
                       value={priceRange.min}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPriceRange({ ...priceRange, min: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newPriceRange = { ...priceRange, min: e.target.value };
+                        setPriceRange(newPriceRange);
+                        
+                        // 입력 필드 값이 변경될 때마다 필터 업데이트
+                        let filterValue = '';
+                        if (newPriceRange.min && newPriceRange.max) {
+                          filterValue = `${newPriceRange.min}~${newPriceRange.max}`;
+                        } else if (newPriceRange.min) {
+                          filterValue = `${newPriceRange.min}~${newPriceRange.min}`;
+                        } else if (newPriceRange.max) {
+                          filterValue = `${newPriceRange.max}~${newPriceRange.max}`;
+                        }
+                        
+                        const newFilters = {
+                          ...filters,
+                          price: filterValue
+                        };
+                        onFilterChange?.(newFilters);
+                      }}
                     />
                     <RangeSeparator>~</RangeSeparator>
                     <RangeInput
                       type="text"
                       placeholder="최대"
                       value={priceRange.max}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPriceRange({ ...priceRange, max: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newPriceRange = { ...priceRange, max: e.target.value };
+                        setPriceRange(newPriceRange);
+                        
+                        // 입력 필드 값이 변경될 때마다 필터 업데이트
+                        let filterValue = '';
+                        if (newPriceRange.min && newPriceRange.max) {
+                          filterValue = `${newPriceRange.min}~${newPriceRange.max}`;
+                        } else if (newPriceRange.min) {
+                          filterValue = `${newPriceRange.min}~${newPriceRange.min}`;
+                        } else if (newPriceRange.max) {
+                          filterValue = `${newPriceRange.max}~${newPriceRange.max}`;
+                        }
+                        
+                        const newFilters = {
+                          ...filters,
+                          price: filterValue
+                        };
+                        onFilterChange?.(newFilters);
+                      }}
                     />
                     <RangeSeparator>억원</RangeSeparator>
                   </CustomRangeContainer>
@@ -1461,47 +1712,44 @@ const Header: React.FC<HeaderProps> = ({
                         key={deposit}
                         isSelected={selectedDeposits.includes(deposit)}
                         isActive={(() => {
-                          if (depositRange.min === '' || depositRange.max === '') return false;
-                          
-                          // '~100만' 특별 처리
-                          if (deposit === '~100만' && depositRange.min === '~100만') return true;
-                          
-                          return depositRange.min === deposit || depositRange.max === deposit;
+                          // selectedDeposits 배열을 기준으로 활성화 상태 결정
+                          if (deposit === '~100만') {
+                            return selectedDeposits.includes('~100만');
+                          } else if (deposit === '4000만~') {
+                            return selectedDeposits.includes('4000만~');
+                          } else {
+                            return selectedDeposits.includes(deposit);
+                          }
                         })()}
                         isInRange={(() => {
                           if (depositRange.min === '' || depositRange.max === '') return false;
                           
-                          let depositValue = 0;
-                          if (deposit.includes('천만')) {
-                            depositValue = parseInt(deposit.replace(/[~천만]/g, '')) * 1000;
-                          } else {
-                            depositValue = parseInt(deposit.replace(/[~만]/g, ''));
-                          }
+                          // '~100만'과 '4000만~' 특별 처리
+                          if (deposit === '~100만' || deposit === '4000만~') return false;
                           
+                          const depositValue = parseInt(deposit.replace(/[~만]/g, ''));
                           let minValue = 0;
-                          let maxValue = 999;
+                          let maxValue = 9999;
                           
                           if (depositRange.min !== '') {
-                            if (depositRange.min.includes('천만')) {
-                              minValue = parseInt(depositRange.min.replace(/[~천만]/g, '')) * 1000;
+                            if (depositRange.min === '0') {
+                              minValue = 0;
                             } else {
-                              minValue = parseInt(depositRange.min.replace(/[~만]/g, ''));
+                              minValue = parseInt(depositRange.min);
                             }
                           }
                           if (depositRange.max !== '') {
-                            if (depositRange.max.includes('천만')) {
-                              maxValue = parseInt(depositRange.max.replace(/[~천만]/g, '')) * 1000;
+                            if (depositRange.max === '최대값') {
+                              maxValue = 9999;
                             } else {
-                              maxValue = parseInt(depositRange.max.replace(/[~만]/g, ''));
+                              maxValue = parseInt(depositRange.max);
                             }
                           }
                           
                           return depositValue > minValue && depositValue < maxValue && 
-                                 !selectedDeposits.includes(deposit) &&
-                                 deposit !== depositRange.min && deposit !== depositRange.max;
+                                 !selectedDeposits.includes(deposit);
                         })()}
                         onClick={() => {
-                          console.log('보증금 버튼 클릭됨:', deposit);
                           handleDepositSelect(deposit);
                         }}
                       >
@@ -1514,15 +1762,67 @@ const Header: React.FC<HeaderProps> = ({
                     <RangeInput
                       type="text"
                       placeholder="최소"
-                      value={depositRange.min}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDepositRange({ ...depositRange, min: e.target.value })}
+                      value={(() => {
+                        if (depositRange.min === '') return '';
+                        if (depositRange.min === '0') return '0';
+                        if (depositRange.min === '최대값') return '';
+                        if (depositRange.min === '4000') return '4000만~';
+                        const min = parseInt(depositRange.min);
+                        return `${min}만`;
+                      })()}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newDepositRange = { ...depositRange, min: e.target.value };
+                        setDepositRange(newDepositRange);
+                        
+                        // 입력 필드 값이 변경될 때마다 필터 업데이트
+                        let filterValue = '';
+                        if (newDepositRange.min && newDepositRange.max) {
+                          filterValue = `${newDepositRange.min}~${newDepositRange.max}`;
+                        } else if (newDepositRange.min) {
+                          filterValue = `${newDepositRange.min}~${newDepositRange.min}`;
+                        } else if (newDepositRange.max) {
+                          filterValue = `${newDepositRange.max}~${newDepositRange.max}`;
+                        }
+                        
+                        const newFilters = {
+                          ...filters,
+                          deposit: filterValue
+                        };
+                        onFilterChange?.(newFilters);
+                      }}
                     />
                     <RangeSeparator>~</RangeSeparator>
                     <RangeInput
                       type="text"
                       placeholder="최대"
-                      value={depositRange.max}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDepositRange({ ...depositRange, max: e.target.value })}
+                      value={(() => {
+                        if (depositRange.max === '') return '';
+                        if (depositRange.max === '최대값') return '최대값';
+                        if (depositRange.min === '0' && depositRange.max === '100') return '100만';
+                        if (depositRange.min === '4000' && depositRange.max === '최대값') return '최대값';
+                        const max = parseInt(depositRange.max);
+                        return `${max}만`;
+                      })()}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newDepositRange = { ...depositRange, max: e.target.value };
+                        setDepositRange(newDepositRange);
+                        
+                        // 입력 필드 값이 변경될 때마다 필터 업데이트
+                        let filterValue = '';
+                        if (newDepositRange.min && newDepositRange.max) {
+                          filterValue = `${newDepositRange.min}~${newDepositRange.max}`;
+                        } else if (newDepositRange.min) {
+                          filterValue = `${newDepositRange.min}~${newDepositRange.min}`;
+                        } else if (newDepositRange.max) {
+                          filterValue = `${newDepositRange.max}~${newDepositRange.max}`;
+                        }
+                        
+                        const newFilters = {
+                          ...filters,
+                          deposit: filterValue
+                        };
+                        onFilterChange?.(newFilters);
+                      }}
                     />
                     <RangeSeparator>원</RangeSeparator>
                   </CustomRangeContainer>
@@ -1534,7 +1834,122 @@ const Header: React.FC<HeaderProps> = ({
               </FilterPopupContent>
             </FilterPopup>
           </FilterButtonContainer>
-        </FilterRow>
+          
+          <SearchInput
+            type="text"
+            placeholder="주소 검색"
+            value={addressSearch}
+            onChange={(e) => onAddressSearchChange?.(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                // 검색 실행 로직 (필요시 추가)
+              }
+            }}
+          />
+        </CenterSection>
+
+        <RightSection>
+          <ActionButton onClick={() => {
+            
+            // 1. 모든 로컬 필터 상태 초기화
+            setSelectedAreas([]);
+            setSelectedPrices([]);
+            setSelectedDeposits([]);
+            setAreaRange({ min: '', max: '' });
+            setPriceRange({ min: '', max: '' });
+            setDepositRange({ min: '', max: '' });
+            setOpenDropdown(null);
+            
+            // 2. 필터 초기화 (App.tsx로 전달)
+            if (onFilterChange) {
+              const resetFilters = {
+                type: '',
+                propertyType: '',
+                area: '',
+                price: '',
+                deposit: ''
+              };
+              onFilterChange(resetFilters);
+            }
+            
+            // 3. 검색어 초기화
+            if (onSearchChange) {
+              onSearchChange('');
+            }
+            if (onAddressSearchChange) {
+              onAddressSearchChange('');
+            }
+            
+            // 4. 지도 리셋
+            if (onMapReset) {
+              onMapReset();
+            } else {
+              window.location.reload();
+            }
+          }}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            초기화
+          </ActionButton>
+          
+          {isLoggedIn && isAdmin && (
+            <ActionButton onClick={async () => {
+              try {
+                console.log('🔄 수동 동기화 시작...');
+                await firebaseSync.manualSync();
+                alert('✅ 동기화가 완료되었습니다!');
+                window.location.reload();
+              } catch (error) {
+                console.error('❌ 동기화 실패:', error);
+                alert('❌ 동기화에 실패했습니다. 콘솔을 확인해주세요.');
+              }
+            }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              동기화
+            </ActionButton>
+          )}
+          
+          
+          {isLoggedIn && isAdmin && (
+            <ActionButton onClick={() => {
+              if (onBulkPropertyUpload) {
+                onBulkPropertyUpload();
+              }
+            }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              대량매물등록
+            </ActionButton>
+          )}
+          
+          {isLoggedIn ? (
+            <ActionButton onClick={() => {
+              if (onLogoutClick) {
+                onLogoutClick();
+              }
+            }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              로그아웃
+            </ActionButton>
+          ) : (
+            <ActionButton onClick={() => {
+              if (onLoginClick) {
+                onLoginClick();
+              }
+            }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              로그인
+            </ActionButton>
+          )}
+        </RightSection>
       </MainSection>
     </HeaderContainer>
   );
