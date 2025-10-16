@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Property } from '../types';
+import { useProperties } from '../hooks/useProperties';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -462,6 +463,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
   const [currentImages, setCurrentImages] = useState<string[]>(property.images || []);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mapImages, setMapImages] = useState<string[]>([]);
+  const [imageLoading, setImageLoading] = useState<boolean>(true);
+  const [imageError, setImageError] = useState<boolean>(false);
+  const { updatePropertyImages, updatePropertyMapImages } = useProperties();
 
   // 펌방지 기능
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -535,6 +539,8 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
     }
     
     setCurrentImageIndex(0);
+    setImageLoading(true);
+    setImageError(false);
   }, [property.id, property.images]);
 
   // currentImages가 변경될 때마다 localStorage에 저장
@@ -542,6 +548,12 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
     console.log('=== 메인 이미지 상태 변경 ===', currentImages.length, '개');
     localStorage.setItem(`mainImages_${property.id}`, JSON.stringify(currentImages));
   }, [currentImages, property.id]);
+
+  // 이미지 인덱스 변경 시 로딩 상태 초기화
+  React.useEffect(() => {
+    setImageLoading(true);
+    setImageError(false);
+  }, [currentImageIndex]);
 
   // mapImages는 업로드 시에만 저장하므로 useEffect 제거
   // React.useEffect(() => {
@@ -552,7 +564,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
   // }, [mapImages, property.id]);
 
   // 이미지 삭제 함수
-  const handleDeleteImage = (imageIndex: number) => {
+  const handleDeleteImage = async (imageIndex: number) => {
     console.log('=== 이미지 삭제 시작 ===');
     console.log('삭제할 이미지 인덱스:', imageIndex);
     console.log('현재 이미지 개수:', currentImages.length);
@@ -560,41 +572,51 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
     const updatedImages = currentImages.filter((_, index) => index !== imageIndex);
     console.log('삭제 후 이미지 개수:', updatedImages.length);
     
-    setCurrentImages(updatedImages);
-    
-    // 현재 이미지 인덱스 조정
-    if (updatedImages.length === 0) {
-      setCurrentImageIndex(0);
-    } else if (currentImageIndex >= updatedImages.length) {
-      setCurrentImageIndex(updatedImages.length - 1);
+    try {
+      // Firebase에 이미지 업데이트
+      await updatePropertyImages(property.id, updatedImages);
+      console.log('Firebase 이미지 업데이트 완료');
+      
+      // 로컬 상태 업데이트
+      setCurrentImages(updatedImages);
+      
+      // 현재 이미지 인덱스 조정
+      if (updatedImages.length === 0) {
+        setCurrentImageIndex(0);
+      } else if (currentImageIndex >= updatedImages.length) {
+        setCurrentImageIndex(updatedImages.length - 1);
+      }
+      
+      // localStorage에 저장
+      const storageKey = `mainImages_${property.id}`;
+      if (updatedImages.length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(updatedImages));
+        console.log('localStorage 업데이트 완료');
+      } else {
+        // 모든 이미지가 삭제된 경우 localStorage에서 제거
+        localStorage.removeItem(storageKey);
+        console.log('localStorage에서 이미지 키 제거');
+      }
+      
+      // 부모 컴포넌트 업데이트
+      if (onPropertyUpdate) {
+        const updatedProperty = {
+          ...property,
+          images: updatedImages
+        };
+        onPropertyUpdate(updatedProperty);
+        console.log('부모 컴포넌트 업데이트 완료');
+      }
+      
+      console.log('=== 이미지 삭제 완료 ===');
+    } catch (error) {
+      console.error('이미지 삭제 중 오류:', error);
+      alert('이미지 삭제 중 오류가 발생했습니다.');
     }
-    
-    // localStorage에 저장
-    const storageKey = `mainImages_${property.id}`;
-    if (updatedImages.length > 0) {
-      localStorage.setItem(storageKey, JSON.stringify(updatedImages));
-      console.log('localStorage 업데이트 완료');
-    } else {
-      // 모든 이미지가 삭제된 경우 localStorage에서 제거
-      localStorage.removeItem(storageKey);
-      console.log('localStorage에서 이미지 키 제거');
-    }
-    
-    // 부모 컴포넌트 업데이트
-    if (onPropertyUpdate) {
-      const updatedProperty = {
-        ...property,
-        images: updatedImages
-      };
-      onPropertyUpdate(updatedProperty);
-      console.log('부모 컴포넌트 업데이트 완료');
-    }
-    
-    console.log('=== 이미지 삭제 완료 ===');
   };
 
   // 지도 이미지 삭제 함수
-  const handleDeleteMapImage = (imageIndex: number) => {
+  const handleDeleteMapImage = async (imageIndex: number) => {
     console.log('=== 지도 이미지 삭제 시작 ===');
     console.log('삭제할 지도 이미지 인덱스:', imageIndex);
     console.log('현재 지도 이미지 개수:', mapImages.length);
@@ -602,20 +624,30 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
     const updatedMapImages = mapImages.filter((_, index) => index !== imageIndex);
     console.log('삭제 후 지도 이미지 개수:', updatedMapImages.length);
     
-    setMapImages(updatedMapImages);
-    
-    // localStorage에 저장
-    const storageKey = `mapImages_${property.id}`;
-    if (updatedMapImages.length > 0) {
-      localStorage.setItem(storageKey, JSON.stringify(updatedMapImages));
-      console.log('지도 이미지 localStorage 업데이트 완료');
-    } else {
-      // 모든 지도 이미지가 삭제된 경우 localStorage에서 제거
-      localStorage.removeItem(storageKey);
-      console.log('localStorage에서 지도 이미지 키 제거');
+    try {
+      // Firebase에 지도 이미지 업데이트
+      await updatePropertyMapImages(property.id, updatedMapImages);
+      console.log('Firebase 지도 이미지 업데이트 완료');
+      
+      // 로컬 상태 업데이트
+      setMapImages(updatedMapImages);
+      
+      // localStorage에 저장
+      const storageKey = `mapImages_${property.id}`;
+      if (updatedMapImages.length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(updatedMapImages));
+        console.log('지도 이미지 localStorage 업데이트 완료');
+      } else {
+        // 모든 지도 이미지가 삭제된 경우 localStorage에서 제거
+        localStorage.removeItem(storageKey);
+        console.log('localStorage에서 지도 이미지 키 제거');
+      }
+      
+      console.log('=== 지도 이미지 삭제 완료 ===');
+    } catch (error) {
+      console.error('지도 이미지 삭제 중 오류:', error);
+      alert('지도 이미지 삭제 중 오류가 발생했습니다.');
     }
-    
-    console.log('=== 지도 이미지 삭제 완료 ===');
   };
 
   return (
@@ -661,7 +693,89 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                   &gt;
                 </ImageNavigationButton>
                 <ImageContainer>
-                  <MainImage src={currentImages[currentImageIndex]} alt={property.title} />
+                  {currentImages && currentImages.length > 0 ? (
+                    <>
+                      {imageLoading && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: '2rem',
+                          color: '#6b7280',
+                          background: '#f3f4f6',
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '8px',
+                          zIndex: 1
+                        }}>
+                          ⏳ 로딩중...
+                        </div>
+                      )}
+                      <MainImage 
+                        src={currentImages[currentImageIndex]} 
+                        alt={property.title}
+                        onError={(e) => {
+                          console.log('모달 이미지 로딩 실패:', currentImages[currentImageIndex]);
+                          setImageError(true);
+                          setImageLoading(false);
+                        }}
+                        onLoad={(e) => {
+                          console.log('모달 이미지 로딩 성공:', currentImages[currentImageIndex]);
+                          setImageError(false);
+                          setImageLoading(false);
+                        }}
+                        loading="eager"
+                        style={{
+                          display: imageError ? 'none' : 'block',
+                          opacity: imageLoading ? 0 : 1,
+                          transition: 'opacity 0.3s ease'
+                        }}
+                      />
+                      {imageError && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: '4rem',
+                          color: '#6b7280',
+                          background: '#f3f4f6',
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '8px',
+                          zIndex: 1
+                        }}>
+                          🏠
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: '4rem',
+                      color: '#6b7280',
+                      background: '#f3f4f6',
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '8px',
+                      zIndex: 1
+                    }}>
+                      🏠
+                    </div>
+                  )}
                   {isAdmin && (
                     <ImageDeleteButton 
                       onClick={(e) => {
@@ -701,7 +815,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                           console.log('첫 번째 파일:', file.name, file.size, file.type);
                           
                           const reader = new FileReader();
-                          reader.onload = (e) => {
+                          reader.onload = async (e) => {
                             console.log('파일 읽기 완료');
                             const result = e.target?.result;
                             console.log('읽기 결과:', result ? '성공' : '실패');
@@ -709,49 +823,60 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                             if (result) {
                               const newImages = [...currentImages, result as string];
                               console.log('새 이미지 배열:', newImages.length);
-                              setCurrentImages(newImages);
-                              // 새 이미지가 추가되면 마지막 이미지(새로 추가된 이미지)로 이동
-                              setCurrentImageIndex(newImages.length - 1);
-                              console.log('이미지 상태 업데이트 완료');
                               
-                              // localStorage에 저장
-                              const storageKey = `mainImages_${property.id}`;
-                              const imageData = JSON.stringify(newImages);
-                              console.log('localStorage 저장 시작');
-                              console.log('저장 키:', storageKey);
-                              console.log('저장할 데이터 길이:', imageData.length);
-                              console.log('저장할 데이터 타입:', typeof imageData);
-                              console.log('저장할 데이터 시작 부분:', imageData.substring(0, 100));
-                              
-                              // 기존 Unsplash 이미지 제거
-                              const existingData = localStorage.getItem(storageKey);
-                              if (existingData && existingData.includes('unsplash.com')) {
-                                console.log('기존 Unsplash 이미지 제거');
-                                localStorage.removeItem(storageKey);
+                              try {
+                                // Firebase에 이미지 업데이트
+                                await updatePropertyImages(property.id, newImages);
+                                console.log('Firebase 이미지 업데이트 완료');
+                                
+                                // 로컬 상태 업데이트
+                                setCurrentImages(newImages);
+                                // 새 이미지가 추가되면 마지막 이미지(새로 추가된 이미지)로 이동
+                                setCurrentImageIndex(newImages.length - 1);
+                                console.log('이미지 상태 업데이트 완료');
+                                
+                                // localStorage에 저장
+                                const storageKey = `mainImages_${property.id}`;
+                                const imageData = JSON.stringify(newImages);
+                                console.log('localStorage 저장 시작');
+                                console.log('저장 키:', storageKey);
+                                console.log('저장할 데이터 길이:', imageData.length);
+                                console.log('저장할 데이터 타입:', typeof imageData);
+                                console.log('저장할 데이터 시작 부분:', imageData.substring(0, 100));
+                                
+                                // 기존 Unsplash 이미지 제거
+                                const existingData = localStorage.getItem(storageKey);
+                                if (existingData && existingData.includes('unsplash.com')) {
+                                  console.log('기존 Unsplash 이미지 제거');
+                                  localStorage.removeItem(storageKey);
+                                }
+                                
+                                localStorage.setItem(storageKey, imageData);
+                                console.log('localStorage 저장 완료');
+                                
+                                // 저장 확인
+                                const savedData = localStorage.getItem(storageKey);
+                                console.log('저장 확인:', savedData ? '성공' : '실패');
+                                if (savedData) {
+                                  const parsedData = JSON.parse(savedData);
+                                  console.log('파싱된 저장 데이터:', parsedData.length, '개');
+                                }
+                                
+                                // 부모 컴포넌트 업데이트
+                                if (onPropertyUpdate) {
+                                  const updatedProperty = {
+                                    ...property,
+                                    images: newImages
+                                  };
+                                  onPropertyUpdate(updatedProperty);
+                                  console.log('부모 컴포넌트 업데이트 완료');
+                                }
+                                
+                                console.log('=== 이미지 업로드 완료 ===');
+                              } catch (error) {
+                                console.error('이미지 업로드 중 오류:', error);
+                                alert('이미지 업로드 중 오류가 발생했습니다.');
                               }
-                              
-                              localStorage.setItem(storageKey, imageData);
-                              console.log('localStorage 저장 완료');
-                              
-                              // 저장 확인
-                              const savedData = localStorage.getItem(storageKey);
-                              console.log('저장 확인:', savedData ? '성공' : '실패');
-                              if (savedData) {
-                                const parsedData = JSON.parse(savedData);
-                                console.log('파싱된 저장 데이터:', parsedData.length, '개');
-                              }
-                              
-                              // 부모 컴포넌트 업데이트
-                              if (onPropertyUpdate) {
-                                const updatedProperty = {
-                                  ...property,
-                                  images: newImages
-                                };
-                                onPropertyUpdate(updatedProperty);
-                                console.log('부모 컴포넌트 업데이트 완료');
-                              }
-                              
-                              console.log('=== 이미지 업로드 완료 ===');
                             }
                           };
                           reader.readAsDataURL(file);
@@ -818,7 +943,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                         console.log('첫 번째 파일:', file.name, file.size, file.type);
                         
                         const reader = new FileReader();
-                        reader.onload = (e) => {
+                        reader.onload = async (e) => {
                           console.log('파일 읽기 완료');
                           const result = e.target?.result;
                           console.log('읽기 결과:', result ? '성공' : '실패');
@@ -826,60 +951,71 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                           if (result) {
                             const newImages = [result as string];
                             console.log('새 이미지 배열:', newImages.length);
-                            setCurrentImages(newImages);
-                            setCurrentImageIndex(0);
-                            console.log('이미지 상태 업데이트 완료');
                             
-                            // localStorage에 저장
-                            const storageKey = `mainImages_${property.id}`;
-                            const imageData = JSON.stringify(newImages);
-                            console.log('localStorage 저장 시작 (빈 영역)');
-                            console.log('저장 키:', storageKey);
-                            console.log('저장할 데이터 길이:', imageData.length);
-                            console.log('저장할 데이터 타입:', typeof imageData);
-                            console.log('저장할 데이터 시작 부분:', imageData.substring(0, 100));
-                            
-                            // 기존 Unsplash 이미지 제거
-                            const existingData = localStorage.getItem(storageKey);
-                            if (existingData && existingData.includes('unsplash.com')) {
-                              console.log('기존 Unsplash 이미지 제거 (빈 영역)');
-                              localStorage.removeItem(storageKey);
-                            }
-                            
-                            localStorage.setItem(storageKey, imageData);
-                            console.log('localStorage 저장 완료 (빈 영역)');
-                            
-                            // 저장 확인
-                            const savedData = localStorage.getItem(storageKey);
-                            console.log('저장 확인 (빈 영역):', savedData ? '성공' : '실패');
-                            if (savedData) {
-                              const parsedData = JSON.parse(savedData);
-                              console.log('저장된 이미지 개수 (빈 영역):', parsedData.length);
-                              console.log('저장된 데이터 타입:', typeof parsedData[0]);
-                              console.log('저장된 데이터 시작 부분:', parsedData[0]?.substring(0, 100));
-                              console.log('base64 포함 여부:', parsedData[0]?.includes('data:image/'));
-                            }
-                            
-                            // localStorage 전체 상태 확인
-                            console.log('=== 빈 영역 업로드 후 localStorage 전체 상태 ===');
-                            for (let i = 0; i < localStorage.length; i++) {
-                              const key = localStorage.key(i);
-                              if (key && key.includes('mainImages')) {
-                                console.log('발견된 메인 이미지 키:', key);
-                                const value = localStorage.getItem(key);
-                                console.log('값 길이:', value?.length || 0);
-                                console.log('값 시작 부분:', value?.substring(0, 100));
-                                console.log('base64 포함 여부:', value?.includes('data:image/'));
+                            try {
+                              // Firebase에 이미지 업데이트
+                              await updatePropertyImages(property.id, newImages);
+                              console.log('Firebase 이미지 업데이트 완료 (빈 영역)');
+                              
+                              // 로컬 상태 업데이트
+                              setCurrentImages(newImages);
+                              setCurrentImageIndex(0);
+                              console.log('이미지 상태 업데이트 완료');
+                              
+                              // localStorage에 저장
+                              const storageKey = `mainImages_${property.id}`;
+                              const imageData = JSON.stringify(newImages);
+                              console.log('localStorage 저장 시작 (빈 영역)');
+                              console.log('저장 키:', storageKey);
+                              console.log('저장할 데이터 길이:', imageData.length);
+                              console.log('저장할 데이터 타입:', typeof imageData);
+                              console.log('저장할 데이터 시작 부분:', imageData.substring(0, 100));
+                              
+                              // 기존 Unsplash 이미지 제거
+                              const existingData = localStorage.getItem(storageKey);
+                              if (existingData && existingData.includes('unsplash.com')) {
+                                console.log('기존 Unsplash 이미지 제거 (빈 영역)');
+                                localStorage.removeItem(storageKey);
                               }
-                            }
-                            
-                            if (onPropertyUpdate) {
-                              const updatedProperty = {
-                                ...property,
-                                images: newImages
-                              };
-                              onPropertyUpdate(updatedProperty);
-                              console.log('부모 컴포넌트 업데이트 완료');
+                              
+                              localStorage.setItem(storageKey, imageData);
+                              console.log('localStorage 저장 완료 (빈 영역)');
+                              
+                              // 저장 확인
+                              const savedData = localStorage.getItem(storageKey);
+                              console.log('저장 확인 (빈 영역):', savedData ? '성공' : '실패');
+                              if (savedData) {
+                                const parsedData = JSON.parse(savedData);
+                                console.log('저장된 이미지 개수 (빈 영역):', parsedData.length);
+                                console.log('저장된 데이터 타입:', typeof parsedData[0]);
+                                console.log('저장된 데이터 시작 부분:', parsedData[0]?.substring(0, 100));
+                                console.log('base64 포함 여부:', parsedData[0]?.includes('data:image/'));
+                              }
+                              
+                              // localStorage 전체 상태 확인
+                              console.log('=== 빈 영역 업로드 후 localStorage 전체 상태 ===');
+                              for (let i = 0; i < localStorage.length; i++) {
+                                const key = localStorage.key(i);
+                                if (key && key.includes('mainImages')) {
+                                  console.log('발견된 메인 이미지 키:', key);
+                                  const value = localStorage.getItem(key);
+                                  console.log('값 길이:', value?.length || 0);
+                                  console.log('값 시작 부분:', value?.substring(0, 100));
+                                  console.log('base64 포함 여부:', value?.includes('data:image/'));
+                                }
+                              }
+                              
+                              if (onPropertyUpdate) {
+                                const updatedProperty = {
+                                  ...property,
+                                  images: newImages
+                                };
+                                onPropertyUpdate(updatedProperty);
+                                console.log('부모 컴포넌트 업데이트 완료');
+                              }
+                            } catch (error) {
+                              console.error('이미지 업로드 중 오류 (빈 영역):', error);
+                              alert('이미지 업로드 중 오류가 발생했습니다.');
                             }
                           }
                         };
@@ -1218,6 +1354,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                               
                             } catch (error) {
                               console.error('지도 이미지 업로드 중 오류:', error);
+                              alert('지도 이미지 업로드 중 오류가 발생했습니다.');
                             }
                           }
                         };
@@ -1360,6 +1497,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                               
                             } catch (error) {
                               console.error('지도 이미지 업로드 중 오류:', error);
+                              alert('지도 이미지 업로드 중 오류가 발생했습니다.');
                             }
                           }
                         };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { migrateDataToFirebase, checkSyncStatus, saveSyncStatus, getLastSyncTime } from '../utils/dataMigration';
+import { testMobileImageSync, fixMobileImagesForProperties2And3 } from '../firebase/propertyService';
 import { useProperties } from '../hooks/useProperties';
 import { useFirebase } from '../contexts/FirebaseContext';
 
@@ -88,6 +89,8 @@ const SyncManager: React.FC<SyncManagerProps> = ({ onSyncComplete }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStatus, setSyncStatus] = useState(checkSyncStatus());
+  const [isTestingImages, setIsTestingImages] = useState(false);
+  const [isFixingMobileImages, setIsFixingMobileImages] = useState(false);
   const { user } = useFirebase();
   const { refreshProperties } = useProperties();
 
@@ -148,6 +151,46 @@ const SyncManager: React.FC<SyncManagerProps> = ({ onSyncComplete }) => {
     }
   };
 
+  const handleTestImageSync = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    setIsTestingImages(true);
+
+    try {
+      await testMobileImageSync();
+      await refreshProperties();
+      alert('모바일 이미지 동기화 테스트가 완료되었습니다.');
+    } catch (error) {
+      console.error('이미지 동기화 테스트 오류:', error);
+      alert('이미지 동기화 테스트 중 오류가 발생했습니다.');
+    } finally {
+      setIsTestingImages(false);
+    }
+  };
+
+  const handleFixMobileImages = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    setIsFixingMobileImages(true);
+
+    try {
+      await fixMobileImagesForProperties2And3();
+      await refreshProperties();
+      alert('핸드폰용 매물 2,3번 이미지 수정이 완료되었습니다. 페이지를 새로고침해주세요.');
+    } catch (error) {
+      console.error('핸드폰 이미지 수정 오류:', error);
+      alert('핸드폰 이미지 수정 중 오류가 발생했습니다.');
+    } finally {
+      setIsFixingMobileImages(false);
+    }
+  };
+
   const formatLastSyncTime = (date: Date | null): string => {
     if (!date) return '동기화 기록 없음';
     return date.toLocaleString('ko-KR');
@@ -181,6 +224,22 @@ const SyncManager: React.FC<SyncManagerProps> = ({ onSyncComplete }) => {
         disabled={isSyncing || syncStatus.isSynced}
       >
         {isSyncing ? '동기화 중...' : 'Firebase로 동기화'}
+      </SyncButton>
+
+      <SyncButton 
+        onClick={handleTestImageSync}
+        disabled={isTestingImages}
+        style={{ marginTop: '0.5rem', background: '#28a745' }}
+      >
+        {isTestingImages ? '이미지 테스트 중...' : '📸 모바일 이미지 동기화 테스트'}
+      </SyncButton>
+
+      <SyncButton 
+        onClick={handleFixMobileImages}
+        disabled={isFixingMobileImages}
+        style={{ marginTop: '0.5rem', background: '#dc3545' }}
+      >
+        {isFixingMobileImages ? '핸드폰 이미지 수정 중...' : '📱 핸드폰 매물 2,3번 이미지 수정'}
       </SyncButton>
 
       <SyncInfo>

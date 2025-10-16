@@ -306,6 +306,86 @@ const CoordinateResult = styled.div`
   color: #065f46;
 `;
 
+const ImageUploadSection = styled.div`
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+`;
+
+const ImageUploadTitle = styled.h3`
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+`;
+
+const ImageUploadButton = styled.button`
+  width: 100%;
+  padding: 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #2563eb;
+  }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+`;
+
+const ImagePreviewGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+`;
+
+const ImagePreviewItem = styled.div`
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+`;
+
+const ImagePreview = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const RemoveImageButton = styled.button`
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.9);
+  }
+`;
+
 interface AddPropertyModalProps {
   onClose: () => void;
   onPropertyAdded?: (properties: Property[]) => void;
@@ -319,6 +399,11 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
   const [showSyncManager, setShowSyncManager] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useFirebase();
+
+  // 이미지 관련 상태 추가
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // 주소검색 관련 상태
   const [addressSearch, setAddressSearch] = useState('');
@@ -373,6 +458,49 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  // 이미지 선택 핸들러
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newFiles = Array.from(files);
+      const validFiles = newFiles.filter(file => {
+        if (!file.type.startsWith('image/')) {
+          alert(`${file.name}은(는) 이미지 파일이 아닙니다.`);
+          return false;
+        }
+        if (file.size > 5 * 1024 * 1024) { // 5MB 제한
+          alert(`${file.name}은(는) 파일 크기가 너무 큽니다. (최대 5MB)`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length > 0) {
+        setSelectedImages(prev => [...prev, ...validFiles]);
+        
+        // 미리보기 URL 생성
+        const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
+        setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
+      }
+    }
+  };
+
+  // 이미지 제거 핸들러
+  const handleImageRemove = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls(prev => {
+      const newUrls = prev.filter((_, i) => i !== index);
+      // URL 해제
+      URL.revokeObjectURL(prev[index]);
+      return newUrls;
+    });
+  };
+
+  // 이미지 업로드 버튼 클릭
+  const handleImageUploadClick = () => {
+    imageInputRef.current?.click();
   };
 
   const downloadTemplate = () => {
@@ -615,7 +743,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
                 bedrooms,
                 bathrooms,
                 area,
-                images: ['/images/default-property.svg'],
+                images: imagePreviewUrls.length > 0 ? imagePreviewUrls : ['/images/default-property.svg'],
                 contact: {
                   name: contactName,
                   phone: contactPhone,
@@ -834,6 +962,35 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
               📥 엑셀 템플릿 다운로드
             </TemplateButton>
           </TemplateSection>
+
+          {/* 이미지 업로드 섹션 */}
+          <ImageUploadSection>
+            <ImageUploadTitle>📸 매물 사진 등록</ImageUploadTitle>
+            <ImageUploadButton onClick={handleImageUploadClick}>
+              📷 사진 선택하기
+            </ImageUploadButton>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+            />
+            
+            {imagePreviewUrls.length > 0 && (
+              <ImagePreviewGrid>
+                {imagePreviewUrls.map((url, index) => (
+                  <ImagePreviewItem key={index}>
+                    <ImagePreview src={url} alt={`미리보기 ${index + 1}`} />
+                    <RemoveImageButton onClick={() => handleImageRemove(index)}>
+                      ×
+                    </RemoveImageButton>
+                  </ImagePreviewItem>
+                ))}
+              </ImagePreviewGrid>
+            )}
+          </ImageUploadSection>
 
           <FileUploadArea
             isDragOver={isDragOver}

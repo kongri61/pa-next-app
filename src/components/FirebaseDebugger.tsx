@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { addTestProperty, addTestRentProperty, getProperties } from '../firebase/propertyService';
+import { addTestProperty, addTestRentProperty, getProperties, addImagesToExistingProperties, forceRefreshFirebaseData, addImagesToSpecificProperties } from '../firebase/propertyService';
 import { useFirebase } from '../contexts/FirebaseContext';
 
 const DebugContainer = styled.div`
@@ -16,6 +16,15 @@ const DebugContainer = styled.div`
   max-width: 400px;
   z-index: 9999;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: 768px) {
+    top: 5px;
+    right: 5px;
+    left: 5px;
+    max-width: none;
+    font-size: 0.75rem;
+    padding: 0.75rem;
+  }
 `;
 
 const DebugTitle = styled.h3`
@@ -42,6 +51,13 @@ const DebugButton = styled.button`
   &:disabled {
     background: #6b7280;
     cursor: not-allowed;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.7rem;
+    margin: 0.2rem;
+    min-height: 44px; /* 모바일 터치 최소 크기 */
   }
 `;
 
@@ -145,6 +161,7 @@ const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
           addLog(`     - 타입: ${property.type}`);
           addLog(`     - 가격: ${property.price}`);
           addLog(`     - 보증금: ${property.deposit || '없음'}`);
+          addLog(`     - 이미지: ${property.images?.length || 0}개`);
           if (property.type === 'rent') {
             addLog(`     - 보증금 포맷: ${formatPrice(property.deposit || 0)}`);
             addLog(`     - 월세 포맷: ${formatPrice(property.price)}`);
@@ -155,6 +172,88 @@ const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
       }
     } catch (error: any) {
       addLog(`❌ 매물 목록 조회 실패: ${error.message}`);
+      addLog(`   오류 코드: ${error.code || 'N/A'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addImagesToProperties = async () => {
+    if (!user) {
+      addLog('❌ 사용자가 로그인되지 않았습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    addLog('🖼️ 기존 매물에 이미지 추가 시작...');
+    
+    try {
+      await addImagesToExistingProperties();
+      addLog('✅ 기존 매물에 이미지 추가 성공!');
+      addLog('🔄 페이지를 새로고침하여 변경사항을 확인하세요.');
+    } catch (error: any) {
+      addLog(`❌ 이미지 추가 실패: ${error.message}`);
+      addLog(`   오류 코드: ${error.code || 'N/A'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forceRefreshData = async () => {
+    setIsLoading(true);
+    addLog('🔄 Firebase 데이터 강제 새로고침 시작...');
+    
+    try {
+      const { properties } = await forceRefreshFirebaseData();
+      addLog(`✅ 강제 새로고침 성공! 총 ${properties.length}개 매물`);
+      
+      if (properties.length > 0) {
+        properties.forEach((property, index) => {
+          addLog(`   매물 ${index + 1}: ${property.title}`);
+          addLog(`     - 타입: ${property.type}`);
+          addLog(`     - 이미지: ${property.images?.length || 0}개`);
+          if (property.images && property.images.length > 0) {
+            addLog(`     - 이미지 URL: ${property.images[0]}`);
+          }
+        });
+      } else {
+        addLog('   저장된 매물이 없습니다.');
+      }
+      
+      addLog('🔄 페이지를 새로고침하여 변경사항을 확인하세요.');
+    } catch (error: any) {
+      addLog(`❌ 강제 새로고침 실패: ${error.message}`);
+      addLog(`   오류 코드: ${error.code || 'N/A'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addImagesToSpecific = async () => {
+    if (!user) {
+      addLog('❌ 사용자가 로그인되지 않았습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    addLog('🖼️ 2,3번 매물에 이미지 추가 시작...');
+    addLog(`📱 모바일 환경: ${window.innerWidth <= 768 ? 'YES' : 'NO'}`);
+    
+    try {
+      await addImagesToSpecificProperties();
+      addLog('✅ 2,3번 매물에 이미지 추가 성공!');
+      
+      // 모바일에서 localStorage 강제 새로고침
+      if (window.innerWidth <= 768) {
+        addLog('📱 모바일용 localStorage 새로고침...');
+        localStorage.removeItem('properties_cache');
+        localStorage.removeItem('last_sync_time');
+        addLog('✅ 모바일 캐시 삭제 완료');
+      }
+      
+      addLog('🔄 페이지를 새로고침하여 변경사항을 확인하세요.');
+    } catch (error: any) {
+      addLog(`❌ 이미지 추가 실패: ${error.message}`);
       addLog(`   오류 코드: ${error.code || 'N/A'}`);
     } finally {
       setIsLoading(false);
@@ -217,6 +316,27 @@ const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
           disabled={isLoading}
         >
           🗑️ 로그 지우기
+        </DebugButton>
+        
+        <DebugButton 
+          onClick={addImagesToProperties} 
+          disabled={isLoading || !user}
+        >
+          🖼️ 기존 매물에 이미지 추가
+        </DebugButton>
+        
+        <DebugButton 
+          onClick={addImagesToSpecific} 
+          disabled={isLoading || !user}
+        >
+          🖼️ 2,3번 매물에 이미지 추가
+        </DebugButton>
+        
+        <DebugButton 
+          onClick={forceRefreshData} 
+          disabled={isLoading}
+        >
+          🔄 Firebase 데이터 강제 새로고침
         </DebugButton>
         
         <DebugButton 

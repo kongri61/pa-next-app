@@ -7,7 +7,9 @@ import {
   deleteProperty, 
   searchProperties,
   addMultipleProperties,
-  getPropertiesByLocation
+  getPropertiesByLocation,
+  updatePropertyImages,
+  updatePropertyMapImages
 } from '../firebase/propertyService';
 import { Property } from '../types';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
@@ -28,6 +30,8 @@ interface UsePropertiesReturn {
   addMultiplePropertiesToDb: (properties: Omit<Property, 'id' | 'createdAt'>[]) => Promise<string[]>;
   getPropertiesByLocationRange: (lat: number, lng: number, radiusKm?: number) => Promise<Property[]>;
   refreshProperties: () => Promise<void>;
+  updatePropertyImages: (id: string, images: string[]) => Promise<void>;
+  updatePropertyMapImages: (id: string, mapImages: string[]) => Promise<void>;
 }
 
 interface SearchFilters {
@@ -196,6 +200,42 @@ export const useProperties = (): UsePropertiesReturn => {
     await loadProperties();
   }, [loadProperties]);
 
+  // 매물 이미지 업데이트 (모바일 동기화용)
+  const updatePropertyImagesCallback = useCallback(async (id: string, images: string[]): Promise<void> => {
+    try {
+      await updatePropertyImages(id, images);
+      // 로컬 상태 업데이트
+      setProperties(prev => 
+        prev.map(property => 
+          property.id === id 
+            ? { ...property, images, updatedAt: new Date() }
+            : property
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '매물 이미지를 업데이트하는 중 오류가 발생했습니다.');
+      throw err;
+    }
+  }, []);
+
+  // 매물 지도 이미지 업데이트 (모바일 동기화용)
+  const updatePropertyMapImagesCallback = useCallback(async (id: string, mapImages: string[]): Promise<void> => {
+    try {
+      await updatePropertyMapImages(id, mapImages);
+      // 로컬 상태 업데이트
+      setProperties(prev => 
+        prev.map(property => 
+          property.id === id 
+            ? { ...property, mapImages, updatedAt: new Date() }
+            : property
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '매물 지도 이미지를 업데이트하는 중 오류가 발생했습니다.');
+      throw err;
+    }
+  }, []);
+
   // 초기 로드
   useEffect(() => {
     loadProperties();
@@ -216,6 +256,8 @@ export const useProperties = (): UsePropertiesReturn => {
     searchPropertiesByTerm,
     addMultiplePropertiesToDb,
     getPropertiesByLocationRange,
-    refreshProperties
+    refreshProperties,
+    updatePropertyImages: updatePropertyImagesCallback,
+    updatePropertyMapImages: updatePropertyMapImagesCallback
   };
 }; 
