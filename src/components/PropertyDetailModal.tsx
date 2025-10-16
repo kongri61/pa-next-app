@@ -517,7 +517,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editData, setEditData] = useState<Property>(property);
-  const [showMap, setShowMap] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 수정 모드 토글 함수
@@ -648,11 +647,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       setCurrentImageIndex(Math.max(0, newImages.length - 1));
     }
     console.log('🗑️ 이미지 삭제 완료:', index);
-  };
-
-  // 지도 토글 핸들러
-  const toggleMap = () => {
-    setShowMap(!showMap);
   };
 
   // 펌방지 기능
@@ -1066,119 +1060,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   </ContactValue>
                 </ContactItem>
               </ContactInfo>
-            </Section>
-
-            <Section>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <SectionTitle>위치정보</SectionTitle>
-                <button
-                  onClick={toggleMap}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: showMap ? '#dc2626' : '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  {showMap ? '지도 숨기기' : '지도 보기'}
-                </button>
-              </div>
-              
-              {showMap && (
-                <div style={{ 
-                  height: '300px', 
-                  marginBottom: '1rem',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  overflow: 'hidden'
-                }}>
-                  <iframe
-                    title="매물 위치 지도"
-                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk&q=${editData.location.lat},${editData.location.lng}&zoom=15`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-              )}
-              
-              {isEditMode ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <EditInput
-                      type="number"
-                      step="0.000001"
-                      value={editData.location.lat}
-                      onChange={(e) => handleNestedEditChange('location', 'lat', parseFloat(e.target.value) || 0)}
-                      placeholder="위도 (Latitude)"
-                      style={{ flex: 1 }}
-                    />
-                    <EditInput
-                      type="number"
-                      step="0.000001"
-                      value={editData.location.lng}
-                      onChange={(e) => handleNestedEditChange('location', 'lng', parseFloat(e.target.value) || 0)}
-                      placeholder="경도 (Longitude)"
-                      style={{ flex: 1 }}
-                    />
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280', textAlign: 'center' }}>
-                    현재 좌표: {editData.location.lat.toFixed(6)}, {editData.location.lng.toFixed(6)}
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        console.log('🔄 주소로 좌표 재검색 중...');
-                        const response = await fetch('/api/kakao-geocoding', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ address: editData.address }),
-                        });
-                        const result = await response.json();
-                        if (result.lat && result.lng) {
-                          handleNestedEditChange('location', 'lat', result.lat);
-                          handleNestedEditChange('location', 'lng', result.lng);
-                          console.log('✅ 좌표 업데이트 완료:', result);
-                        }
-                      } catch (error) {
-                        console.error('❌ 좌표 업데이트 실패:', error);
-                      }
-                    }}
-                    style={{
-                      padding: '0.5rem',
-                      background: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem'
-                    }}
-                  >
-                    🔄 주소로 좌표 재검색
-                  </button>
-                </div>
-              ) : (
-                <div style={{ 
-                  padding: '1rem', 
-                  background: '#f8fafc', 
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  fontSize: '0.875rem',
-                  color: '#6b7280'
-                }}>
-                  <div>위도: {editData.location.lat.toFixed(6)}</div>
-                  <div>경도: {editData.location.lng.toFixed(6)}</div>
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
-                    주소: {editData.address}
-                  </div>
-                </div>
-              )}
             </Section>
           </LeftPanel>
         </ModalContent>
