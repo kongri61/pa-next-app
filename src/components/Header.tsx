@@ -471,6 +471,8 @@ interface HeaderProps {
   onSearchChange?: (value: string) => void;
   addressSearch?: string;
   onAddressSearchChange?: (value: string) => void;
+  propertyNumberSearch?: string;
+  onPropertyNumberSearch?: (value: string) => void;
   filters?: {
     type: string;
     propertyType: string;
@@ -493,6 +495,8 @@ const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   addressSearch = '',
   onAddressSearchChange,
+  propertyNumberSearch = '',
+  onPropertyNumberSearch,
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
   onFilterChange,
   isAdmin,
