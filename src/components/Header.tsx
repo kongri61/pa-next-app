@@ -486,6 +486,7 @@ interface HeaderProps {
   onLoginClick?: () => void; // 로그인 클릭 핸들러 추가
   onLogoutClick?: () => void; // 로그아웃 클릭 핸들러 추가
   onMapReset?: () => void; // 지도 리셋 핸들러 추가
+  onRefresh?: () => void; // 새로고침 핸들러 추가
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -503,7 +504,8 @@ const Header: React.FC<HeaderProps> = ({
   isLoggedIn,
   onLoginClick,
   onLogoutClick,
-  onMapReset
+  onMapReset,
+  onRefresh
 }) => {
   // 디버깅: 관리자 상태 확인
   console.log('🔧 Header 렌더링 - isLoggedIn:', isLoggedIn, 'isAdmin:', isAdmin);
