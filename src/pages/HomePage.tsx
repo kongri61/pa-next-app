@@ -852,18 +852,22 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           }
         }
       } else {
-        // 단일 값 형식 (예: "10평")
+        // 단일 값 형식 (예: "10평") - 범위 검색으로 변경 (±1평 허용)
         const area = parseFloat(filters.area.replace(/[~평]/g, ''));
         console.log('면적 단일 값:', area);
         console.log('면적 단일 값 타입:', typeof area);
         console.log('면적 단일 값 유효성:', !isNaN(area));
         
         if (!isNaN(area)) {
+          const tolerance = 1; // ±1평 허용
+          const minArea = area - tolerance;
+          const maxArea = area + tolerance;
+          
           filtered = filtered.filter(property => {
             // property.area를 m²에서 평으로 변환
             const areaInPyeong = Math.round(property.area / 3.3058);
-            const isMatch = areaInPyeong === area;
-            console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 검색값: ${area}평, 일치여부: ${isMatch}`);
+            const isMatch = areaInPyeong >= minArea && areaInPyeong <= maxArea;
+            console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 검색값: ${area}평(±${tolerance}), 범위: ${minArea}~${maxArea}평, 일치여부: ${isMatch}`);
             return isMatch;
           });
         }
