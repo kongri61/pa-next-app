@@ -513,6 +513,7 @@ const EmptyState = styled.div`
 interface HomePageProps {
   searchTerm?: string;
   addressSearch?: string;
+  propertyNumberSearch?: string;
   filters?: {
     type: string;
     propertyType: string;
@@ -535,6 +536,7 @@ export interface HomePageRef {
 const HomePage = forwardRef<HomePageRef, HomePageProps>(({ 
   searchTerm = '', 
   addressSearch = '',
+  propertyNumberSearch = '',
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
   onFilterChange, // 필터 변경 핸들러 추가
   onSearchChange, // 검색어 변경 핸들러 추가
