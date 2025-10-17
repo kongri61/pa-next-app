@@ -5,7 +5,7 @@ import PropertyDetailModal from '../components/PropertyDetailModal';
 import { Property } from '../types';
 import { useProperties } from '../hooks/useProperties';
 import { isMobile, isSearchOnlyMode, shouldDisablePropertyRegistration, shouldDisableAdminFeatures } from '../utils/mobileDetection';
-import { getMobileImageUrls, getSafeImageUrl, createMobileImageLoader, handleMobileImageError, handleMobileImageLoad, preloadMobileImages, manageMobileImageCache, monitorMobileImagePerformance } from '../utils/mobileImageUtils';
+import { getMobileImageUrls, getSafeImageUrl, createMobileImageLoader, handleMobileImageError, handleMobileImageLoad, manageMobileImageCache, monitorMobileImagePerformance } from '../utils/mobileImageUtils';
 
 // 모바일 검색 전용 모드 알림
 const MobileSearchOnlyNotice = styled.div`

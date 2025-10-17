@@ -995,7 +995,6 @@ export const syncMobileImagesToFirebase = async (): Promise<void> => {
       
       // 로그인 없이도 localStorage에 기본 이미지 저장
       mainImageKeys.forEach(key => {
-        const propertyId = key.replace('mainImages_', '');
         const testImages = [
           'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop',
           'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop'
