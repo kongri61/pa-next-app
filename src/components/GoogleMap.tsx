@@ -10,10 +10,10 @@ const MapContainer = styled.div`
   background: #f8fafc;
   
   @media (max-width: 768px) {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-    position: fixed;
+    width: 100%;
+    height: 50vh;
+    min-height: 50vh;
+    position: relative;
     top: 0;
     left: 0;
     right: 0;
@@ -28,9 +28,9 @@ const MapDiv = styled.div`
   min-height: 300px;
   
   @media (max-width: 768px) {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
+    width: 100%;
+    height: 50vh;
+    min-height: 50vh;
   }
 `;
 

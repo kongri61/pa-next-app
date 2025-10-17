@@ -4,35 +4,6 @@ import GoogleMap, { GoogleMapRef } from '../components/GoogleMap';
 import PropertyDetailModal from '../components/PropertyDetailModal';
 import { Property } from '../types';
 import { useProperties } from '../hooks/useProperties';
-import { isMobile, isSearchOnlyMode, shouldDisablePropertyRegistration, shouldDisableAdminFeatures } from '../utils/mobileDetection';
-import { getMobileImageUrls, getSafeImageUrl, createMobileImageLoader, handleMobileImageError, handleMobileImageLoad, preloadMobileImages, manageMobileImageCache, monitorMobileImagePerformance } from '../utils/mobileImageUtils';
-
-// 모바일 검색 전용 모드 알림
-const MobileSearchOnlyNotice = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.75rem 1rem;
-  text-align: center;
-  font-size: 0.9rem;
-  font-weight: 500;
-  border-radius: 8px;
-  margin: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
-  @media (min-width: 769px) {
-    display: none;
-  }
-`;
-
-const NoticeIcon = styled.span`
-  font-size: 1.2rem;
-  margin-right: 0.5rem;
-`;
-
-const NoticeText = styled.span`
-  display: inline-block;
-  vertical-align: middle;
-`;
 
 // PC용 2개 섹션 구조 (데스크톱 우선)
 const HomeContainer = styled.div`
@@ -426,33 +397,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   console.log('HomePage 컴포넌트 렌더링됨');
   console.log('filters:', filters);
   
-  // 모바일 감지 및 검색 전용 모드 확인
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [isSearchOnly, setIsSearchOnly] = useState(false);
-  
-  useEffect(() => {
-    const checkMobileStatus = () => {
-      const mobile = isMobile();
-      const searchOnly = isSearchOnlyMode();
-      setIsMobileDevice(mobile);
-      setIsSearchOnly(searchOnly);
-      
-      console.log('모바일 상태 확인:', {
-        isMobile: mobile,
-        isSearchOnly: searchOnly,
-        windowWidth: window.innerWidth,
-        userAgent: navigator.userAgent
-      });
-    };
-    
-    checkMobileStatus();
-    window.addEventListener('resize', checkMobileStatus);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobileStatus);
-    };
-  }, []);
-  
   const [selectedPropertyForDetail, setSelectedPropertyForDetail] = useState<Property | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
@@ -590,12 +534,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   // 컴포넌트 마운트 시 Firebase에서 매물 로드
   useEffect(() => {
     loadProperties();
-    
-    // 모바일 이미지 캐시 관리 실행
-    if (isMobileDevice) {
-      manageMobileImageCache();
-    }
-  }, [loadProperties, isMobileDevice]);
+  }, [loadProperties]);
 
   // 매물 추가 시 Firebase 새로고침
   useEffect(() => {
@@ -1078,14 +1017,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         </div>
       )}
 
-      {/* 모바일 검색 전용 모드 알림 */}
-      {isSearchOnly && (
-        <MobileSearchOnlyNotice>
-          <NoticeIcon>🔍</NoticeIcon>
-          <NoticeText>모바일 검색 전용 모드 - 매물 검색 및 조회만 가능합니다</NoticeText>
-        </MobileSearchOnlyNotice>
-      )}
-
       <HomeContainer>
         <MapSection>
           <GoogleMap
@@ -1100,11 +1031,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
               <EmptyState>
                 <EmptyIcon>🏠</EmptyIcon>
                 <p>현재 매물이 없습니다.</p>
-                {!isSearchOnly && !shouldDisablePropertyRegistration() && (
-                  <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
-                    PC에서 매물을 등록할 수 있습니다.
-                  </div>
-                )}
+                {/* isAdmin && (
+                  <AdminButton onClick={() => setSelectedPropertyForDetail({} as Property)}>
+                    새 매물 추가
+                  </AdminButton>
+                ) */}
               </EmptyState>
             ) : (
               listProperties.map(property => {
@@ -1273,6 +1204,27 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                         )}
                       </PropertyPrice>
                     </PropertyInfo>
+                    {/* isAdmin && (
+                      <AdminButtons>
+                        <AdminButton 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProperty(property);
+                          }}
+                        >
+                          수정
+                        </AdminButton>
+                        <AdminButton 
+                          variant="delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProperty(property);
+                          }}
+                        >
+                          삭제
+                        </AdminButton>
+                      </AdminButtons>
+                    ) */}
                   </PropertyCard>
                 );
               })
@@ -1287,11 +1239,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           <EmptyState>
             <EmptyIcon>🏠</EmptyIcon>
             <p>현재 매물이 없습니다.</p>
-            {!isSearchOnly && !shouldDisablePropertyRegistration() && (
-              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
-                PC에서 매물을 등록할 수 있습니다.
-              </div>
-            )}
+            {/* isAdmin && (
+              <AdminButton onClick={() => setSelectedPropertyForDetail({} as Property)}>
+                새 매물 추가
+              </AdminButton>
+            ) */}
           </EmptyState>
         ) : (
           listProperties.map(property => {
@@ -1323,29 +1275,28 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             
             // 모든 매물에 대한 기본 이미지 처리 (이미지가 없으면 강제로 추가)
             if (!displayImages || displayImages.length === 0) {
-              // 모바일에서 안전한 이미지 URL 사용
-              const mobileImageUrls = getMobileImageUrls(property.id);
-              displayImages = mobileImageUrls;
-              console.log(`매물 ${property.id} 모바일 기본 이미지 적용:`, displayImages);
+              // 짧고 안정적인 이미지 URL 사용
+              const defaultImages = [
+                'https://picsum.photos/400/300?random=1',
+                'https://picsum.photos/400/300?random=2'
+              ];
+              displayImages = defaultImages;
+              console.log(`매물 ${property.id} 기본 이미지 적용:`, displayImages);
               
               // localStorage에도 저장
               const storageKey = `mainImages_${property.id}`;
-              localStorage.setItem(storageKey, JSON.stringify(mobileImageUrls));
+              localStorage.setItem(storageKey, JSON.stringify(defaultImages));
             }
             
             // 추가 안전장치: displayImages가 여전히 비어있으면 강제로 기본 이미지 설정
             if (!displayImages || displayImages.length === 0) {
-              displayImages = getMobileImageUrls(property.id);
+              displayImages = [
+                'https://picsum.photos/400/300?random=3'
+              ];
               console.log(`매물 ${property.id} 최종 안전장치 이미지 적용:`, displayImages);
             }
             
-            // 모바일 이미지 로더 생성
-            const imageLoader = createMobileImageLoader(property.id);
-            
-            // 이미지 로딩 시작 시간 기록
-            const imageLoadStartTime = Date.now();
-            
-            console.log(`매물 ${property.id} 최종 displayImages (모바일):`, displayImages);
+            console.log(`매물 ${property.id} 최종 displayImages (두번째):`, displayImages);
             
             return (
               <PropertyCard 
@@ -1354,52 +1305,60 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
               >
                 <PropertyImage>
                   <img 
-                    src={getSafeImageUrl(displayImages[0], property.id)} 
-                    alt={property.title}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '8px',
-                      opacity: 0,
-                      transition: 'opacity 0.3s ease'
-                    }}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      const success = handleMobileImageError(target, property.id, imageLoader);
-                      if (!success) {
-                        console.log(`매물 ${property.id} 모든 이미지 로딩 실패`);
-                        // 성능 모니터링에 실패 기록
-                        monitorMobileImagePerformance(property.id, imageLoadStartTime);
-                      }
-                    }}
-                    onLoad={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      handleMobileImageLoad(target);
-                      // 성능 모니터링에 성공 기록
-                      monitorMobileImagePerformance(property.id, imageLoadStartTime);
-                    }}
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="low"
-                  />
-                  
-                  {/* 로딩 중 표시 */}
-                  <div className="image-loading" style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontSize: '0.8rem',
-                    color: 'white',
-                    background: 'rgba(0,0,0,0.7)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    zIndex: 2,
-                    display: 'block'
-                  }}>
-                    로딩중...
-                  </div>
+                        src={displayImages[0]} 
+                        alt={property.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '8px'
+                        }}
+                        onError={(e) => {
+                          console.log('이미지 로딩 실패:', displayImages[0]);
+                          const target = e.target as HTMLImageElement;
+                          const parent = target.parentElement;
+                          const loading = parent?.querySelector('.image-loading') as HTMLElement;
+                          if (loading) {
+                            loading.style.display = 'none';
+                          }
+                          // 기본 이미지로 대체
+                          if (displayImages.length > 1) {
+                            target.src = displayImages[1];
+                          } else {
+                            // 완전히 실패한 경우 기본 아이콘 표시
+                            target.style.display = 'none';
+                            if (parent && !parent.querySelector('.fallback-icon')) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'fallback-icon';
+                              fallback.textContent = '🏠';
+                              fallback.style.cssText = `
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                font-size: 2rem;
+                                color: white;
+                                z-index: 1;
+                              `;
+                              parent.appendChild(fallback);
+                            }
+                          }
+                        }}
+                        onLoad={(e) => {
+                          console.log('모바일 이미지 로딩 성공:', displayImages[0]);
+                          const target = e.target as HTMLImageElement;
+                          const parent = target.parentElement;
+                          const loading = parent?.querySelector('.image-loading') as HTMLElement;
+                          const fallback = parent?.querySelector('.fallback-icon');
+                          if (loading) {
+                            loading.style.display = 'none';
+                          }
+                          if (fallback) {
+                            fallback.remove();
+                          }
+                          target.style.opacity = '1';
+                        }}
+                      />
                 </PropertyImage>
                 <PropertyInfo>
                   <PropertyNumber>
@@ -1461,6 +1420,27 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                     )}
                   </PropertyPrice>
                 </PropertyInfo>
+                {/* isAdmin && (
+                  <AdminButtons>
+                    <AdminButton 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditProperty(property);
+                      }}
+                    >
+                      수정
+                    </AdminButton>
+                    <AdminButton 
+                      variant="delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProperty(property);
+                      }}
+                    >
+                      삭제
+                    </AdminButton>
+                  </AdminButtons>
+                ) */}
               </PropertyCard>
             );
           })
@@ -1472,7 +1452,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           property={selectedPropertyForDetail}
           onClose={handleCloseDetailModal}
           onPropertyUpdate={handlePropertyUpdate}
-          isAdmin={!isSearchOnly && !shouldDisableAdminFeatures()}
+          isAdmin={false}
         />
       )}
 

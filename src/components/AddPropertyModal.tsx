@@ -401,7 +401,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
   const { user } = useFirebase();
 
   // 이미지 관련 상태 추가
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -478,8 +477,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
       });
 
       if (validFiles.length > 0) {
-        setSelectedImages(prev => [...prev, ...validFiles]);
-        
         // 미리보기 URL 생성
         const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
         setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
@@ -489,7 +486,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
   // 이미지 제거 핸들러
   const handleImageRemove = (index: number) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviewUrls(prev => {
       const newUrls = prev.filter((_, i) => i !== index);
       // URL 해제

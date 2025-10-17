@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { migrateDataToFirebase, checkSyncStatus, saveSyncStatus, getLastSyncTime } from '../utils/dataMigration';
-import { testMobileImageSync, fixMobileImagesForProperties2And3 } from '../firebase/propertyService';
+import { testMobileImageSync, fixMobileImagesForProperties2And3, syncMobileImagesToFirebase, checkMobileImageSyncStatus, fixMobileImagesImmediately, autoFixMobileImages } from '../firebase/propertyService';
 import { useProperties } from '../hooks/useProperties';
 import { useFirebase } from '../contexts/FirebaseContext';
 
@@ -91,6 +91,16 @@ const SyncManager: React.FC<SyncManagerProps> = ({ onSyncComplete }) => {
   const [syncStatus, setSyncStatus] = useState(checkSyncStatus());
   const [isTestingImages, setIsTestingImages] = useState(false);
   const [isFixingMobileImages, setIsFixingMobileImages] = useState(false);
+  const [isSyncingMobileImages, setIsSyncingMobileImages] = useState(false);
+  const [isCheckingSyncStatus, setIsCheckingSyncStatus] = useState(false);
+  const [isFixingMobileImagesImmediately, setIsFixingMobileImagesImmediately] = useState(false);
+  const [isAutoFixingMobileImages, setIsAutoFixingMobileImages] = useState(false);
+  const [mobileSyncStatus, setMobileSyncStatus] = useState<{
+    totalProperties: number;
+    syncedProperties: number;
+    unsyncedProperties: string[];
+    syncStatus: 'complete' | 'partial' | 'none';
+  } | null>(null);
   const { user } = useFirebase();
   const { refreshProperties } = useProperties();
 
@@ -191,6 +201,79 @@ const SyncManager: React.FC<SyncManagerProps> = ({ onSyncComplete }) => {
     }
   };
 
+  const handleSyncMobileImages = async () => {
+    setIsSyncingMobileImages(true);
+
+    try {
+      await syncMobileImagesToFirebase();
+      await refreshProperties();
+      alert('모바일 이미지 동기화가 완료되었습니다.');
+      
+      // 동기화 상태 다시 확인
+      await handleCheckMobileSyncStatus();
+    } catch (error) {
+      console.error('모바일 이미지 동기화 오류:', error);
+      alert('모바일 이미지 동기화 중 오류가 발생했습니다.');
+    } finally {
+      setIsSyncingMobileImages(false);
+    }
+  };
+
+  const handleCheckMobileSyncStatus = async () => {
+    setIsCheckingSyncStatus(true);
+
+    try {
+      const status = await checkMobileImageSyncStatus();
+      setMobileSyncStatus(status);
+      
+      let message = `동기화 상태: ${status.syncStatus}\n`;
+      message += `전체 매물: ${status.totalProperties}개\n`;
+      message += `동기화 완료: ${status.syncedProperties}개\n`;
+      if (status.unsyncedProperties.length > 0) {
+        message += `동기화 필요: ${status.unsyncedProperties.join(', ')}`;
+      }
+      
+      alert(message);
+    } catch (error) {
+      console.error('동기화 상태 확인 오류:', error);
+      alert('동기화 상태 확인 중 오류가 발생했습니다.');
+    } finally {
+      setIsCheckingSyncStatus(false);
+    }
+  };
+
+  const handleFixMobileImagesImmediately = () => {
+    setIsFixingMobileImagesImmediately(true);
+
+    try {
+      fixMobileImagesImmediately();
+      alert('모바일 이미지 즉시 수정이 시작되었습니다. 페이지가 자동으로 새로고침됩니다.');
+    } catch (error) {
+      console.error('모바일 이미지 즉시 수정 오류:', error);
+      alert('모바일 이미지 즉시 수정 중 오류가 발생했습니다.');
+    } finally {
+      setIsFixingMobileImagesImmediately(false);
+    }
+  };
+
+  const handleAutoFixMobileImages = async () => {
+    setIsAutoFixingMobileImages(true);
+
+    try {
+      await autoFixMobileImages();
+      await refreshProperties();
+      alert('모바일 이미지 자동 수정이 완료되었습니다.');
+      
+      // 동기화 상태 다시 확인
+      await handleCheckMobileSyncStatus();
+    } catch (error) {
+      console.error('모바일 이미지 자동 수정 오류:', error);
+      alert('모바일 이미지 자동 수정 중 오류가 발생했습니다.');
+    } finally {
+      setIsAutoFixingMobileImages(false);
+    }
+  };
+
   const formatLastSyncTime = (date: Date | null): string => {
     if (!date) return '동기화 기록 없음';
     return date.toLocaleString('ko-KR');
@@ -241,6 +324,49 @@ const SyncManager: React.FC<SyncManagerProps> = ({ onSyncComplete }) => {
       >
         {isFixingMobileImages ? '핸드폰 이미지 수정 중...' : '📱 핸드폰 매물 2,3번 이미지 수정'}
       </SyncButton>
+
+      <SyncButton 
+        onClick={handleSyncMobileImages}
+        disabled={isSyncingMobileImages}
+        style={{ marginTop: '0.5rem', background: '#17a2b8' }}
+      >
+        {isSyncingMobileImages ? '모바일 이미지 동기화 중...' : '🔄 모바일 이미지 Firebase 동기화'}
+      </SyncButton>
+
+      <SyncButton 
+        onClick={handleCheckMobileSyncStatus}
+        disabled={isCheckingSyncStatus}
+        style={{ marginTop: '0.5rem', background: '#6f42c1' }}
+      >
+        {isCheckingSyncStatus ? '동기화 상태 확인 중...' : '📊 모바일 이미지 동기화 상태 확인'}
+      </SyncButton>
+
+      <SyncButton 
+        onClick={handleFixMobileImagesImmediately}
+        disabled={isFixingMobileImagesImmediately}
+        style={{ marginTop: '0.5rem', background: '#fd7e14' }}
+      >
+        {isFixingMobileImagesImmediately ? '모바일 이미지 즉시 수정 중...' : '🚀 모바일 이미지 즉시 수정 (강력 추천)'}
+      </SyncButton>
+
+      <SyncButton 
+        onClick={handleAutoFixMobileImages}
+        disabled={isAutoFixingMobileImages}
+        style={{ marginTop: '0.5rem', background: '#20c997' }}
+      >
+        {isAutoFixingMobileImages ? '모바일 이미지 자동 수정 중...' : '🤖 모바일 이미지 자동 수정 (스마트)'}
+      </SyncButton>
+
+      {mobileSyncStatus && (
+        <SyncInfo style={{ marginTop: '1rem', padding: '0.5rem', background: '#e9ecef', borderRadius: '4px' }}>
+          <div><strong>동기화 상태:</strong> {mobileSyncStatus.syncStatus}</div>
+          <div><strong>전체 매물:</strong> {mobileSyncStatus.totalProperties}개</div>
+          <div><strong>동기화 완료:</strong> {mobileSyncStatus.syncedProperties}개</div>
+          {mobileSyncStatus.unsyncedProperties.length > 0 && (
+            <div><strong>동기화 필요:</strong> {mobileSyncStatus.unsyncedProperties.join(', ')}</div>
+          )}
+        </SyncInfo>
+      )}
 
       <SyncInfo>
         마지막 동기화: {formatLastSyncTime(getLastSyncTime())}

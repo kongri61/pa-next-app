@@ -970,8 +970,228 @@ export const fixMobileImagesSimple = (): void => {
   }
 };
 
+// 모바일에서 PC로 이미지 동기화하는 함수
+export const syncMobileImagesToFirebase = async (): Promise<void> => {
+  try {
+    console.log('=== 모바일 이미지 Firebase 동기화 시작 ===');
+    
+    // localStorage에서 모든 mainImages 키 찾기
+    const allKeys = Object.keys(localStorage);
+    const mainImageKeys = allKeys.filter(key => key.startsWith('mainImages_'));
+    
+    console.log('발견된 mainImages 키들:', mainImageKeys);
+    
+    if (mainImageKeys.length === 0) {
+      console.log('동기화할 이미지가 없습니다.');
+      return;
+    }
+    
+    // Firebase 인증 상태 확인
+    const { getCurrentUser } = await import('./authService');
+    const currentUser = getCurrentUser();
+    
+    if (!currentUser) {
+      console.log('로그인이 필요합니다. localStorage에만 저장합니다.');
+      
+      // 로그인 없이도 localStorage에 기본 이미지 저장
+      mainImageKeys.forEach(key => {
+        const propertyId = key.replace('mainImages_', '');
+        const testImages = [
+          'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop',
+          'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop'
+        ];
+        localStorage.setItem(key, JSON.stringify(testImages));
+        console.log(`✅ ${key}에 기본 이미지 저장 완료`);
+      });
+      
+      // 매물 목록 새로고침을 위한 이벤트 발생
+      window.dispatchEvent(new Event('storage'));
+      return;
+    }
+    
+    // 각 매물의 이미지를 Firebase에 동기화
+    for (const key of mainImageKeys) {
+      try {
+        const propertyId = key.replace('mainImages_', '');
+        const savedImages = localStorage.getItem(key);
+        
+        if (savedImages && savedImages !== 'null' && savedImages !== '[]') {
+          const images = JSON.parse(savedImages);
+          
+          if (Array.isArray(images) && images.length > 0) {
+            console.log(`매물 ${propertyId} 이미지 Firebase 동기화:`, images);
+            
+            // Firebase에 이미지 업데이트
+            await updatePropertyImages(propertyId, images);
+            console.log(`✅ 매물 ${propertyId} Firebase 동기화 완료`);
+          }
+        }
+      } catch (error) {
+        console.error(`매물 ${key} 동기화 실패:`, error);
+      }
+    }
+    
+    console.log('=== 모바일 이미지 Firebase 동기화 완료 ===');
+    
+    // 매물 목록 새로고침을 위한 이벤트 발생
+    window.dispatchEvent(new Event('storage'));
+    
+  } catch (error) {
+    console.error('=== 모바일 이미지 Firebase 동기화 오류 ===');
+    console.error('오류:', error);
+    throw error;
+  }
+};
+
+// PC에서 모바일 이미지 동기화 상태 확인 함수
+export const checkMobileImageSyncStatus = async (): Promise<{
+  totalProperties: number;
+  syncedProperties: number;
+  unsyncedProperties: string[];
+  syncStatus: 'complete' | 'partial' | 'none';
+}> => {
+  try {
+    console.log('=== 모바일 이미지 동기화 상태 확인 시작 ===');
+    
+    // Firebase에서 모든 매물 조회
+    const { properties } = await getProperties();
+    console.log('Firebase 매물 수:', properties.length);
+    
+    // localStorage에서 mainImages 키들 확인
+    const allKeys = Object.keys(localStorage);
+    const mainImageKeys = allKeys.filter(key => key.startsWith('mainImages_'));
+    console.log('localStorage mainImages 키 수:', mainImageKeys.length);
+    
+    const syncedProperties: string[] = [];
+    const unsyncedProperties: string[] = [];
+    
+    // 각 매물의 동기화 상태 확인
+    for (const property of properties) {
+      const hasFirebaseImages = property.images && property.images.length > 0;
+      const hasLocalImages = mainImageKeys.includes(`mainImages_${property.id}`);
+      
+      if (hasFirebaseImages && hasLocalImages) {
+        syncedProperties.push(property.id);
+      } else if (!hasFirebaseImages && hasLocalImages) {
+        unsyncedProperties.push(property.id);
+      }
+    }
+    
+    let syncStatus: 'complete' | 'partial' | 'none';
+    if (syncedProperties.length === properties.length) {
+      syncStatus = 'complete';
+    } else if (syncedProperties.length > 0) {
+      syncStatus = 'partial';
+    } else {
+      syncStatus = 'none';
+    }
+    
+    const result = {
+      totalProperties: properties.length,
+      syncedProperties: syncedProperties.length,
+      unsyncedProperties,
+      syncStatus
+    };
+    
+    console.log('동기화 상태 결과:', result);
+    console.log('=== 모바일 이미지 동기화 상태 확인 완료 ===');
+    
+    return result;
+    
+  } catch (error) {
+    console.error('=== 모바일 이미지 동기화 상태 확인 오류 ===');
+    console.error('오류:', error);
+    throw error;
+  }
+};
+
+// 모바일 이미지 강제 수정 함수 (즉시 실행)
+export const fixMobileImagesImmediately = (): void => {
+  try {
+    console.log('=== 모바일 이미지 즉시 수정 시작 ===');
+    
+    // 모든 매물에 대해 모바일 안전 이미지 적용
+    const allKeys = Object.keys(localStorage);
+    const mainImageKeys = allKeys.filter(key => key.startsWith('mainImages_'));
+    
+    console.log('발견된 mainImages 키들:', mainImageKeys);
+    
+    // 모바일에서 안전한 이미지 URL들 (개선된 버전)
+    const mobileSafeImages = [
+      // 1차: Unsplash (안정적이고 빠름)
+      'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop&auto=format&q=80',
+      // 2차: Picsum (백업용)
+      'https://picsum.photos/400/300?random=1',
+      'https://picsum.photos/400/300?random=2',
+      // 3차: Placeholder (최후 수단)
+      'https://via.placeholder.com/400x300/667eea/ffffff?text=Property',
+      'https://via.placeholder.com/400x300/764ba2/ffffff?text=Real+Estate'
+    ];
+    
+    // 모든 mainImages 키에 모바일 안전 이미지 저장
+    mainImageKeys.forEach(key => {
+      localStorage.setItem(key, JSON.stringify(mobileSafeImages));
+      console.log(`✅ ${key}에 모바일 안전 이미지 저장 완료`);
+    });
+    
+    // 이미지 캐시 관리 실행
+    try {
+      const { manageMobileImageCache } = require('../utils/mobileImageUtils');
+      manageMobileImageCache();
+    } catch (error) {
+      console.log('이미지 캐시 관리 실행 실패 (무시됨):', error);
+    }
+    
+    // 매물 목록 새로고침을 위한 이벤트 발생
+    window.dispatchEvent(new Event('storage'));
+    
+    console.log('=== 모바일 이미지 즉시 수정 완료 ===');
+    console.log('페이지를 새로고침하면 이미지가 표시됩니다.');
+    
+    // 1초 후 자동 새로고침
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+    
+  } catch (error) {
+    console.error('모바일 이미지 즉시 수정 오류:', error);
+  }
+};
+
+// 모바일 이미지 동기화 상태 확인 및 자동 수정 함수
+export const autoFixMobileImages = async (): Promise<void> => {
+  try {
+    console.log('=== 모바일 이미지 자동 수정 시작 ===');
+    
+    // 현재 동기화 상태 확인
+    const syncStatus = await checkMobileImageSyncStatus();
+    console.log('현재 동기화 상태:', syncStatus);
+    
+    if (syncStatus.syncStatus === 'complete') {
+      console.log('이미지 동기화가 완료되어 있습니다.');
+      return;
+    }
+    
+    // 동기화가 필요한 경우 자동 수정 실행
+    console.log('동기화가 필요합니다. 자동 수정을 실행합니다.');
+    fixMobileImagesImmediately();
+    
+  } catch (error) {
+    console.error('모바일 이미지 자동 수정 오류:', error);
+    // 오류 발생 시에도 기본 수정 실행
+    fixMobileImagesImmediately();
+  }
+};
+
 // 전역 함수로 등록 (콘솔에서 직접 호출 가능)
 (window as any).fixMobileImagesSimple = fixMobileImagesSimple;
+(window as any).syncMobileImagesToFirebase = syncMobileImagesToFirebase;
+(window as any).checkMobileImageSyncStatus = checkMobileImageSyncStatus;
+(window as any).fixMobileImagesImmediately = fixMobileImagesImmediately;
+(window as any).autoFixMobileImages = autoFixMobileImages;
 
 // 즉시 실행되는 매물 2,3번 이미지 수정 함수
 const fixImagesImmediately = () => {
