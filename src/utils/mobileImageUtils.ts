@@ -54,7 +54,7 @@ export const handleMobileImageError = (
   propertyId: string,
   loader: ReturnType<typeof createMobileImageLoader>
 ): boolean => {
-  console.log(`모바일 이미지 로딩 실패 - 매물 ${propertyId}, 현재 인덱스: ${loader['currentIndex']}`);
+  console.log(`모바일 이미지 로딩 실패 - 매물 ${propertyId}`);
   
   if (loader.hasMoreImages()) {
     // 다음 이미지로 시도
