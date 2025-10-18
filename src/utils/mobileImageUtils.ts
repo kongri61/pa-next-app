@@ -139,11 +139,6 @@ export const handleMobileImageLoad = (target: HTMLImageElement): void => {
     fallback.remove();
   }
   
-  // 부드러운 페이드인 애니메이션
-  target.style.transition = 'opacity 0.3s ease-in-out';
-  target.style.opacity = '1';
-  target.style.display = 'block';
-  
   // 이미지 캐시 최적화를 위한 메타데이터 추가
   if (!target.hasAttribute('data-loaded')) {
     target.setAttribute('data-loaded', 'true');
@@ -230,6 +225,155 @@ export const monitorMobileImagePerformance = (propertyId: string, startTime: num
     localStorage.setItem(performanceKey, JSON.stringify(existingData));
   } catch (error) {
     console.error('성능 데이터 저장 오류:', error);
+  }
+};
+
+// PC에서 등록한 이미지를 모바일에서 동기화하는 함수
+export const syncPCImagesToMobile = (propertyId: string, pcImages: string[]): void => {
+  try {
+    console.log(`PC 이미지를 모바일로 동기화 시작 - 매물 ${propertyId}:`, pcImages);
+    
+    if (!pcImages || pcImages.length === 0) {
+      console.log('PC 이미지가 없어 모바일 기본 이미지 사용');
+      const mobileImageUrls = getMobileImageUrls(propertyId);
+      const storageKey = `mainImages_${propertyId}`;
+      localStorage.setItem(storageKey, JSON.stringify(mobileImageUrls));
+      return;
+    }
+    
+    // PC 이미지를 모바일 안전 URL로 변환
+    const mobileSafeImages = pcImages.map(imageUrl => {
+      // 이미 모바일 안전한 URL인지 확인
+      if (imageUrl.includes('unsplash.com') || imageUrl.includes('picsum.photos') || imageUrl.includes('via.placeholder.com')) {
+        return imageUrl;
+      }
+      
+      // base64 이미지인 경우 그대로 사용
+      if (imageUrl.startsWith('data:image/')) {
+        return imageUrl;
+      }
+      
+      // 외부 URL인 경우 모바일 안전 이미지로 대체
+      return getSafeImageUrl(imageUrl, propertyId);
+    });
+    
+    // localStorage에 저장
+    const storageKey = `mainImages_${propertyId}`;
+    localStorage.setItem(storageKey, JSON.stringify(mobileSafeImages));
+    
+    console.log(`PC 이미지 모바일 동기화 완료 - 매물 ${propertyId}:`, mobileSafeImages);
+    
+    // 저장 이벤트 발생
+    window.dispatchEvent(new Event('storage'));
+    
+  } catch (error) {
+    console.error(`PC 이미지 모바일 동기화 오류 - 매물 ${propertyId}:`, error);
+    
+    // 오류 발생 시 모바일 기본 이미지 사용
+    const mobileImageUrls = getMobileImageUrls(propertyId);
+    const storageKey = `mainImages_${propertyId}`;
+    localStorage.setItem(storageKey, JSON.stringify(mobileImageUrls));
+  }
+};
+
+// 모든 매물의 PC 이미지를 모바일로 동기화
+export const syncAllPCImagesToMobile = (properties: any[]): void => {
+  try {
+    console.log('=== 모든 PC 이미지 모바일 동기화 시작 ===');
+    console.log('동기화할 매물 수:', properties.length);
+    
+    properties.forEach((property, index) => {
+      console.log(`매물 ${index + 1} 동기화 중:`, {
+        id: property.id,
+        title: property.title,
+        images: property.images,
+        imageCount: property.images?.length || 0
+      });
+      
+      syncPCImagesToMobile(property.id, property.images || []);
+    });
+    
+    console.log('=== 모든 PC 이미지 모바일 동기화 완료 ===');
+    
+  } catch (error) {
+    console.error('모든 PC 이미지 모바일 동기화 오류:', error);
+  }
+};
+
+// 모바일 이미지 동기화 상태 확인
+export const checkImageSyncStatus = (): {
+  totalProperties: number;
+  syncedProperties: number;
+  unsyncedProperties: string[];
+  syncStatus: 'complete' | 'partial' | 'none';
+} => {
+  try {
+    console.log('=== 이미지 동기화 상태 확인 시작 ===');
+    
+    // localStorage에서 mainImages 키들 확인
+    const allKeys = Object.keys(localStorage);
+    const mainImageKeys = allKeys.filter(key => key.startsWith('mainImages_'));
+    
+    console.log('localStorage mainImages 키 수:', mainImageKeys.length);
+    console.log('발견된 키들:', mainImageKeys);
+    
+    const syncedProperties: string[] = [];
+    const unsyncedProperties: string[] = [];
+    
+    // 각 키의 이미지 상태 확인
+    mainImageKeys.forEach(key => {
+      const propertyId = key.replace('mainImages_', '');
+      const savedImages = localStorage.getItem(key);
+      
+      if (savedImages && savedImages !== 'null' && savedImages !== '[]') {
+        try {
+          const images = JSON.parse(savedImages);
+          if (Array.isArray(images) && images.length > 0) {
+            syncedProperties.push(propertyId);
+            console.log(`✅ 매물 ${propertyId} 동기화됨:`, images.length, '개 이미지');
+          } else {
+            unsyncedProperties.push(propertyId);
+            console.log(`❌ 매물 ${propertyId} 동기화 안됨: 빈 배열`);
+          }
+        } catch (error) {
+          unsyncedProperties.push(propertyId);
+          console.log(`❌ 매물 ${propertyId} 동기화 안됨: 파싱 오류`);
+        }
+      } else {
+        unsyncedProperties.push(propertyId);
+        console.log(`❌ 매물 ${propertyId} 동기화 안됨: 데이터 없음`);
+      }
+    });
+    
+    let syncStatus: 'complete' | 'partial' | 'none';
+    if (syncedProperties.length === mainImageKeys.length && mainImageKeys.length > 0) {
+      syncStatus = 'complete';
+    } else if (syncedProperties.length > 0) {
+      syncStatus = 'partial';
+    } else {
+      syncStatus = 'none';
+    }
+    
+    const result = {
+      totalProperties: mainImageKeys.length,
+      syncedProperties: syncedProperties.length,
+      unsyncedProperties,
+      syncStatus
+    };
+    
+    console.log('동기화 상태 결과:', result);
+    console.log('=== 이미지 동기화 상태 확인 완료 ===');
+    
+    return result;
+    
+  } catch (error) {
+    console.error('이미지 동기화 상태 확인 오류:', error);
+    return {
+      totalProperties: 0,
+      syncedProperties: 0,
+      unsyncedProperties: [],
+      syncStatus: 'none'
+    };
   }
 };
 

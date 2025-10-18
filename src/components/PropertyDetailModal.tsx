@@ -360,18 +360,6 @@ const SectionTitle = styled.h3`
   padding-bottom: 0.5rem;
 `;
 
-const MapPlaceholder = styled.div`
-  width: 100%;
-  height: 200px;
-  background: #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  font-size: 1rem;
-  position: relative;
-  border-radius: 8px;
-`;
 
 const ImageDeleteButton = styled.button`
   position: absolute;
@@ -409,40 +397,53 @@ const ImageContainer = styled.div`
   overflow: hidden;
 `;
 
-const formatPrice = (price: number) => {
-  console.log('모달 formatPrice 호출됨:', price, typeof price);
+const formatPrice = (price: number, isRent: boolean = false) => {
+  console.log('모달 formatPrice 호출됨:', price, typeof price, 'isRent:', isRent);
   
   if (!price || price <= 0) {
     console.log('모달: 가격이 0이거나 없음');
     return '가격 정보 없음';
   }
   
-  if (price >= 100000000) {
-    // 1억 이상인 경우
-    const eok = Math.floor(price / 100000000);
-    const man = Math.floor((price % 100000000) / 10000);
-    if (man > 0) {
-      const result = `${eok}억 ${man}만원`;
-      console.log('모달: 1억 이상 결과:', result);
+  if (isRent) {
+    // 임대금액은 만원 단위로 저장되어 있으므로 10000을 곱해서 원 단위로 변환
+    const priceInWon = price * 10000;
+    console.log('모달: 임대금액 원 단위로 변환된 가격:', priceInWon);
+    
+    if (priceInWon >= 10000) {
+      const result = `${Math.floor(priceInWon / 10000)}만원`;
+      console.log('모달: 임대금액 만원 단위 결과:', result);
+      return result;
+    } else {
+      const result = `${priceInWon.toLocaleString()}원`;
+      console.log('모달: 임대금액 원 단위 결과:', result);
       return result;
     }
-    const result = `${eok}억원`;
-    console.log('모달: 1억 결과:', result);
-    return result;
-  } else if (price >= 10000) {
-    // 1만원 이상 1억 미만인 경우
-    const result = `${Math.floor(price / 10000)}만원`;
-    console.log('모달: 1만원 이상 결과:', result);
-    return result;
-  } else if (price > 0) {
-    // 1만원 미만인 경우
-    const result = `${price.toLocaleString()}원`;
-    console.log('모달: 1만원 미만 결과:', result);
-    return result;
+  } else {
+    // 매매금액은 억 단위로 저장되어 있으므로 100000000을 곱해서 원 단위로 변환
+    const priceInWon = price * 100000000;
+    console.log('모달: 매매금액 원 단위로 변환된 가격:', priceInWon);
+    
+    // 매매금액은 억 단위로 표시 (예: 8.5억원)
+    if (priceInWon >= 100000000) {
+      // 1억 이상인 경우 (억 단위로 표시)
+      const eok = priceInWon / 100000000;
+      const result = `${eok}억원`;
+      console.log('모달: 매매금액 억 단위 결과:', result);
+      return result;
+    } else if (priceInWon >= 10000) {
+      // 1만원 이상 1억 미만인 경우 (만원 단위로 표시)
+      const man = Math.floor(priceInWon / 10000);
+      const result = `${man}만원`;
+      console.log('모달: 매매금액 만원 단위 결과:', result);
+      return result;
+    } else {
+      // 1만원 미만인 경우
+      const result = `${priceInWon.toLocaleString()}원`;
+      console.log('모달: 매매금액 원 단위 결과:', result);
+      return result;
+    }
   }
-  
-  console.log('모달: 기본값 반환');
-  return '가격 정보 없음';
 };
 
 const maskAddress = (address: string) => {
@@ -462,10 +463,9 @@ interface PropertyDetailModalProps {
 const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onClose, onPropertyUpdate, isAdmin = false }) => {
   const [currentImages, setCurrentImages] = useState<string[]>(property.images || []);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [mapImages, setMapImages] = useState<string[]>([]);
   const [imageLoading, setImageLoading] = useState<boolean>(true);
   const [imageError, setImageError] = useState<boolean>(false);
-  const { updatePropertyImages, updatePropertyMapImages } = useProperties();
+  const { updatePropertyImages } = useProperties();
 
   // 펌방지 기능
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -499,7 +499,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
         
         if (Array.isArray(parsedImages) && parsedImages.length > 0) {
           setCurrentImages(parsedImages);
-          console.log('localStorage 이미지 적용 완료');
+          console.log('✅ 모달: localStorage 이미지 적용 완료');
         } else {
           console.log('파싱된 메인 이미지가 빈 배열이거나 유효하지 않음');
           setCurrentImages(property.images || []);
@@ -513,30 +513,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
       setCurrentImages(property.images || []);
     }
     
-    // 지도 이미지도 로드
-    const savedMapImages = localStorage.getItem(`mapImages_${property.id}`);
-    console.log('저장된 지도 이미지:', savedMapImages);
-    
-    if (savedMapImages && savedMapImages !== 'null' && savedMapImages !== '[]') {
-      try {
-        const parsedMapImages = JSON.parse(savedMapImages);
-        console.log('파싱된 지도 이미지:', parsedMapImages.length, '개');
-        
-        if (Array.isArray(parsedMapImages) && parsedMapImages.length > 0) {
-          setMapImages(parsedMapImages);
-          console.log('localStorage 지도 이미지 적용 완료');
-        } else {
-          console.log('파싱된 지도 이미지가 빈 배열이거나 유효하지 않음');
-          setMapImages([]);
-        }
-      } catch (error) {
-        console.error('지도 이미지 파싱 오류:', error);
-        setMapImages([]);
-      }
-    } else {
-      console.log('저장된 지도 이미지 없음');
-      setMapImages([]);
-    }
     
     setCurrentImageIndex(0);
     setImageLoading(true);
@@ -615,40 +591,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
     }
   };
 
-  // 지도 이미지 삭제 함수
-  const handleDeleteMapImage = async (imageIndex: number) => {
-    console.log('=== 지도 이미지 삭제 시작 ===');
-    console.log('삭제할 지도 이미지 인덱스:', imageIndex);
-    console.log('현재 지도 이미지 개수:', mapImages.length);
-    
-    const updatedMapImages = mapImages.filter((_, index) => index !== imageIndex);
-    console.log('삭제 후 지도 이미지 개수:', updatedMapImages.length);
-    
-    try {
-      // Firebase에 지도 이미지 업데이트
-      await updatePropertyMapImages(property.id, updatedMapImages);
-      console.log('Firebase 지도 이미지 업데이트 완료');
-      
-      // 로컬 상태 업데이트
-      setMapImages(updatedMapImages);
-      
-      // localStorage에 저장
-      const storageKey = `mapImages_${property.id}`;
-      if (updatedMapImages.length > 0) {
-        localStorage.setItem(storageKey, JSON.stringify(updatedMapImages));
-        console.log('지도 이미지 localStorage 업데이트 완료');
-      } else {
-        // 모든 지도 이미지가 삭제된 경우 localStorage에서 제거
-        localStorage.removeItem(storageKey);
-        console.log('localStorage에서 지도 이미지 키 제거');
-      }
-      
-      console.log('=== 지도 이미지 삭제 완료 ===');
-    } catch (error) {
-      console.error('지도 이미지 삭제 중 오류:', error);
-      alert('지도 이미지 삭제 중 오류가 발생했습니다.');
-    }
-  };
 
   return (
     <ModalOverlay 
@@ -1073,7 +1015,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
               </PropertyInfoItem>
               <PropertyInfoItem>
                 <PropertyInfoLabel>매매가</PropertyInfoLabel>
-                <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price) : '-'}</PropertyInfoValue>
+                <PropertyInfoValue>{property.type === 'sale' ? formatPrice(property.price, false) : '-'}</PropertyInfoValue>
               </PropertyInfoItem>
               {property.type === 'rent' && (
                 <>
@@ -1087,7 +1029,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                         console.log('보증금 조건:', property.deposit && property.deposit > 0);
                         
                         if (property.deposit && property.deposit > 0) {
-                          return formatPrice(property.deposit);
+                          return formatPrice(property.deposit, true);
                         }
                         return '정보 없음';
                       })()}
@@ -1103,7 +1045,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                         console.log('월세 조건:', property.price && property.price > 0);
                         
                         if (property.price && property.price > 0) {
-                          return formatPrice(property.price);
+                          return formatPrice(property.price, true);
                         }
                         return '정보 없음';
                       })()}
@@ -1188,349 +1130,9 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({ property, onC
                 <ContactLabel>이메일</ContactLabel>
                 <ContactValue>{property.contact.email}</ContactValue>
               </ContactItem>
-              <ContactItem>
-                <ContactLabel>주소</ContactLabel>
-                <ContactValue>{property.address}</ContactValue>
-              </ContactItem>
             </ContactInfo>
           </Section>
 
-          <Section>
-            <SectionTitle>위치정보</SectionTitle>
-            <MapPlaceholder>
-              {mapImages.length > 0 ? (
-                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                  <img 
-                    src={mapImages[0]} 
-                    alt="위치 정보" 
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  {isAdmin && (
-                    <ImageDeleteButton 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleDeleteMapImage(0);
-                      }}
-                      title="지도 이미지 삭제"
-                      style={{ 
-                        position: 'absolute',
-                        top: '0.5rem',
-                        right: '0.5rem'
-                      }}
-                    >
-                      ×
-                    </ImageDeleteButton>
-                  )}
-                  {mapImages.length > 1 && (
-                    <>
-                      <ImageNavigationButton 
-                        className="prev" 
-                        onClick={() => {
-                          // 지도 이미지 네비게이션 로직 추가 가능
-                        }}
-                        style={{ left: '0.5rem' }}
-                      >
-                        &lt;
-                      </ImageNavigationButton>
-                      <ImageNavigationButton 
-                        className="next" 
-                        onClick={() => {
-                          // 지도 이미지 네비게이션 로직 추가 가능
-                        }}
-                        style={{ right: '0.5rem' }}
-                      >
-                        &gt;
-                      </ImageNavigationButton>
-                    </>
-                  )}
-                  {isAdmin && (
-                    <ImageUploadButton 
-                      onClick={() => {
-                        console.log('=== 지도 이미지 업로드 버튼 클릭됨 ===');
-                        console.log('현재 지도 이미지 개수:', mapImages.length);
-                        
-                        // 파일 입력 요소를 동적으로 생성
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.multiple = true;
-                        input.style.display = 'none';
-                        
-                        input.onchange = async (event) => {
-                          console.log('=== 지도 이미지 파일 선택됨 ===');
-                          const target = event.target as HTMLInputElement;
-                          console.log('지도 이미지 파일 목록:', target.files);
-                          console.log('지도 이미지 파일 개수:', target.files?.length);
-                          
-                          if (target.files && target.files.length > 0) {
-                            try {
-                              // 파일 크기 체크 (5MB 제한)
-                              const maxSize = 5 * 1024 * 1024; // 5MB
-                              const validFiles = Array.from(target.files).filter(file => {
-                                if (file.size > maxSize) {
-                                  console.warn(`파일 ${file.name}이 너무 큽니다: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-                                  return false;
-                                }
-                                return true;
-                              });
-                              
-                              if (validFiles.length === 0) {
-                                console.error('유효한 파일이 없습니다.');
-                                return;
-                              }
-                              
-                              console.log('처리할 파일 개수:', validFiles.length);
-                              
-                              const filePromises = validFiles.map((file, index) => {
-                                console.log(`지도 이미지 파일 ${index + 1}:`, file.name, file.size, file.type);
-                                
-                                return new Promise<string>((resolve, reject) => {
-                                  const reader = new FileReader();
-                                  
-                                  reader.onload = (e) => {
-                                    console.log(`지도 이미지 ${index + 1} 읽기 완료`);
-                                    if (e.target?.result) {
-                                      resolve(e.target.result as string);
-                                    } else {
-                                      reject(new Error(`지도 이미지 ${index + 1} 읽기 실패`));
-                                    }
-                                  };
-                                  
-                                  reader.onerror = (error) => {
-                                    console.error(`지도 이미지 ${index + 1} 읽기 오류:`, error);
-                                    reject(error);
-                                  };
-                                  
-                                  console.log(`지도 이미지 ${index + 1} 읽기 시작`);
-                                  reader.readAsDataURL(file);
-                                });
-                              });
-                              
-                              console.log('모든 파일 읽기 시작...');
-                              const newMapImages = await Promise.all(filePromises);
-                              console.log('모든 파일 읽기 완료:', newMapImages.length, '개');
-                              
-                              const updatedMapImages = [...mapImages, ...newMapImages];
-                              console.log('업데이트될 지도 이미지 배열:', updatedMapImages.length, '개');
-                              
-                              // 먼저 localStorage에 저장
-                              const mapImagesKey = `mapImages_${property.id}`;
-                              const mapImagesData = JSON.stringify(updatedMapImages);
-                              console.log('localStorage에 저장될 데이터 길이:', mapImagesData.length);
-                              localStorage.setItem(mapImagesKey, mapImagesData);
-                              console.log('지도 이미지 localStorage 저장 완료, 키:', mapImagesKey);
-                              
-                              // 그 다음 상태 업데이트
-                              setMapImages(updatedMapImages);
-                              
-                              // 저장 확인
-                              const saved = localStorage.getItem(mapImagesKey);
-                              console.log('저장 확인:', saved ? JSON.parse(saved).length + '개' : '저장 실패');
-                              
-                              // 즉시 저장된 데이터 확인
-                              setTimeout(() => {
-                                const verifySaved = localStorage.getItem(mapImagesKey);
-                                console.log('저장 검증:', verifySaved ? JSON.parse(verifySaved).length + '개' : '검증 실패');
-                                
-                                // localStorage 전체 상태 확인
-                                console.log('=== 업로드 후 localStorage 전체 상태 ===');
-                                for (let i = 0; i < localStorage.length; i++) {
-                                  const key = localStorage.key(i);
-                                  if (key && key.includes('mapImages')) {
-                                    console.log('발견된 지도 이미지 키:', key);
-                                    const value = localStorage.getItem(key);
-                                    console.log('값 길이:', value?.length || 0);
-                                    console.log('값이 null인가?:', value === null);
-                                    console.log('값이 "null"인가?:', value === 'null');
-                                  }
-                                }
-                              }, 100);
-                              
-                            } catch (error) {
-                              console.error('지도 이미지 업로드 중 오류:', error);
-                              alert('지도 이미지 업로드 중 오류가 발생했습니다.');
-                            }
-                          }
-                        };
-                        
-                        document.body.appendChild(input);
-                        input.click();
-                        document.body.removeChild(input);
-                      }}
-                      style={{ bottom: '1rem', right: '1rem' }}
-                    >
-                      <span style={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                        lineHeight: '1',
-                        fontSize: 'inherit',
-                        margin: 0,
-                        padding: 0
-                      }}>
-                        
-                      </span>
-                    </ImageUploadButton>
-                  )}
-                </div>
-              ) : (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#6b7280',
-                  fontSize: '1rem',
-                  position: 'relative'
-                }}>
-                  {isAdmin && (
-                    <ImageUploadButton 
-                      onClick={() => {
-                        console.log('=== 지도 이미지 업로드 버튼 클릭됨 ===');
-                        console.log('현재 지도 이미지 개수:', mapImages.length);
-                        
-                        // 파일 입력 요소를 동적으로 생성
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.multiple = true;
-                        input.style.display = 'none';
-                        
-                        input.onchange = async (event) => {
-                          console.log('=== 지도 이미지 파일 선택됨 ===');
-                          const target = event.target as HTMLInputElement;
-                          console.log('지도 이미지 파일 목록:', target.files);
-                          console.log('지도 이미지 파일 개수:', target.files?.length);
-                          
-                          if (target.files && target.files.length > 0) {
-                            try {
-                              // 파일 크기 체크 (5MB 제한)
-                              const maxSize = 5 * 1024 * 1024; // 5MB
-                              const validFiles = Array.from(target.files).filter(file => {
-                                if (file.size > maxSize) {
-                                  console.warn(`파일 ${file.name}이 너무 큽니다: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-                                  return false;
-                                }
-                                return true;
-                              });
-                              
-                              if (validFiles.length === 0) {
-                                console.error('유효한 파일이 없습니다.');
-                                return;
-                              }
-                              
-                              console.log('처리할 파일 개수:', validFiles.length);
-                              
-                              const filePromises = validFiles.map((file, index) => {
-                                console.log(`지도 이미지 파일 ${index + 1}:`, file.name, file.size, file.type);
-                                
-                                return new Promise<string>((resolve, reject) => {
-                                  const reader = new FileReader();
-                                  
-                                  reader.onload = (e) => {
-                                    console.log(`지도 이미지 ${index + 1} 읽기 완료`);
-                                    if (e.target?.result) {
-                                      resolve(e.target.result as string);
-                                    } else {
-                                      reject(new Error(`지도 이미지 ${index + 1} 읽기 실패`));
-                                    }
-                                  };
-                                  
-                                  reader.onerror = (error) => {
-                                    console.error(`지도 이미지 ${index + 1} 읽기 오류:`, error);
-                                    reject(error);
-                                  };
-                                  
-                                  console.log(`지도 이미지 ${index + 1} 읽기 시작`);
-                                  reader.readAsDataURL(file);
-                                });
-                              });
-                              
-                              console.log('모든 파일 읽기 시작...');
-                              const newMapImages = await Promise.all(filePromises);
-                              console.log('모든 파일 읽기 완료:', newMapImages.length, '개');
-                              
-                              const updatedMapImages = [...mapImages, ...newMapImages];
-                              console.log('업데이트될 지도 이미지 배열:', updatedMapImages.length, '개');
-                              
-                              // 먼저 localStorage에 저장
-                              const mapImagesKey = `mapImages_${property.id}`;
-                              const mapImagesData = JSON.stringify(updatedMapImages);
-                              console.log('localStorage에 저장될 데이터 길이:', mapImagesData.length);
-                              localStorage.setItem(mapImagesKey, mapImagesData);
-                              console.log('지도 이미지 localStorage 저장 완료, 키:', mapImagesKey);
-                              
-                              // 그 다음 상태 업데이트
-                              setMapImages(updatedMapImages);
-                              
-                              // 저장 확인
-                              const saved = localStorage.getItem(mapImagesKey);
-                              console.log('저장 확인:', saved ? JSON.parse(saved).length + '개' : '저장 실패');
-                              
-                              // 즉시 저장된 데이터 확인
-                              setTimeout(() => {
-                                const verifySaved = localStorage.getItem(mapImagesKey);
-                                console.log('저장 검증:', verifySaved ? JSON.parse(verifySaved).length + '개' : '검증 실패');
-                                
-                                // localStorage 전체 상태 확인
-                                console.log('=== 업로드 후 localStorage 전체 상태 ===');
-                                for (let i = 0; i < localStorage.length; i++) {
-                                  const key = localStorage.key(i);
-                                  if (key && key.includes('mapImages')) {
-                                    console.log('발견된 지도 이미지 키:', key);
-                                    const value = localStorage.getItem(key);
-                                    console.log('값 길이:', value?.length || 0);
-                                    console.log('값이 null인가?:', value === null);
-                                    console.log('값이 "null"인가?:', value === 'null');
-                                  }
-                                }
-                              }, 100);
-                              
-                            } catch (error) {
-                              console.error('지도 이미지 업로드 중 오류:', error);
-                              alert('지도 이미지 업로드 중 오류가 발생했습니다.');
-                            }
-                          }
-                        };
-                        
-                        document.body.appendChild(input);
-                        input.click();
-                        document.body.removeChild(input);
-                      }}
-                      style={{ 
-                        position: 'absolute',
-                        bottom: '1rem',
-                        right: '1rem'
-                      }}
-                    >
-                      <span style={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                        lineHeight: '1',
-                        fontSize: 'inherit',
-                        margin: 0,
-                        padding: 0
-                      }}>
-                        
-                      </span>
-                    </ImageUploadButton>
-                  )}
-                </div>
-              )}
-            </MapPlaceholder>
-          </Section>
         </LeftPanel>
       </ModalContent>
     </ModalOverlay>

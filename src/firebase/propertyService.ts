@@ -127,7 +127,9 @@ export const getProperties = async (
         type: property.type,
         price: property.price,
         deposit: property.deposit,
-        isActive: property.isActive
+        isActive: property.isActive,
+        images: property.images,
+        imageCount: property.images?.length || 0
       });
       
       // 모든 매물을 포함 (필터링 제거)

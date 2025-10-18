@@ -6,7 +6,6 @@ import GlobalStyle from './styles/GlobalStyle';
 import { Property } from './types';
 import { initHybridDataManager } from './utils/hybridDataManager';
 import { FirebaseProvider } from './contexts/FirebaseContext';
-import FirebaseDebugger from './components/FirebaseDebugger';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -36,7 +35,6 @@ function App() {
   });
   const [newProperties, setNewProperties] = useState<Property[]>([]);
   const [isDataManagerInitialized, setIsDataManagerInitialized] = useState(false);
-  const [showDebugger, setShowDebugger] = useState(false);
   const homePageRef = useRef<HomePageRef>(null);
 
   // 하이브리드 데이터 관리자 초기화
@@ -74,8 +72,6 @@ function App() {
     window.location.reload();
   };
 
-  // 개발 환경에서만 디버거 표시
-  const isDevelopment = process.env.NODE_ENV === 'development';
 
   return (
     <FirebaseProvider>
@@ -118,34 +114,6 @@ function App() {
           )}
         </MainContent>
         
-        {/* 개발 환경에서만 디버거 표시 */}
-        {isDevelopment && (
-          <>
-            {!showDebugger && (
-              <button
-                onClick={() => setShowDebugger(true)}
-                style={{
-                  position: 'fixed',
-                  top: '10px',
-                  right: '10px',
-                  background: '#1f2937',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  zIndex: 9998
-                }}
-              >
-                🔧 Debug
-              </button>
-            )}
-            {showDebugger && (
-              <FirebaseDebugger onClose={() => setShowDebugger(false)} />
-            )}
-          </>
-        )}
       </AppContainer>
     </FirebaseProvider>
   );

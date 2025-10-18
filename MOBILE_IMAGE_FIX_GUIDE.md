@@ -165,3 +165,5 @@ fixMobileImagesImmediately();
 - 2024-01-XX: 모바일 안전 이미지 URL 적용
 - 2024-01-XX: 자동 수정 기능 추가
 
+
+

@@ -92,8 +92,8 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
       try {
         setError(null);
         
-        // 남한 본토 중심점 (대전 근처)
-        const koreaCenter = { lat: 36.3504, lng: 127.3845 };
+        // 첫화면: 의정부시, 화성시, 광주시가 보이는 중심점 (인천시 중심)
+        const koreaCenter = { lat: 37.4563, lng: 126.7052 };
         
         // 남한 본토 경계 설정 (제주도 완전 제외)
         const koreaBounds = new window.google.maps.LatLngBounds(
@@ -103,7 +103,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         
         const map = new window.google.maps.Map(mapRef.current, {
           center: koreaCenter,
-          zoom: 8, // 더 가까운 줌 레벨로 시작하여 클러스터링이 더 잘 보이도록
+          zoom: 11, // 30% 정도로 범위를 좁힌 줌 레벨
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
           zoomControl: true,
           mapTypeControl: false,
@@ -641,7 +641,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
   }, []);
 
   useImperativeHandle(ref, () => ({
-    setCenter: (position: { lat: number; lng: number } = { lat: 37.4000, lng: 126.7052 }) => {
+    setCenter: (position: { lat: number; lng: number } = { lat: 37.4563, lng: 126.7052 }) => {
       if (mapInstance.current) {
         mapInstance.current.panTo(position);
       }
@@ -659,8 +659,8 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
     },
     resetMarkers: () => {
       if (mapInstance.current) {
-        const incheonCenter = { lat: 37.4000, lng: 126.7052 };
-        mapInstance.current.panTo(incheonCenter);
+        const koreaCenter = { lat: 37.4563, lng: 126.7052 };
+        mapInstance.current.panTo(koreaCenter);
         // 줌 레벨은 사용자가 설정한 것을 유지
       }
       

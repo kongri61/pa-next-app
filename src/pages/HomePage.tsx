@@ -5,7 +5,7 @@ import PropertyDetailModal from '../components/PropertyDetailModal';
 import { Property } from '../types';
 import { useProperties } from '../hooks/useProperties';
 import { isMobile, isSearchOnlyMode, shouldDisablePropertyRegistration, shouldDisableAdminFeatures } from '../utils/mobileDetection';
-import { getMobileImageUrls, getSafeImageUrl, createMobileImageLoader, handleMobileImageError, handleMobileImageLoad, manageMobileImageCache, monitorMobileImagePerformance } from '../utils/mobileImageUtils';
+import { getMobileImageUrls, manageMobileImageCache, syncAllPCImagesToMobile, checkImageSyncStatus } from '../utils/mobileImageUtils';
 
 // 모바일 검색 전용 모드 알림
 const MobileSearchOnlyNotice = styled.div`
@@ -110,7 +110,7 @@ const MapSection = styled.div`
   }
 `;
 
-// 2. 매물 목록 섹션 (PC용)
+// 2. 매물 목록 섹션 (PC/모바일 통합)
 const PropertyListSection = styled.div`
   flex: 0 0 40%;
   background: white;
@@ -126,26 +126,20 @@ const PropertyListSection = styled.div`
   -webkit-overflow-scrolling: touch;
   
   @media (max-width: 768px) {
-    display: none; /* 모바일에서는 별도 컨테이너 사용 */
+    position: fixed;
+    top: calc(60px + 50vh + 0px); /* 헤더 높이 + 지도 높이 */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex: none;
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
+    padding: 0.5rem;
+    z-index: 1;
   }
 `;
 
-// 매물 목록을 위한 별도 컨테이너
-const PropertyListContainer = styled.div`
-  position: fixed;
-  top: calc(60px + 50vh + 0px); /* 헤더 높이 + 지도 높이 + 필터 섹션 높이를 5px에서 0px로 더 줄임 */
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: white;
-  z-index: 1;
-  overflow-y: auto;
-  padding: 0.5rem;
-  
-  @media (min-width: 769px) {
-    display: none; /* 데스크톱에서는 기존 레이아웃 사용 */
-  }
-`;
+// 매물 목록을 위한 별도 컨테이너 (제거됨 - 통합된 PropertyListSection 사용)
 
 // 매물 카드 (PC/모바일 최적화)
 const PropertyCard = styled.div`
@@ -158,7 +152,7 @@ const PropertyCard = styled.div`
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  min-height: 120px;
+  min-height: 120px; /* 기본 높이 최소화 */
 
   &:hover {
     transform: translateY(-2px);
@@ -168,6 +162,12 @@ const PropertyCard = styled.div`
 
   &:last-child {
     margin-bottom: 0;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.75rem 0.75rem 0.5rem 0.75rem; /* 하단 패딩 최소화 */
+    min-height: 130px; /* 모바일에서 높이 최소화 */
+    margin-bottom: 0.5rem; /* 하단 마진 최소화 */
   }
 
   @media (min-width: 768px) {
@@ -198,7 +198,7 @@ const PropertyImage = styled.div`
     height: 100%;
     object-fit: cover;
     border-radius: 8px;
-    transition: opacity 0.3s ease;
+    display: block;
   }
 
   .fallback-icon {
@@ -307,21 +307,22 @@ const DetailTag = styled.span`
 `;
 
 const PropertyPrice = styled.div`
-  margin-top: 0.3rem;
+  margin-top: 0.2rem; /* 상단 마진 최소화 */
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem; /* 간격 최소화 */
   flex-wrap: wrap;
   
   @media (max-width: 768px) {
-    margin-top: 0.4rem;
-    gap: 0.2rem;
-    flex-wrap: nowrap; /* 모바일에서 줄바꿈 방지 */
-    overflow-x: auto; /* 필요시 가로 스크롤 */
+    margin-top: 0.3rem; /* 상단 마진 최소화 */
+    margin-bottom: 0.2rem; /* 하단 마진 최소화 */
+    gap: 0.25rem; /* 간격 최소화 */
+    flex-wrap: wrap; /* 줄바꿈 허용 */
+    overflow-x: visible; /* 가로 스크롤 제거 */
   }
 `;
 
-const PriceButton = styled.div`
-  background: #10b981;
+const PriceButton = styled.div<{ isSale?: boolean }>`
+  background: ${props => props.isSale ? '#f97316' : '#10b981'}; /* 매매는 오렌지, 임대는 초록 */
   color: white;
   padding: 0.3rem 0.6rem;
   border-radius: 6px;
@@ -335,16 +336,17 @@ const PriceButton = styled.div`
   flex-shrink: 0; /* 모바일에서 축소 방지 */
 
   &:hover {
-    background: #059669;
+    background: ${props => props.isSale ? '#ea580c' : '#059669'}; /* 호버 시 더 진한 색상 */
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   }
   
   @media (max-width: 768px) {
-    padding: 0.25rem 0.4rem; /* 패딩 더 작게 */
-    font-size: 0.65rem; /* 폰트 크기 더 작게 */
-    border-radius: 4px; /* 모서리 더 둥글게 */
+    padding: 0.25rem 0.4rem; /* 패딩 최소화 */
+    font-size: 0.7rem; /* 폰트 크기 조정 */
+    border-radius: 6px; /* 모서리 둥글게 */
     min-width: fit-content; /* 최소 너비 설정 */
+    margin-bottom: 0.1rem; /* 하단 마진 최소화 */
   }
 `;
 
@@ -473,17 +475,17 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         // 선택된 클러스터 초기화
         setSelectedClusterProperties([]);
         
-        // 지도 중심을 남한 중심으로 설정 (줌 레벨은 사용자 선택에 맡김)
-        const koreaCenter = { lat: 36.3504, lng: 127.3845 };
+        // 초기화 화면: 구산동, 도림동, 운연동이 보이는 근접한 범위 (30% 좁힌 범위)
+        const koreaCenter = { lat: 37.5240, lng: 126.9003 };
         mapRef.current.setCenter(koreaCenter);
-        // 줌 레벨은 사용자가 자유롭게 조정할 수 있도록 제거
+        mapRef.current.setZoom(13); // 30% 정도로 범위를 좁힌 줌 레벨
         
         // 마커 재설정
         if (mapRef.current.resetMarkers) {
           mapRef.current.resetMarkers();
         }
         
-        console.log('지도 리셋 완료 - 인천 중심으로 설정');
+        console.log('지도 리셋 완료 - 구산동, 도림동, 운연동 중심으로 설정');
       } else {
         console.log('mapRef.current가 null입니다');
       }
@@ -561,11 +563,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           mapRef.current.setZoom(Math.max(11, mapRef.current.getZoom())); // 현재 줌보다 낮지 않게
         }
       } else {
-        // 남한 범위 내 매물이 없으면 남한 중심으로 이동 (줌 레벨은 유지)
-        const koreaCenter = { lat: 36.3504, lng: 127.3845 };
+        // 남한 범위 내 매물이 없으면 첫화면(의정부시, 화성시, 광주시) 중심으로 이동 (30% 좁힌 범위)
+        const koreaCenter = { lat: 37.4563, lng: 126.7052 };
         mapRef.current.setCenter(koreaCenter);
-        // 줌 레벨은 사용자가 설정한 것을 유지
-        console.log('남한 범위 내 매물이 없어 남한 중심으로 이동합니다.');
+        mapRef.current.setZoom(11); // 30% 정도로 범위를 좁힌 줌 레벨
+        console.log('남한 범위 내 매물이 없어 첫화면(의정부시, 화성시, 광주시) 중심으로 이동합니다.');
       }
       
       // 지도 강제 새로고침 (마커 업데이트를 위해)
@@ -597,6 +599,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     }
   }, [loadProperties, isMobileDevice]);
 
+
   // 매물 추가 시 Firebase 새로고침
   useEffect(() => {
     if (newProperties.length > 0) {
@@ -606,6 +609,72 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
 
   // 모든 매물 (Firebase 매물 + 새로 추가된 매물)
   const allProperties = useMemo(() => [...firebaseProperties, ...newProperties], [firebaseProperties, newProperties]);
+
+  // 매물 데이터가 로드되면 이미지 동기화 실행
+  useEffect(() => {
+    if (allProperties.length > 0) {
+      console.log('=== 매물 데이터 로드됨, 이미지 동기화 시작 ===');
+      console.log('로드된 매물 수:', allProperties.length);
+      
+      // 각 매물의 실제 이미지 상태 확인
+      allProperties.forEach((property, index) => {
+        console.log(`매물 ${index + 1} 이미지 상태 확인:`, {
+          id: property.id,
+          title: property.title,
+          type: property.type,
+          hasImages: property.images && property.images.length > 0,
+          imageCount: property.images?.length || 0,
+          images: property.images
+        });
+        
+        // 실제 이미지가 있으면 그것을 사용, 없으면 기본 이미지 사용
+        let displayImages: string[] = [];
+        
+        if (property.images && property.images.length > 0) {
+          // 실제 매물 이미지가 있는 경우
+          displayImages = property.images;
+          console.log(`✅ 매물 ${property.id} 실제 이미지 사용:`, displayImages);
+        } else {
+          // 실제 이미지가 없는 경우 기본 이미지 사용
+          if (property.type === 'sale') {
+            displayImages = [
+              'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop&auto=format&q=80',
+              'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format&q=80'
+            ];
+          } else if (property.type === 'rent') {
+            displayImages = [
+              'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop&auto=format&q=80',
+              'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop&auto=format&q=80'
+            ];
+          } else {
+            displayImages = [
+              'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop&auto=format&q=80',
+              'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format&q=80'
+            ];
+          }
+          console.log(`⚠️ 매물 ${property.id} 기본 이미지 사용:`, displayImages);
+        }
+        
+        // localStorage에 저장
+        const storageKey = `mainImages_${property.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(displayImages));
+        console.log(`✅ 매물 ${property.id} localStorage에 저장:`, displayImages);
+      });
+      
+      // 항상 이미지 동기화 실행 (강제)
+      console.log('🔄 이미지 동기화 강제 실행');
+      syncAllPCImagesToMobile(allProperties);
+      
+      // 동기화 상태 확인
+      setTimeout(() => {
+        const syncStatus = checkImageSyncStatus();
+        console.log('동기화 완료 후 상태:', syncStatus);
+      }, 1000);
+    }
+  }, [allProperties]);
+
+  // 매물 목록 이미지 강제 업데이트를 위한 상태
+  const [imageUpdateTrigger, setImageUpdateTrigger] = useState(0);
 
   // 디버깅을 위한 로그
   console.log('firebaseProperties 개수:', firebaseProperties.length);
@@ -647,11 +716,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             // 줌 레벨은 사용자가 원하는 만큼 줌인할 수 있도록 최소값만 설정
             mapRef.current.setZoom(Math.max(15, mapRef.current.getZoom()));
           } else {
-            // 남한 범위 밖이면 남한 중심으로 이동 (줌 레벨은 유지)
-            const koreaCenter = { lat: 36.3504, lng: 127.3845 };
+            // 남한 범위 밖이면 첫화면(의정부시, 화성시, 광주시) 중심으로 이동 (30% 좁힌 범위)
+            const koreaCenter = { lat: 37.4563, lng: 126.7052 };
             mapRef.current.setCenter(koreaCenter);
-            // 줌 레벨은 사용자가 설정한 것을 유지
-            console.log('매물이 남한 범위 밖에 있어 남한 중심으로 이동합니다.');
+            mapRef.current.setZoom(11); // 30% 정도로 범위를 좁힌 줌 레벨
+            console.log('매물이 남한 범위 밖에 있어 첫화면(의정부시, 화성시, 광주시) 중심으로 이동합니다.');
           }
         }
       } else {
@@ -693,40 +762,53 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     setSelectedPropertyForDetail(null);
   };
 
-  const formatPrice = (price: number, isMobile: boolean = false) => {
-    console.log('formatPrice 호출됨:', price, typeof price);
+  const formatPrice = (price: number, isMobile: boolean = false, isRent: boolean = false) => {
+    console.log('formatPrice 호출됨:', price, typeof price, 'isRent:', isRent);
     
     if (!price || price <= 0) {
       console.log('가격이 0이거나 없음');
       return isMobile ? '정보없음' : '가격 정보 없음';
     }
     
-    if (price >= 100000000) {
-      // 1억 이상인 경우
-      const eok = Math.floor(price / 100000000);
-      const man = Math.floor((price % 100000000) / 10000);
-      if (man > 0) {
-        const result = isMobile ? `${eok}억${man}만` : `${eok}억 ${man}만원`;
-        console.log('1억 이상 결과:', result);
+    if (isRent) {
+      // 임대금액은 만원 단위로 저장되어 있으므로 10000을 곱해서 원 단위로 변환
+      const priceInWon = price * 10000;
+      console.log('임대금액 원 단위로 변환된 가격:', priceInWon);
+      
+      if (priceInWon >= 10000) {
+        const result = isMobile ? `${Math.floor(priceInWon / 10000)}만` : `${Math.floor(priceInWon / 10000)}만원`;
+        console.log('임대금액 만원 단위 결과:', result);
+        return result;
+      } else {
+        const result = isMobile ? `${priceInWon}원` : `${priceInWon.toLocaleString()}원`;
+        console.log('임대금액 원 단위 결과:', result);
         return result;
       }
-      const result = isMobile ? `${eok}억` : `${eok}억원`;
-      console.log('1억 결과:', result);
-      return result;
-    } else if (price >= 10000) {
-      // 1만원 이상 1억 미만인 경우
-      const result = isMobile ? `${Math.floor(price / 10000)}만` : `${Math.floor(price / 10000)}만원`;
-      console.log('1만원 이상 결과:', result);
-      return result;
-    } else if (price > 0) {
-      // 1만원 미만인 경우
-      const result = isMobile ? `${price}원` : `${price.toLocaleString()}원`;
-      console.log('1만원 미만 결과:', result);
-      return result;
+    } else {
+      // 매매금액은 억 단위로 저장되어 있으므로 100000000을 곱해서 원 단위로 변환
+      const priceInWon = price * 100000000;
+      console.log('매매금액 원 단위로 변환된 가격:', priceInWon);
+      
+      // 매매금액은 억 단위로 표시 (예: 8.5억원)
+      if (priceInWon >= 100000000) {
+        // 1억 이상인 경우 (억 단위로 표시)
+        const eok = priceInWon / 100000000;
+        const result = isMobile ? `${eok}억원` : `${eok}억원`;
+        console.log('매매금액 억 단위 결과:', result);
+        return result;
+      } else if (priceInWon >= 10000) {
+        // 1만원 이상 1억 미만인 경우 (만원 단위로 표시)
+        const man = Math.floor(priceInWon / 10000);
+        const result = isMobile ? `${man}만원` : `${man}만원`;
+        console.log('매매금액 만원 단위 결과:', result);
+        return result;
+      } else {
+        // 1만원 미만인 경우
+        const result = isMobile ? `${priceInWon}원` : `${priceInWon.toLocaleString()}원`;
+        console.log('매매금액 원 단위 결과:', result);
+        return result;
+      }
     }
-    
-    console.log('기본값 반환');
-    return isMobile ? '정보없음' : '가격 정보 없음';
   };
 
   const cleanPropertyTitle = (title: string) => {
@@ -1005,6 +1087,48 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     [selectedClusterProperties, displayProperties]
   );
 
+  // 매물 목록이 변경될 때마다 이미지 상태 강제 업데이트
+  useEffect(() => {
+    if (listProperties.length > 0) {
+      console.log('=== 매물 목록 변경, 이미지 상태 강제 업데이트 ===');
+      setImageUpdateTrigger(prev => prev + 1);
+    }
+  }, [listProperties]);
+
+  // 매물 목록의 이미지 정보를 미리 처리하는 메모이제이션
+  const processedListProperties = useMemo(() => {
+    return listProperties.map(property => {
+      const savedMainImages = localStorage.getItem(`mainImages_${property.id}`);
+      let displayImages = property.images || [];
+      
+      // localStorage에 저장된 이미지가 있으면 우선 사용
+      if (savedMainImages && savedMainImages !== 'null' && savedMainImages !== '[]') {
+        try {
+          const parsedImages = JSON.parse(savedMainImages);
+          if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+            displayImages = parsedImages;
+          }
+        } catch (error) {
+          console.error('메인 이미지 파싱 오류:', error);
+        }
+      }
+      
+      // 이미지가 없으면 모바일 안전 이미지 사용
+      if (!displayImages || displayImages.length === 0) {
+        displayImages = getMobileImageUrls(property.id);
+        // localStorage에도 저장
+        const storageKey = `mainImages_${property.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(displayImages));
+      }
+      
+      return {
+        ...property,
+        processedImages: displayImages,
+        firstImageUrl: displayImages && displayImages.length > 0 ? displayImages[0] : null
+      };
+    });
+  }, [listProperties, imageUpdateTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
   console.log('displayProperties:', displayProperties.length, '개 매물');
   console.log('listProperties:', listProperties.length, '개 매물 (목록 표시용)');
 
@@ -1095,377 +1219,165 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         </MapSection>
         
         <PropertyListSection>
-          <PropertyListContainer>
-            {listProperties.length === 0 ? (
-              <EmptyState>
-                <EmptyIcon>🏠</EmptyIcon>
-                <p>현재 매물이 없습니다.</p>
-                {!isSearchOnly && !shouldDisablePropertyRegistration() && (
-                  <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
-                    PC에서 매물을 등록할 수 있습니다.
-                  </div>
-                )}
-              </EmptyState>
-            ) : (
-              listProperties.map(property => {
-                // localStorage에서 저장된 이미지 확인
-                const savedMainImages = localStorage.getItem(`mainImages_${property.id}`);
-                let displayImages = property.images || [];
-                
-                console.log(`매물 ${property.id} 이미지 확인 (PC):`, {
-                  propertyImages: property.images,
-                  savedMainImages: savedMainImages,
-                  displayImages: displayImages,
-                  hasImages: displayImages && displayImages.length > 0,
-                  firstImageUrl: displayImages && displayImages.length > 0 ? displayImages[0] : '없음'
-                });
-                
-                if (savedMainImages && savedMainImages !== 'null' && savedMainImages !== '[]') {
-                  try {
-                    const parsedImages = JSON.parse(savedMainImages);
-                    if (Array.isArray(parsedImages) && parsedImages.length > 0) {
-                      displayImages = parsedImages;
-                      console.log(`매물 ${property.id} localStorage 이미지 적용:`, displayImages);
-                    }
-                  } catch (error) {
-                    console.error('이미지 파싱 오류:', error);
-                  }
-                }
-                
-                console.log(`매물 ${property.id} 최종 displayImages:`, displayImages);
-                
-                return (
-                  <PropertyCard 
-                    key={property.id}
-                    onClick={() => handlePropertyCardClick(property)}
-                  >
-                    <PropertyImage>
-                      {displayImages && displayImages.length > 0 ? (
+          {processedListProperties.length === 0 ? (
+            <EmptyState>
+              <EmptyIcon>🏠</EmptyIcon>
+              <p>현재 매물이 없습니다.</p>
+              {!isSearchOnly && !shouldDisablePropertyRegistration() && (
+                <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
+                  PC에서 매물을 등록할 수 있습니다.
+                </div>
+              )}
+            </EmptyState>
+          ) : (
+            processedListProperties.map(property => {
+              // 이미 처리된 이미지 정보 사용
+              const { processedImages, firstImageUrl } = property;
+              
+              console.log(`매물 ${property.id} 이미지 확인 (처리됨) - 트리거: ${imageUpdateTrigger}:`, {
+                processedImages: processedImages,
+                firstImageUrl: firstImageUrl,
+                hasImages: processedImages && processedImages.length > 0,
+                imageType: firstImageUrl ? (firstImageUrl.startsWith('data:') ? 'base64' : 'url') : 'none'
+              });
+              
+              return (
+                <PropertyCard 
+                  key={property.id}
+                  onClick={() => handlePropertyCardClick(property)}
+                >
+                  <PropertyImage>
+                    {firstImageUrl ? (
+                      <img 
+                        src={firstImageUrl} 
+                        alt={property.title}
+                        onError={(e) => {
+                          console.log(`❌ 매물 ${property.id} 이미지 로딩 실패:`, {
+                            src: firstImageUrl,
+                            originalSrc: processedImages[0]
+                          });
+                          
+                          // 대체 이미지 시도
+                          const target = e.target as HTMLImageElement;
+                          if (processedImages && processedImages.length > 1) {
+                            console.log(`🔄 매물 ${property.id} 대체 이미지 시도:`, processedImages[1]);
+                            target.src = processedImages[1];
+                            return;
+                          }
+                          
+                          // 모든 이미지 실패 시 fallback 아이콘 표시
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) {
+                            fallback.style.display = 'flex';
+                          }
+                        }}
+                        onLoad={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          console.log(`✅ 매물 ${property.id} 이미지 로딩 성공:`, {
+                            src: firstImageUrl,
+                            naturalWidth: target.naturalWidth,
+                            naturalHeight: target.naturalHeight
+                          });
+                        }}
+                        loading="eager"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          display: 'block'
+                        }}
+                      />
+                    ) : null}
+                    {/* Fallback 아이콘 - 이미지가 없거나 로딩 실패 시 표시 */}
+                    <div 
+                      className="fallback-icon"
+                      style={{
+                        display: firstImageUrl ? 'none' : 'flex',
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: '#f3f4f6',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#9ca3af',
+                        fontSize: '0.875rem',
+                        borderRadius: '8px',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                    >
+                      🏠
+                    </div>
+                  </PropertyImage>
+                  <PropertyInfo>
+                    <PropertyNumber>
+                      <PropertyNumberLabel>매물번호</PropertyNumberLabel>
+                      <PropertyNumberValue>{property.id}</PropertyNumberValue>
+                    </PropertyNumber>
+                    <PropertyAddress>
+                      {maskAddress(property.address)}
+                    </PropertyAddress>
+                    <PropertyTitle>
+                      {cleanPropertyTitle(property.title)}
+                    </PropertyTitle>
+                    <PropertyDetails>
+                      <DetailTag>
+                        {property.type === 'sale' ? '매매' : '임대'}
+                      </DetailTag>
+                      <DetailTag>전용 {Math.round(property.area / 3.3058)}평</DetailTag>
+                      {property.floor && <DetailTag>{property.floor}</DetailTag>}
+                      {property.parking !== undefined && (
+                        <DetailTag>주차 {property.parking ? '가능' : '불가능'}</DetailTag>
+                      )}
+                      {property.elevator !== undefined && (
+                        <DetailTag>엘리베이터 {property.elevator ? '유' : '무'}</DetailTag>
+                      )}
+                    </PropertyDetails>
+                    <PropertyPrice>
+                      {property.type === 'rent' ? (
                         <>
-                          <img 
-                            src={displayImages[0]} 
-                            alt={property.title}
-                            onError={(e) => {
-                              console.log('PC 이미지 로딩 실패:', displayImages[0]);
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent && !parent.querySelector('.fallback-icon')) {
-                                const fallback = document.createElement('div');
-                                fallback.className = 'fallback-icon';
-                                fallback.textContent = '🏠';
-                                fallback.style.cssText = `
-                                  position: absolute;
-                                  top: 50%;
-                                  left: 50%;
-                                  transform: translate(-50%, -50%);
-                                  font-size: 2rem;
-                                  color: white;
-                                  z-index: 1;
-                                `;
-                                parent.appendChild(fallback);
-                              }
-                            }}
-                            onLoad={(e) => {
-                              console.log('PC 이미지 로딩 성공:', displayImages[0]);
-                              const target = e.target as HTMLImageElement;
-                              const parent = target.parentElement;
-                              const fallback = parent?.querySelector('.fallback-icon');
-                              if (fallback) {
-                                fallback.remove();
-                              }
-                            }}
-                            loading="eager"
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              borderRadius: '8px',
-                              transition: 'opacity 0.3s ease'
-                            }}
-                          />
-                          {/* 로딩 중 표시 */}
-                          <div className="image-loading" style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            fontSize: '1rem',
-                            color: 'white',
-                            background: 'rgba(0,0,0,0.5)',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '4px',
-                            zIndex: 2,
-                            display: 'none'
-                          }}>
-                            로딩중...
-                          </div>
+                          {(() => {
+                            console.log('=== 매물 가격 표시 디버깅 ===');
+                            console.log('매물 ID:', property.id);
+                            console.log('매물 타입:', property.type);
+                            console.log('보증금:', property.deposit);
+                            console.log('임대료:', property.price);
+                            console.log('보증금 조건:', property.deposit && property.deposit > 0);
+                            console.log('임대료 조건:', property.price && property.price > 0);
+                            return null;
+                          })()}
+                          {(property.deposit && property.deposit > 0) && (
+                            <PriceButton>
+                              보증금 {formatPrice(property.deposit, window.innerWidth <= 768, true)}
+                            </PriceButton>
+                          )}
+                          {(property.price && property.price > 0) && (
+                            <PriceButton>
+                              임대료 {formatPrice(property.price, window.innerWidth <= 768, true)}
+                            </PriceButton>
+                          )}
+                          {(!property.deposit || property.deposit <= 0) && (!property.price || property.price <= 0) && (
+                            <PriceButton>
+                              {window.innerWidth <= 768 ? '정보없음' : '가격 정보 없음'}
+                            </PriceButton>
+                          )}
                         </>
                       ) : (
-                        <div className="fallback-icon" style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          fontSize: '2rem',
-                          color: 'white',
-                          zIndex: 1
-                        }}>🏠</div>
+                        <PriceButton isSale={true}>
+                          매매 {formatPrice(property.price, window.innerWidth <= 768, false)}
+                        </PriceButton>
                       )}
-                    </PropertyImage>
-                    <PropertyInfo>
-                      <PropertyNumber>
-                        <PropertyNumberLabel>매물번호</PropertyNumberLabel>
-                        <PropertyNumberValue>{property.id}</PropertyNumberValue>
-                      </PropertyNumber>
-                      <PropertyAddress>
-                        {maskAddress(property.address)}
-                      </PropertyAddress>
-                      <PropertyTitle>
-                        {cleanPropertyTitle(property.title)}
-                      </PropertyTitle>
-                      <PropertyDetails>
-                        <DetailTag>
-                          {property.type === 'sale' ? '매매' : '임대'}
-                        </DetailTag>
-                        <DetailTag>전용 {Math.round(property.area / 3.3058)}평</DetailTag>
-                        {property.floor && <DetailTag>{property.floor}</DetailTag>}
-                        {property.parking !== undefined && (
-                          <DetailTag>주차 {property.parking ? '가능' : '불가능'}</DetailTag>
-                        )}
-                        {property.elevator !== undefined && (
-                          <DetailTag>엘리베이터 {property.elevator ? '유' : '무'}</DetailTag>
-                        )}
-                      </PropertyDetails>
-                      <PropertyPrice>
-                        {property.type === 'rent' ? (
-                          <>
-                            {(() => {
-                              console.log('=== 매물 가격 표시 디버깅 ===');
-                              console.log('매물 ID:', property.id);
-                              console.log('매물 타입:', property.type);
-                              console.log('보증금:', property.deposit);
-                              console.log('임대료:', property.price);
-                              console.log('보증금 조건:', property.deposit && property.deposit > 0);
-                              console.log('임대료 조건:', property.price && property.price > 0);
-                              return null;
-                            })()}
-                            {(property.deposit && property.deposit > 0) && (
-                              <PriceButton>
-                                보증금 {formatPrice(property.deposit, window.innerWidth <= 768)}
-                              </PriceButton>
-                            )}
-                            {(property.price && property.price > 0) && (
-                              <PriceButton>
-                                임대료 {formatPrice(property.price, window.innerWidth <= 768)}
-                              </PriceButton>
-                            )}
-                            {(!property.deposit || property.deposit <= 0) && (!property.price || property.price <= 0) && (
-                              <PriceButton>
-                                {window.innerWidth <= 768 ? '정보없음' : '가격 정보 없음'}
-                              </PriceButton>
-                            )}
-                          </>
-                        ) : (
-                          <PriceButton>
-                            매매 {formatPrice(property.price, window.innerWidth <= 768)}
-                          </PriceButton>
-                        )}
-                      </PropertyPrice>
-                    </PropertyInfo>
-                  </PropertyCard>
-                );
-              })
-            )}
-          </PropertyListContainer>
+                    </PropertyPrice>
+                  </PropertyInfo>
+                </PropertyCard>
+              );
+            })
+          )}
         </PropertyListSection>
       </HomeContainer>
 
-      {/* 모바일용 별도 매물 목록 컨테이너 */}
-      <PropertyListContainer>
-        {listProperties.length === 0 ? (
-          <EmptyState>
-            <EmptyIcon>🏠</EmptyIcon>
-            <p>현재 매물이 없습니다.</p>
-            {!isSearchOnly && !shouldDisablePropertyRegistration() && (
-              <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
-                PC에서 매물을 등록할 수 있습니다.
-              </div>
-            )}
-          </EmptyState>
-        ) : (
-          listProperties.map(property => {
-            // localStorage에서 저장된 이미지 확인
-            const savedMainImages = localStorage.getItem(`mainImages_${property.id}`);
-            let displayImages = property.images || [];
-            
-            console.log(`매물 ${property.id} 이미지 확인 (모바일):`, {
-              propertyImages: property.images,
-              savedMainImages: savedMainImages,
-              displayImages: displayImages,
-              hasImages: displayImages && displayImages.length > 0,
-              firstImageUrl: displayImages && displayImages.length > 0 ? displayImages[0] : '없음',
-              isMobile: window.innerWidth <= 768,
-              userAgent: navigator.userAgent
-            });
-            
-            if (savedMainImages && savedMainImages !== 'null' && savedMainImages !== '[]') {
-              try {
-                const parsedImages = JSON.parse(savedMainImages);
-                if (Array.isArray(parsedImages) && parsedImages.length > 0) {
-                  displayImages = parsedImages;
-                  console.log(`매물 ${property.id} localStorage 이미지 적용 (두번째):`, displayImages);
-                }
-              } catch (error) {
-                console.error('이미지 파싱 오류:', error);
-              }
-            }
-            
-            // 모든 매물에 대한 기본 이미지 처리 (이미지가 없으면 강제로 추가)
-            if (!displayImages || displayImages.length === 0) {
-              // 모바일에서 안전한 이미지 URL 사용
-              const mobileImageUrls = getMobileImageUrls(property.id);
-              displayImages = mobileImageUrls;
-              console.log(`매물 ${property.id} 모바일 기본 이미지 적용:`, displayImages);
-              
-              // localStorage에도 저장
-              const storageKey = `mainImages_${property.id}`;
-              localStorage.setItem(storageKey, JSON.stringify(mobileImageUrls));
-            }
-            
-            // 추가 안전장치: displayImages가 여전히 비어있으면 강제로 기본 이미지 설정
-            if (!displayImages || displayImages.length === 0) {
-              displayImages = getMobileImageUrls(property.id);
-              console.log(`매물 ${property.id} 최종 안전장치 이미지 적용:`, displayImages);
-            }
-            
-            // 모바일 이미지 로더 생성
-            const imageLoader = createMobileImageLoader(property.id);
-            
-            // 이미지 로딩 시작 시간 기록
-            const imageLoadStartTime = Date.now();
-            
-            console.log(`매물 ${property.id} 최종 displayImages (모바일):`, displayImages);
-            
-            return (
-              <PropertyCard 
-                key={property.id}
-                onClick={() => handlePropertyCardClick(property)}
-              >
-                <PropertyImage>
-                  <img 
-                    src={getSafeImageUrl(displayImages[0], property.id)} 
-                    alt={property.title}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '8px',
-                      opacity: 0,
-                      transition: 'opacity 0.3s ease'
-                    }}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      const success = handleMobileImageError(target, property.id, imageLoader);
-                      if (!success) {
-                        console.log(`매물 ${property.id} 모든 이미지 로딩 실패`);
-                        // 성능 모니터링에 실패 기록
-                        monitorMobileImagePerformance(property.id, imageLoadStartTime);
-                      }
-                    }}
-                    onLoad={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      handleMobileImageLoad(target);
-                      // 성능 모니터링에 성공 기록
-                      monitorMobileImagePerformance(property.id, imageLoadStartTime);
-                    }}
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="low"
-                  />
-                  
-                  {/* 로딩 중 표시 */}
-                  <div className="image-loading" style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontSize: '0.8rem',
-                    color: 'white',
-                    background: 'rgba(0,0,0,0.7)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    zIndex: 2,
-                    display: 'block'
-                  }}>
-                    로딩중...
-                  </div>
-                </PropertyImage>
-                <PropertyInfo>
-                  <PropertyNumber>
-                    <PropertyNumberLabel>매물번호</PropertyNumberLabel>
-                    <PropertyNumberValue>{property.id}</PropertyNumberValue>
-                  </PropertyNumber>
-                  <PropertyAddress>
-                    {maskAddress(property.address)}
-                  </PropertyAddress>
-                  <PropertyTitle>
-                    {cleanPropertyTitle(property.title)}
-                  </PropertyTitle>
-                  <PropertyDetails>
-                    <DetailTag>
-                      {property.type === 'sale' ? '매매' : '임대'}
-                    </DetailTag>
-                    <DetailTag>전용 {Math.round(property.area / 3.3058)}평</DetailTag>
-                    {property.floor && <DetailTag>{property.floor}</DetailTag>}
-                    {property.parking !== undefined && (
-                      <DetailTag>주차 {property.parking ? '가능' : '불가능'}</DetailTag>
-                    )}
-                    {property.elevator !== undefined && (
-                      <DetailTag>엘리베이터 {property.elevator ? '유' : '무'}</DetailTag>
-                    )}
-                  </PropertyDetails>
-                  <PropertyPrice>
-                    {property.type === 'rent' ? (
-                      <>
-                        {(() => {
-                          console.log('=== 모바일 매물 가격 표시 디버깅 ===');
-                          console.log('매물 ID:', property.id);
-                          console.log('매물 타입:', property.type);
-                          console.log('보증금:', property.deposit);
-                          console.log('임대료:', property.price);
-                          console.log('보증금 조건:', property.deposit && property.deposit > 0);
-                          console.log('임대료 조건:', property.price && property.price > 0);
-                          return null;
-                        })()}
-                        {(property.deposit && property.deposit > 0) && (
-                          <PriceButton>
-                            보증금 {formatPrice(property.deposit, true)}
-                          </PriceButton>
-                        )}
-                        {(property.price && property.price > 0) && (
-                          <PriceButton>
-                            임대료 {formatPrice(property.price, true)}
-                          </PriceButton>
-                        )}
-                        {(!property.deposit || property.deposit <= 0) && (!property.price || property.price <= 0) && (
-                          <PriceButton>
-                            정보없음
-                          </PriceButton>
-                        )}
-                      </>
-                    ) : (
-                      <PriceButton>
-                        매매 {formatPrice(property.price, true)}
-                      </PriceButton>
-                    )}
-                  </PropertyPrice>
-                </PropertyInfo>
-              </PropertyCard>
-            );
-          })
-        )}
-      </PropertyListContainer>
       
       {selectedPropertyForDetail && (
         <PropertyDetailModal

@@ -139,3 +139,5 @@ console.log('임대료:', property?.price);
 
 
 
+
+
