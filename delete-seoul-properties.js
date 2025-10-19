@@ -49,3 +49,4 @@ async function deleteSeoulProperties() {
 // 실행
 deleteSeoulProperties();
 
+

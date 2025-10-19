@@ -235,7 +235,7 @@ console.log('🚫 자동 정리 로직 비활성화됨 - 수동 정리만 사용
   }
 };
 
-// PC용 최적화된 2개 섹션 구조 (사이드바 제거)
+// PC용 최적화된 2개 섹션 구조 (사이드바 제거) + 모바일 반응형
 const HomeContainer = styled.div`
   display: flex;
   flex-direction: row;
@@ -254,9 +254,17 @@ const HomeContainer = styled.div`
   gap: 0;
   width: 100%;
   box-sizing: border-box;
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
 `;
 
-// 1. 지도 섹션 (PC용) - 메인 콘텐츠 (확장)
+// 1. 지도 섹션 (PC용) - 메인 콘텐츠 (확장) + 모바일 반응형
 const MapSection = styled.div`
   flex: 1;
   position: relative;
@@ -269,9 +277,19 @@ const MapSection = styled.div`
   padding: 0;
   width: 100%;
   box-sizing: border-box;
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    height: 50vh;
+    min-height: 300px;
+    flex: none;
+    border-radius: 8px;
+    margin: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 `;
 
-// 2. 매물 목록 섹션 (PC용) - 우측 패널 - 완전한 스크롤 보장
+// 2. 매물 목록 섹션 (PC용) - 우측 패널 - 완전한 스크롤 보장 + 모바일 반응형
 const PropertyListSection = styled.div`
   flex: 0 0 450px; /* 고정 너비 */
   background: white;
@@ -301,6 +319,21 @@ const PropertyListSection = styled.div`
   /* 고정 위치 */
   position: sticky;
   top: 0;
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    flex: none;
+    width: 100%;
+    height: auto;
+    min-height: 50vh;
+    max-height: none;
+    border-left: none;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    margin: 0.5rem;
+    border-radius: 8px;
+  }
 `;
 
 // 매물 목록 헤더 - 고정 높이로 스크롤 영역 확보
@@ -367,7 +400,7 @@ const PropertyListContainer = styled.div`
   padding-bottom: 3rem;
 `;
 
-// 매물 카드 (PC용 최적화)
+// 매물 카드 (PC용 최적화) + 모바일 반응형
 const PCPropertyCard = styled.div`
   padding: 0.75rem; // 1rem에서 0.75rem으로 더 줄임
   border-bottom: 1px solid #e2e8f0;
@@ -392,9 +425,29 @@ const PCPropertyCard = styled.div`
     padding-bottom: 4rem;
     margin-bottom: 2rem;
   }
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    padding: 1rem;
+    gap: 1rem;
+    margin: 0.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-bottom: none;
+    
+    &:hover {
+      transform: none;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    &:last-child {
+      margin-bottom: 0.5rem;
+      padding-bottom: 1rem;
+    }
+  }
 `;
 
-// 매물 이미지 영역
+// 매물 이미지 영역 + 모바일 반응형
 const PropertyImageSection = styled.div`
   flex-shrink: 0;
   width: 120px;
@@ -418,15 +471,31 @@ const PropertyImageSection = styled.div`
   &:hover img {
     transform: scale(1.05);
   }
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    width: 100px;
+    height: 80px;
+    border-radius: 6px;
+    
+    &:hover img {
+      transform: none;
+    }
+  }
 `;
 
-// 매물 정보 영역
+// 매물 정보 영역 + 모바일 반응형
 const PropertyInfoSection = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.4rem; // 간격 줄임
   min-width: 0;
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+  }
 `;
 
 // 매물 헤더 (번호 + 주소)
@@ -451,15 +520,21 @@ const PropertyAddress = styled.span`
   font-weight: 500;
 `;
 
-// 매물 제목
+// 매물 제목 + 모바일 반응형
 const PCPropertyTitle = styled.div`
   font-size: 0.875rem; // 1rem에서 0.875rem으로 축소
   font-weight: 600;
   color: #1a202c;
   line-height: 1.3;
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
 `;
 
-// 매물 상세 정보
+// 매물 상세 정보 + 모바일 반응형
 const PCPropertyDetails = styled.div`
   font-size: 0.75rem; // 0.875rem에서 0.75rem으로 축소
   color: #6b7280;
@@ -467,6 +542,14 @@ const PCPropertyDetails = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  /* 모바일 반응형 */
+  @media (max-width: 768px) {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    white-space: normal;
+    text-overflow: unset;
+  }
 `;
 
 // 가격 정보 컨테이너
@@ -1199,37 +1282,66 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                       <img 
                         src={property.images[0]} 
                         alt={`${property.title} 대표사진`}
+                        onLoadStart={() => {
+                          console.log('🔄 이미지 로드 시작:', {
+                            propertyId: property.id,
+                            src: property.images[0]?.substring(0, 50) + '...',
+                            isBase64: property.images[0]?.startsWith('data:'),
+                            base64Length: property.images[0]?.length
+                          });
+                        }}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
+                          console.error('❌ 이미지 로드 실패:', {
+                            src: target.src,
+                            propertyId: property.id,
+                            propertyTitle: property.title,
+                            images: property.images
+                          });
                           target.style.display = 'none';
                           // 이미지 로드 실패 시 기본 아이콘 표시
                           const parent = target.parentElement;
                           if (parent) {
                             parent.innerHTML = '🏠';
-                            parent.style.fontSize = '2rem';
+                            parent.style.fontSize = window.innerWidth <= 768 ? '1.5rem' : '2rem';
                             parent.style.color = '#9ca3af';
+                            parent.style.display = 'flex';
+                            parent.style.alignItems = 'center';
+                            parent.style.justifyContent = 'center';
                           }
                         }}
                         onLoad={(e) => {
                           const target = e.target as HTMLImageElement;
+                          console.log('✅ 매물목록 이미지 로드 성공:', {
+                            src: target.src,
+                            propertyId: property.id,
+                            propertyTitle: property.title
+                          });
                           target.style.display = 'block';
+                          target.style.opacity = '1';
                         }}
                         style={{ 
                           width: '100%', 
                           height: '100%', 
                           objectFit: 'cover',
-                          borderRadius: '8px'
+                          borderRadius: window.innerWidth <= 768 ? '6px' : '8px',
+                          minHeight: window.innerWidth <= 768 ? '80px' : '90px',
+                          display: 'block',
+                          backgroundColor: '#f3f4f6',
+                          opacity: '0',
+                          transition: 'opacity 0.3s ease'
                         }}
                       />
                     ) : (
                       <div style={{
-                        fontSize: '2rem',
+                        fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem',
                         color: '#9ca3af',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         width: '100%',
-                        height: '100%'
+                        height: '100%',
+                        minHeight: window.innerWidth <= 768 ? '80px' : '90px'
                       }}>
                         🏠
                       </div>

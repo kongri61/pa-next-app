@@ -1,0 +1,98 @@
+# Firebase Storage 보안 규칙 설정 가이드
+
+## 현재 문제
+사진 등록이 안 되는 주요 원인은 Firebase Storage 보안 규칙 때문일 가능성이 높습니다.
+
+## 해결 방법
+
+### 1. Firebase 콘솔에서 Storage 규칙 수정
+
+Firebase 콘솔 (https://console.firebase.google.com)에 접속하여:
+
+1. 프로젝트 선택: "pa-realestate-sync-cb990"
+2. 왼쪽 메뉴에서 "Storage" 클릭
+3. "Rules" 탭 클릭
+4. 현재 규칙을 다음으로 변경:
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 모든 사용자가 읽기 가능
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // properties 폴더에 대한 쓰기 권한 (임시로 모든 사용자 허용)
+    match /properties/{allPaths=**} {
+      allow write: if true;
+    }
+    
+    // 다른 폴더는 읽기만 허용
+    match /{allPaths=**} {
+      allow write: if false;
+    }
+  }
+}
+```
+
+### 2. 더 안전한 규칙 (권장)
+
+인증된 사용자만 업로드할 수 있도록 하려면:
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 모든 사용자가 읽기 가능
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // properties 폴더에 대한 쓰기 권한 (인증된 사용자만)
+    match /properties/{allPaths=**} {
+      allow write: if request.auth != null;
+    }
+  }
+}
+```
+
+### 3. 테스트용 규칙 (개발 중에만 사용)
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+## 주의사항
+
+1. **테스트용 규칙은 프로덕션에서 사용하지 마세요**
+2. **실제 서비스에서는 적절한 인증 규칙을 설정하세요**
+3. **규칙 변경 후 "Publish" 버튼을 클릭해야 적용됩니다**
+
+## 확인 방법
+
+1. Firebase 콘솔에서 Storage 규칙을 위의 내용으로 변경
+2. "Publish" 버튼 클릭
+3. 웹사이트에서 사진 업로드 테스트
+4. 브라우저 개발자 도구 콘솔에서 오류 메시지 확인
+
+## 추가 디버깅
+
+브라우저 개발자 도구 콘솔에서 다음 메시지들을 확인하세요:
+
+- "🔥 Firebase Storage 업로드 시작"
+- "📁 Storage 참조 생성"
+- "⬆️ 파일 업로드 시작"
+- "✅ 파일 업로드 완료"
+- "🔗 다운로드 URL 생성 중"
+- "✅ 다운로드 URL 생성 완료"
+
+오류가 발생하면 구체적인 오류 메시지가 표시됩니다.
+

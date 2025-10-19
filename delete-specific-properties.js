@@ -65,3 +65,4 @@ async function deleteSpecificProperties() {
 // 실행
 deleteSpecificProperties();
 
+

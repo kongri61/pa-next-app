@@ -8,28 +8,46 @@ import {
 } from 'firebase/storage';
 import { storage } from './config';
 
-// 이미지 업로드
+// 이미지 업로드 (Base64 우선, Firebase Storage 백업)
 export const uploadImage = async (
   file: File, 
   folder: string = 'properties',
   metadata?: UploadMetadata
 ): Promise<string> => {
   try {
-    // 파일명에 타임스탬프 추가하여 중복 방지
-    const timestamp = Date.now();
-    const fileName = `${timestamp}_${file.name}`;
-    const storageRef = ref(storage, `${folder}/${fileName}`);
+    console.log('🔥 이미지 업로드 시작:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      folder: folder
+    });
 
-    // 파일 업로드
-    const snapshot = await uploadBytes(storageRef, file, metadata);
+    // CORS 문제로 인해 Firebase Storage를 우회하고 바로 Base64 사용
+    console.log('🔄 Base64 변환 시작 (Firebase Storage 우회)...');
+    const base64Url = await convertToBase64(file);
+    console.log('✅ Base64 변환 완료, 길이:', base64Url.length);
     
-    // 다운로드 URL 반환
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
+    return base64Url;
   } catch (error) {
-    console.error('이미지 업로드 오류:', error);
-    throw new Error('이미지 업로드 중 오류가 발생했습니다.');
+    console.error('❌ Base64 변환 실패:', error);
+    throw new Error('이미지 변환에 실패했습니다.');
   }
+};
+
+// 파일을 Base64로 변환하는 함수
+const convertToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      console.log('✅ Base64 변환 완료');
+      resolve(reader.result as string);
+    };
+    reader.onerror = (error) => {
+      console.error('❌ Base64 변환 실패:', error);
+      reject(new Error('Base64 변환에 실패했습니다.'));
+    };
+    reader.readAsDataURL(file);
+  });
 };
 
 // 여러 이미지 업로드

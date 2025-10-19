@@ -99,7 +99,7 @@ class FirebaseSync {
     }
   }
 
-  // Firebase에서 모든 매물 데이터 로드
+  // Firebase에서 모든 매물 데이터 로드 (이미지 마이그레이션 포함)
   private async loadFromFirebase(): Promise<void> {
     try {
       if (!db) {
@@ -107,7 +107,7 @@ class FirebaseSync {
         return;
       }
       
-      const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'asc'));
+      const q = query(collection(db, COLLECTION_NAME));
       const querySnapshot = await getDocs(q);
       
       const firebaseProperties: Property[] = [];
@@ -117,16 +117,55 @@ class FirebaseSync {
         const property: Property = {
           ...data,
           id: doc.id,
-          createdAt: data.createdAt?.toDate() || new Date(),
+          createdAt: this.safeConvertTimestamp(data.createdAt),
         } as Property;
         firebaseProperties.push(property);
       });
 
       console.log(`🔥 Firebase에서 ${firebaseProperties.length}개 매물 로드됨`);
 
-      // IndexedDB에 동기화
-      for (const property of firebaseProperties) {
-        await IndexedDB.updateProperty(property);
+      // Base64 이미지가 있는 매물들을 Firebase Storage로 마이그레이션
+      const propertiesWithBase64Images = firebaseProperties.filter(property => 
+        property.images && property.images.some(img => img.startsWith('data:image/'))
+      );
+      
+      if (propertiesWithBase64Images.length > 0) {
+        console.log(`🔄 ${propertiesWithBase64Images.length}개 매물의 Base64 이미지 마이그레이션 시작...`);
+        
+        try {
+          const { migrateAllPropertyImages } = await import('./imageMigration');
+          const migratedProperties = await migrateAllPropertyImages(propertiesWithBase64Images);
+          
+          // 마이그레이션된 매물들로 업데이트
+          const updatedProperties = firebaseProperties.map(property => {
+            const migratedProperty = migratedProperties.find(mp => mp.id === property.id);
+            return migratedProperty || property;
+          });
+          
+          // 마이그레이션된 데이터를 Firebase에 다시 저장
+          for (const property of migratedProperties) {
+            await this.updateProperty(property);
+          }
+          
+          console.log('✅ Base64 이미지 마이그레이션 완료');
+          
+          // IndexedDB에 마이그레이션된 데이터 저장
+          for (const property of updatedProperties) {
+            await IndexedDB.updateProperty(property);
+          }
+          
+        } catch (error) {
+          console.error('❌ 이미지 마이그레이션 실패:', error);
+          // 마이그레이션 실패 시 원본 데이터 저장
+          for (const property of firebaseProperties) {
+            await IndexedDB.updateProperty(property);
+          }
+        }
+      } else {
+        // Base64 이미지가 없으면 그대로 저장
+        for (const property of firebaseProperties) {
+          await IndexedDB.updateProperty(property);
+        }
       }
 
       console.log('📱 Firebase → IndexedDB 동기화 완료');
@@ -225,6 +264,66 @@ class FirebaseSync {
       console.error('❌ Firebase 실시간 동기화 오류:', error);
       console.log('📱 Firebase 권한 오류 - 실시간 동기화 비활성화');
     });
+  }
+
+  // 매물 추가 (Firebase + IndexedDB)
+  async addProperty(property: Property): Promise<void> {
+    try {
+      console.log(`➕ addProperty 시작: ${property.id} - ${property.title}`);
+      console.log(`🌐 현재 호스트: ${window.location.hostname}`);
+      console.log(`🔧 Firebase 초기화 상태: ${this.isInitialized}`);
+      console.log(`🌐 온라인 상태: ${this.isOnline}`);
+      console.log(`🔥 Firebase db 객체: ${!!db}`);
+      
+      // 모바일 서버에서는 추가 불가
+      const isMainServer = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '192.168.219.105' ||
+                          window.location.hostname.includes('vercel.app');
+      
+      console.log(`🖥️ 메인 서버 여부: ${isMainServer}`);
+      
+      if (!isMainServer) {
+        console.warn('📱 모바일 서버에서는 매물 추가가 불가능합니다.');
+        throw new Error('모바일 서버에서는 매물 추가가 불가능합니다.');
+      }
+
+      // 매물 데이터 검증
+      if (!property.id || !property.title) {
+        throw new Error(`매물 데이터 검증 실패: ID=${property.id}, 제목=${property.title}`);
+      }
+
+      // 1. IndexedDB에 즉시 저장 (빠른 응답)
+      console.log(`💾 IndexedDB 저장 시작: ${property.id}`);
+      await IndexedDB.updateProperty(property);
+      console.log(`✅ IndexedDB 저장 완료: ${property.id}`);
+      
+      if (this.isOnline && db) {
+        // 2. Firebase에 동기화 (Firebase가 초기화된 경우에만)
+        console.log(`🔥 Firebase 동기화 시작: ${property.id}`);
+        console.log(`🔧 Firebase 초기화 상태: ${this.isInitialized}`);
+        console.log(`🌐 온라인 상태: ${this.isOnline}`);
+        console.log(`🔥 Firebase db 객체 존재: ${!!db}`);
+        
+        try {
+          console.log(`📤 syncToFirebase 호출 시작: ${property.id}`);
+          await this.syncToFirebase(property);
+          console.log(`✅ Firebase 동기화 완료: ${property.id}`);
+        } catch (syncError) {
+          console.error(`❌ Firebase 동기화 실패: ${property.id}`, syncError);
+          console.warn(`⚠️ 대기열에 추가: ${property.id}`);
+          this.pendingUpdates.set(property.id, property);
+        }
+      } else {
+        // 3. 오프라인 시 또는 Firebase 없을 때 대기열에 추가
+        console.log(`📱 오프라인 모드 - 대기열에 추가: ${property.id}`);
+        this.pendingUpdates.set(property.id, property);
+      }
+      
+      console.log(`🎉 addProperty 완료: ${property.id}`);
+    } catch (error) {
+      console.error(`❌ 매물 추가 실패: ${property.id}`, error);
+      throw error;
+    }
   }
 
   // 매물 추가/수정 (Firebase + IndexedDB)
@@ -890,6 +989,45 @@ class FirebaseSync {
     }
   }
 
+  // 안전한 Timestamp 변환 함수
+  private safeConvertTimestamp(timestamp: any): Date {
+    try {
+      if (!timestamp) return new Date();
+      
+      // Firebase Timestamp 객체
+      if (timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+      }
+      
+      // 이미 Date 객체
+      if (timestamp instanceof Date) {
+        return timestamp;
+      }
+      
+      // 문자열 형태의 날짜
+      if (typeof timestamp === 'string') {
+        const date = new Date(timestamp);
+        return isNaN(date.getTime()) ? new Date() : date;
+      }
+      
+      // Firebase Timestamp 형태의 객체
+      if (timestamp && typeof timestamp === 'object' && timestamp.seconds) {
+        return new Date(timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000);
+      }
+      
+      // 숫자 형태
+      if (typeof timestamp === 'number') {
+        const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
+        return isNaN(date.getTime()) ? new Date() : date;
+      }
+      
+      return new Date();
+    } catch (error) {
+      console.warn('Timestamp 변환 실패, 기본값 사용:', error);
+      return new Date();
+    }
+  }
+
   // 수동 동기화 (사용자가 직접 호출)
   async manualSync(): Promise<void> {
     try {
@@ -902,7 +1040,7 @@ class FirebaseSync {
       
       // 1. Firebase에서 최신 데이터 가져오기
       console.log('📥 Firebase에서 최신 데이터 가져오는 중...');
-      const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'asc'));
+      const q = query(collection(db, COLLECTION_NAME));
       const querySnapshot = await getDocs(q);
       
       console.log(`📊 Firebase에서 ${querySnapshot.docs.length}개 매물 발견`);
@@ -914,7 +1052,7 @@ class FirebaseSync {
         const property: Property = {
           ...data,
           id: doc.id,
-          createdAt: data.createdAt?.toDate() || new Date(),
+          createdAt: this.safeConvertTimestamp(data.createdAt),
         } as Property;
         firebaseProperties.push(property);
       });

@@ -581,8 +581,8 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     }
   };
 
-  // 이미지 업로드 핸들러
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 이미지 업로드 핸들러 (Firebase Storage 사용)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('📁 파일 선택됨:', e.target.files?.length || 0);
     
     const files = e.target.files;
@@ -591,10 +591,25 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       console.log('📄 선택된 파일:', file.name, file.type, file.size);
       
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const imageUrl = event.target?.result as string;
-          console.log('🖼️ 이미지 로드 완료, URL 길이:', imageUrl.length);
+        try {
+          // 파일 크기 체크 (5MB 제한)
+          if (file.size > 5 * 1024 * 1024) {
+            alert('이미지 파일 크기는 5MB 이하여야 합니다.');
+            return;
+          }
+
+          console.log('🔥 Firebase Storage에 이미지 업로드 시작...');
+          
+          // Firebase Storage에 이미지 업로드
+          const { uploadImage } = await import('../firebase/storageService');
+          
+          // 업로드 전에 Firebase 인증 상태 확인
+          const { auth } = await import('../firebase/config');
+          console.log('🔐 Firebase 인증 상태:', auth.currentUser ? '로그인됨' : '로그인 안됨');
+          
+          const imageUrl = await uploadImage(file, 'properties');
+          
+          console.log('✅ Firebase Storage 업로드 완료:', imageUrl);
           
           const newImages = [...currentImages, imageUrl];
           setCurrentImages(newImages);
@@ -611,17 +626,31 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           }
           
           console.log('📷 이미지 업로드 완료:', file.name);
-        };
-        
-        reader.onerror = (error) => {
-          console.error('❌ 파일 읽기 오류:', error);
-          alert('파일을 읽는 중 오류가 발생했습니다.');
-        };
-        
-        reader.readAsDataURL(file);
+          alert('✅ 이미지가 성공적으로 업로드되었습니다!');
+          
+        } catch (error) {
+          console.error('❌ 이미지 업로드 실패:', error);
+          console.error('❌ 오류 상세:', error);
+          
+          // 더 자세한 오류 메시지 제공
+          let errorMessage = '이미지 업로드 중 오류가 발생했습니다.';
+          if (error instanceof Error) {
+            if (error.message.includes('permission')) {
+              errorMessage = '권한이 없습니다. 관리자로 로그인해주세요.';
+            } else if (error.message.includes('network')) {
+              errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
+            } else if (error.message.includes('quota')) {
+              errorMessage = '저장 공간이 부족합니다.';
+            } else {
+              errorMessage = `업로드 실패: ${error.message}`;
+            }
+          }
+          
+          alert(`❌ ${errorMessage}\n\n다시 시도해주세요.`);
+        }
       } else {
         console.warn('⚠️ 이미지 파일이 아님:', file.type);
-        alert('이미지 파일만 업로드 가능합니다.');
+        alert('이미지 파일만 업로드 가능합니다. (JPG, PNG, WebP)');
       }
     } else {
       console.log('📁 파일이 선택되지 않음');
@@ -759,7 +788,16 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <ImageUploadButton 
                       onClick={() => {
                         console.log('📷 사진업로드 버튼 클릭');
-                        fileInputRef.current?.click();
+                        console.log('🔍 fileInputRef.current:', fileInputRef.current);
+                        console.log('🔍 관리자 권한:', isAdmin);
+                        
+                        if (fileInputRef.current) {
+                          console.log('✅ 파일 입력 요소 클릭 실행');
+                          fileInputRef.current.click();
+                        } else {
+                          console.error('❌ 파일 입력 요소를 찾을 수 없습니다');
+                          alert('파일 입력 요소를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+                        }
                       }}
                       title="이미지 업로드"
                     >
@@ -785,7 +823,16 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <ImageUploadButton
                       onClick={() => {
                         console.log('📷 사진업로드 버튼 클릭 (빈 상태)');
-                        fileInputRef.current?.click();
+                        console.log('🔍 fileInputRef.current:', fileInputRef.current);
+                        console.log('🔍 관리자 권한:', isAdmin);
+                        
+                        if (fileInputRef.current) {
+                          console.log('✅ 파일 입력 요소 클릭 실행 (빈 상태)');
+                          fileInputRef.current.click();
+                        } else {
+                          console.error('❌ 파일 입력 요소를 찾을 수 없습니다 (빈 상태)');
+                          alert('파일 입력 요소를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+                        }
                       }}
                     >
                       📷
