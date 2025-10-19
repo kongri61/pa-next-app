@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import * as XLSX from 'xlsx';
 import { Property } from '../types';
+import { uploadImage, validateFile } from '../firebase/storageService';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -19,12 +20,18 @@ const ModalOverlay = styled.div`
 const ModalContent = styled.div`
   background: white;
   border-radius: 12px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
+  padding: 1.5rem;
+  width: 95%;
+  max-width: 500px;
+  max-height: 95vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  @media (max-width: 768px) {
+    width: 98%;
+    padding: 1rem;
+    max-height: 98vh;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -269,6 +276,240 @@ const CoordinateExample = styled.div`
   color: #1e40af;
 `;
 
+// 개별 매물 등록을 위한 스타일드 컴포넌트들
+const ModeSelector = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1rem;
+`;
+
+const ModeButton = styled.button<{ active: boolean }>`
+  padding: 0.75rem 1.5rem;
+  border: 2px solid ${props => props.active ? '#2563eb' : '#d1d5db'};
+  border-radius: 8px;
+  background: ${props => props.active ? '#eff6ff' : 'white'};
+  color: ${props => props.active ? '#2563eb' : '#6b7280'};
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #2563eb;
+  }
+`;
+
+const FormSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const Label = styled.label`
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+`;
+
+const Input = styled.input`
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+`;
+
+const TextArea = styled.textarea`
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  min-height: 80px;
+  resize: vertical;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+`;
+
+const Select = styled.select`
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+`;
+
+const CheckboxGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+`;
+
+const Checkbox = styled.input`
+  width: 1rem;
+  height: 1rem;
+  accent-color: #2563eb;
+`;
+
+const ImageUploadSection = styled.div`
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  background: #f9fafb;
+  transition: all 0.2s;
+  cursor: pointer;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  &:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+    min-height: 60px;
+  }
+`;
+
+const ImageUploadText = styled.p`
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+  font-weight: 500;
+`;
+
+const ImageUploadSubtext = styled.p`
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+`;
+
+const ImagePreview = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.5rem;
+  }
+`;
+
+const ImageItem = styled.div`
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  aspect-ratio: 1;
+`;
+
+const Image = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const RemoveButton = styled.button`
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(220, 38, 38, 0.9);
+  }
+`;
+
+const SubmitButton = styled.button`
+  background: #10b981;
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  &:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+  }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+`;
+
 
 interface AddPropertyModalProps {
   onClose: () => void;
@@ -282,6 +523,34 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 개별 매물 등록을 위한 상태
+  const [isIndividualMode, setIsIndividualMode] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    price: '',
+    deposit: '',
+    rentPrice: '',
+    type: 'sale' as 'sale' | 'rent',
+    propertyType: 'commercial' as 'commercial' | 'office' | 'building' | 'other',
+    address: '',
+    lat: '',
+    lng: '',
+    bedrooms: '',
+    bathrooms: '',
+    area: '',
+    contactName: '',
+    contactPhone: '',
+    contactEmail: '',
+    floor: '',
+    parking: false,
+    elevator: false,
+    confirmedDate: ''
+  });
+  const [images, setImages] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -328,6 +597,219 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  // 개별 매물 등록 핸들러들
+  const handleFormChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+      console.log('⚠️ 파일이 선택되지 않음');
+      return;
+    }
+
+    const file = files[0];
+    console.log('📁 이미지 파일 선택됨:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
+
+    if (!file.type.startsWith('image/')) {
+      console.error('❌ 이미지 파일이 아님:', file.type);
+      alert('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    // 파일 검증
+    console.log('🔍 파일 검증 시작...');
+    const validation = await validateFile(file, 5, ['image/jpeg', 'image/png', 'image/webp']);
+    if (!validation.isValid) {
+      console.error('❌ 파일 검증 실패:', validation.error);
+      alert(validation.error);
+      return;
+    }
+    console.log('✅ 파일 검증 통과');
+
+    setIsUploadingImages(true);
+    try {
+      console.log('🔥 이미지 업로드 시작...');
+      const imageUrl = await uploadImage(file, 'properties');
+      console.log('✅ 이미지 업로드 완료:', imageUrl);
+      
+      setImages(prev => {
+        const newImages = [...prev, imageUrl];
+        console.log('📸 이미지 목록 업데이트:', newImages.length, '개');
+        return newImages;
+      });
+      console.log('✅ 이미지가 성공적으로 추가되었습니다!');
+    } catch (error) {
+      console.error('❌ 이미지 업로드 실패:', error);
+      alert(`이미지 업로드에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+    } finally {
+      setIsUploadingImages(false);
+      // 파일 입력 초기화 (같은 파일을 다시 선택할 수 있도록)
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleImageRemove = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImageUploadClick = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleIndividualSubmit = async () => {
+    // 필수 필드 검증
+    if (!formData.title.trim()) {
+      alert('매물 제목을 입력해주세요.');
+      return;
+    }
+    if (!formData.address.trim()) {
+      alert('주소를 입력해주세요.');
+      return;
+    }
+    if (!formData.price.trim()) {
+      alert('가격을 입력해주세요.');
+      return;
+    }
+
+    try {
+      // 매물 ID 생성 (P001, P002, ...)
+      const existingIds = await getExistingPropertyIds();
+      const newId = generatePropertyId(existingIds);
+
+      // 좌표 처리
+      let lat = parseFloat(formData.lat) || 0;
+      let lng = parseFloat(formData.lng) || 0;
+
+      // 좌표가 없으면 주소로 변환 시도
+      if (lat === 0 && lng === 0) {
+        const coordinates = await convertAddressToCoordinates(formData.address);
+        if (coordinates) {
+          lat = coordinates.lat;
+          lng = coordinates.lng;
+        } else {
+          // 기본 좌표 사용 (인천 중심)
+          lat = 37.4563;
+          lng = 126.7052;
+        }
+      }
+
+      const property: Property = {
+        id: newId,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        price: parseFloat(formData.price),
+        deposit: formData.deposit ? parseFloat(formData.deposit) : undefined,
+        rentPrice: formData.rentPrice ? parseFloat(formData.rentPrice) : undefined,
+        type: formData.type,
+        propertyType: formData.propertyType,
+        address: formData.address.trim(),
+        location: { lat, lng },
+        bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : undefined,
+        bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : undefined,
+        area: formData.area ? parseFloat(formData.area) : 0,
+        images: images,
+        contact: {
+          name: formData.contactName.trim() || '중개소',
+          phone: formData.contactPhone.trim() || '02-0000-0000',
+          email: formData.contactEmail.trim() || 'contact@realestate.com'
+        },
+        features: [],
+        createdAt: new Date(),
+        isActive: true,
+        confirmedDate: formData.confirmedDate || undefined,
+        floor: formData.floor || undefined,
+        parking: formData.parking,
+        elevator: formData.elevator
+      };
+
+      console.log('🏠 개별 매물 등록:', property);
+
+      if (onPropertyAdded) {
+        onPropertyAdded([property]);
+      }
+
+      alert('✅ 매물이 성공적으로 등록되었습니다!');
+      onClose();
+    } catch (error) {
+      console.error('❌ 개별 매물 등록 실패:', error);
+      alert(`매물 등록에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+    }
+  };
+
+  // 기존 매물 ID 조회 (Firebase에서 실제 조회)
+  const getExistingPropertyIds = async (): Promise<string[]> => {
+    try {
+      const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+      const db = getFirestore();
+      
+      const querySnapshot = await getDocs(collection(db, 'properties'));
+      const existingIds = querySnapshot.docs.map(doc => doc.id);
+      
+      console.log('📊 기존 매물 ID들:', existingIds);
+      return existingIds;
+    } catch (error) {
+      console.error('❌ 기존 매물 ID 조회 실패:', error);
+      return [];
+    }
+  };
+
+  // 매물 ID 생성
+  const generatePropertyId = (existingIds: string[]): string => {
+    let counter = 1;
+    let newId = `P${counter.toString().padStart(3, '0')}`;
+    
+    while (existingIds.includes(newId)) {
+      counter++;
+      newId = `P${counter.toString().padStart(3, '0')}`;
+    }
+    
+    return newId;
+  };
+
+  // 주소를 좌표로 변환하는 함수 (기존 코드에서 가져옴)
+  const convertAddressToCoordinates = async (address: string): Promise<{lat: number, lng: number} | null> => {
+    try {
+      console.log(`주소 변환 시작: "${address}"`);
+      
+      if (!address || address.trim() === '') {
+        return null;
+      }
+
+      // Google Geocoding API 시도
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'AIzaSyCgPbhfAQ9gZbn4SVZIJoiLeHeIZek3-Pk'}&language=ko&region=KR&components=country:KR`
+      );
+      
+      if (!response.ok) {
+        return null;
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        const result = data.results[0];
+        return {
+          lat: result.geometry.location.lat,
+          lng: result.geometry.location.lng
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('좌표 변환 오류:', error);
+      return null;
+    }
   };
 
   const downloadTemplate = () => {
@@ -1251,109 +1733,390 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
     <ModalOverlay onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>대량 매물 등록</ModalTitle>
+          <ModalTitle>매물 등록</ModalTitle>
           <CloseButton onClick={onClose}>&times;</CloseButton>
         </ModalHeader>
 
-        <UploadSection>
-          <TemplateSection>
-            <TemplateTitle>📋 엑셀 템플릿 다운로드</TemplateTitle>
-            <TemplateDescription>
-              매물 정보를 입력할 수 있는 엑셀 템플릿을 다운로드하세요.
-              템플릿에 맞춰 데이터를 입력한 후 업로드하시면 됩니다.
-            </TemplateDescription>
-            
-            <CoordinateGuideSection>
-              <CoordinateGuideTitle>🎯 정확한 좌표 입력 방법</CoordinateGuideTitle>
-              <CoordinateGuideText>
-                <strong>방법 1: 직접 좌표 입력 (권장)</strong>
-              </CoordinateGuideText>
-              <CoordinateGuideText>
-                • 위도/경도 컬럼에 정확한 좌표를 직접 입력하세요
-                • 지원 컬럼명: 위도, latitude, lat, y좌표, y, 좌표y / 경도, longitude, lng, lon, x좌표, x, 좌표x
-                • 직접 좌표가 있으면 주소 변환을 건너뛰고 정확한 위치에 마커가 표시됩니다
-              </CoordinateGuideText>
-              <CoordinateExample>
-                위도: 37.435457100952576<br/>
-                경도: 126.75222698988563
-              </CoordinateExample>
-              
-              <CoordinateGuideText>
-                <strong>방법 2: 주소 자동 변환</strong>
-              </CoordinateGuideText>
-              <CoordinateGuideText>
-                • 위도/경도를 비워두거나 0으로 입력하면 주소로 자동 변환됩니다
-                • 정확한 주소를 입력하세요 (예: "인천시 남동구 서창동 538")
-              </CoordinateGuideText>
-            </CoordinateGuideSection>
-            <TemplateButton onClick={downloadTemplate}>
-              📥 엑셀 템플릿 다운로드
-            </TemplateButton>
-          </TemplateSection>
-
-          <FileUploadArea
-            isDragOver={isDragOver}
-            hasFile={!!selectedFile}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={handleUploadClick}
+        <ModeSelector>
+          <ModeButton 
+            active={!isIndividualMode} 
+            onClick={() => setIsIndividualMode(false)}
           >
-            <UploadIcon>📁</UploadIcon>
-            <UploadText>
-              {selectedFile ? '파일이 선택되었습니다' : '엑셀 파일을 드래그하거나 클릭하여 업로드'}
-            </UploadText>
-            <UploadSubtext>
-              {selectedFile ? '다른 파일로 변경하려면 클릭하세요' : '지원 형식: .xlsx, .xls'}
-            </UploadSubtext>
-            
-            {selectedFile && (
-              <FileInfo>
-                <FileIcon>📄</FileIcon>
-                <div>
-                  <FileName>{selectedFile.name}</FileName>
-                  <FileSize> ({formatFileSize(selectedFile.size)})</FileSize>
-                </div>
-              </FileInfo>
-            )}
-          </FileUploadArea>
+            📊 대량 등록 (엑셀)
+          </ModeButton>
+          <ModeButton 
+            active={isIndividualMode} 
+            onClick={() => setIsIndividualMode(true)}
+          >
+            🏠 개별 등록
+          </ModeButton>
+        </ModeSelector>
 
-          <FileInput
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleFileSelect}
-          />
+        {isIndividualMode ? (
+          <FormSection>
+            {/* 기본 정보 */}
+            <FormGroup>
+              <Label>매물 제목 *</Label>
+              <Input
+                type="text"
+                value={formData.title}
+                onChange={(e) => handleFormChange('title', e.target.value)}
+                placeholder="예: 강남구 역삼동 상가"
+              />
+            </FormGroup>
 
-          <ProgressSection className={isUploading ? 'visible' : ''}>
-            <ProgressText>업로드 중... {uploadProgress}%</ProgressText>
-          </ProgressSection>
+            <FormGroup>
+              <Label>매물 설명</Label>
+              <TextArea
+                value={formData.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                placeholder="매물에 대한 상세 설명을 입력하세요"
+              />
+            </FormGroup>
 
-          {error && (
-            <div style={{
-              padding: '10px',
-              background: '#fee',
-              color: '#c33',
-              borderRadius: '4px',
-              marginBottom: '10px',
-              fontSize: '14px'
-            }}>
-              ❌ {error}
-            </div>
-          )}
+            <FormRow>
+              <FormGroup>
+                <Label>거래 유형 *</Label>
+                <Select
+                  value={formData.type}
+                  onChange={(e) => handleFormChange('type', e.target.value)}
+                >
+                  <option value="sale">매매</option>
+                  <option value="rent">임대</option>
+                </Select>
+              </FormGroup>
+              <FormGroup>
+                <Label>매물 종류 *</Label>
+                <Select
+                  value={formData.propertyType}
+                  onChange={(e) => handleFormChange('propertyType', e.target.value)}
+                >
+                  <option value="commercial">상가</option>
+                  <option value="office">사무실</option>
+                  <option value="building">건물</option>
+                  <option value="other">기타</option>
+                </Select>
+              </FormGroup>
+            </FormRow>
 
-          <ButtonGroup>
-            <Button 
-              onClick={handleUpload}
-              disabled={!selectedFile || isUploading}
+            {/* 가격 정보 */}
+            <FormRow>
+              <FormGroup>
+                <Label>{formData.type === 'sale' ? '매매가 (억원) *' : '매매가 (억원)'}</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={formData.price}
+                  onChange={(e) => handleFormChange('price', e.target.value)}
+                  placeholder="8.5"
+                  disabled={formData.type === 'rent'}
+                />
+              </FormGroup>
+              {formData.type === 'rent' && (
+                <>
+                  <FormGroup>
+                    <Label>보증금 (만원)</Label>
+                    <Input
+                      type="number"
+                      value={formData.deposit}
+                      onChange={(e) => handleFormChange('deposit', e.target.value)}
+                      placeholder="1000"
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>월세 (만원)</Label>
+                    <Input
+                      type="number"
+                      value={formData.rentPrice}
+                      onChange={(e) => handleFormChange('rentPrice', e.target.value)}
+                      placeholder="50"
+                    />
+                  </FormGroup>
+                </>
+              )}
+            </FormRow>
+
+            {/* 주소 및 좌표 */}
+            <FormGroup>
+              <Label>주소 *</Label>
+              <Input
+                type="text"
+                value={formData.address}
+                onChange={(e) => handleFormChange('address', e.target.value)}
+                placeholder="예: 서울시 강남구 역삼동 123-45"
+              />
+            </FormGroup>
+
+            <FormRow>
+              <FormGroup>
+                <Label>위도 (선택사항)</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={formData.lat}
+                  onChange={(e) => handleFormChange('lat', e.target.value)}
+                  placeholder="37.5008"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label>경도 (선택사항)</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={formData.lng}
+                  onChange={(e) => handleFormChange('lng', e.target.value)}
+                  placeholder="127.0374"
+                />
+              </FormGroup>
+            </FormRow>
+
+            {/* 면적 및 방 정보 */}
+            <FormRow>
+              <FormGroup>
+                <Label>면적 (㎡)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={formData.area}
+                  onChange={(e) => handleFormChange('area', e.target.value)}
+                  placeholder="84.5"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label>방/화장실</Label>
+                <Input
+                  type="text"
+                  value={`${formData.bedrooms}/${formData.bathrooms}`}
+                  onChange={(e) => {
+                    const [bedrooms, bathrooms] = e.target.value.split('/');
+                    handleFormChange('bedrooms', bedrooms || '');
+                    handleFormChange('bathrooms', bathrooms || '');
+                  }}
+                  placeholder="3/2"
+                />
+              </FormGroup>
+            </FormRow>
+
+            <FormRow>
+              <FormGroup>
+                <Label>층수</Label>
+                <Input
+                  type="text"
+                  value={formData.floor}
+                  onChange={(e) => handleFormChange('floor', e.target.value)}
+                  placeholder="3/15층"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label>확인매물 날짜</Label>
+                <Input
+                  type="text"
+                  value={formData.confirmedDate}
+                  onChange={(e) => handleFormChange('confirmedDate', e.target.value)}
+                  placeholder="25.07.19"
+                />
+              </FormGroup>
+            </FormRow>
+
+            {/* 옵션 */}
+            <CheckboxGroup>
+              <CheckboxLabel>
+                <Checkbox
+                  type="checkbox"
+                  checked={formData.parking}
+                  onChange={(e) => handleFormChange('parking', e.target.checked)}
+                />
+                주차 가능
+              </CheckboxLabel>
+              <CheckboxLabel>
+                <Checkbox
+                  type="checkbox"
+                  checked={formData.elevator}
+                  onChange={(e) => handleFormChange('elevator', e.target.checked)}
+                />
+                엘리베이터
+              </CheckboxLabel>
+            </CheckboxGroup>
+
+            {/* 연락처 정보 */}
+            <FormRow>
+              <FormGroup>
+                <Label>연락처 이름</Label>
+                <Input
+                  type="text"
+                  value={formData.contactName}
+                  onChange={(e) => handleFormChange('contactName', e.target.value)}
+                  placeholder="김부동산"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label>연락처 전화번호</Label>
+                <Input
+                  type="tel"
+                  value={formData.contactPhone}
+                  onChange={(e) => handleFormChange('contactPhone', e.target.value)}
+                  placeholder="02-1234-5678"
+                />
+              </FormGroup>
+            </FormRow>
+
+            <FormGroup>
+              <Label>연락처 이메일</Label>
+              <Input
+                type="email"
+                value={formData.contactEmail}
+                onChange={(e) => handleFormChange('contactEmail', e.target.value)}
+                placeholder="kim@realestate.com"
+              />
+            </FormGroup>
+
+            {/* 이미지 업로드 */}
+            <FormGroup>
+              <Label>매물 사진</Label>
+              <ImageUploadSection onClick={handleImageUploadClick}>
+                <ImageUploadText>
+                  {isUploadingImages ? '📤 업로드 중...' : '📷 사진을 추가하려면 클릭하세요'}
+                </ImageUploadText>
+                <ImageUploadSubtext>
+                  {isUploadingImages ? '잠시만 기다려주세요' : 'JPG, PNG, WebP 형식, 최대 5MB'}
+                </ImageUploadSubtext>
+              </ImageUploadSection>
+
+              {images.length > 0 && (
+                <ImagePreview>
+                  {images.map((imageUrl, index) => (
+                    <ImageItem key={index}>
+                      <Image src={imageUrl} alt={`매물 사진 ${index + 1}`} />
+                      <RemoveButton onClick={() => handleImageRemove(index)}>
+                        ×
+                      </RemoveButton>
+                    </ImageItem>
+                  ))}
+                </ImagePreview>
+              )}
+
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
+            </FormGroup>
+
+            <ButtonGroup>
+              <SubmitButton 
+                onClick={handleIndividualSubmit}
+                disabled={isUploadingImages}
+              >
+                {isUploadingImages ? '업로드 중...' : '매물 등록'}
+              </SubmitButton>
+              <CancelButton onClick={onClose}>
+                취소
+              </CancelButton>
+            </ButtonGroup>
+          </FormSection>
+        ) : (
+          <UploadSection>
+            <TemplateSection>
+              <TemplateTitle>📋 엑셀 템플릿 다운로드</TemplateTitle>
+              <TemplateDescription>
+                매물 정보를 입력할 수 있는 엑셀 템플릿을 다운로드하세요.
+                템플릿에 맞춰 데이터를 입력한 후 업로드하시면 됩니다.
+              </TemplateDescription>
+              
+              <CoordinateGuideSection>
+                <CoordinateGuideTitle>🎯 정확한 좌표 입력 방법</CoordinateGuideTitle>
+                <CoordinateGuideText>
+                  <strong>방법 1: 직접 좌표 입력 (권장)</strong>
+                </CoordinateGuideText>
+                <CoordinateGuideText>
+                  • 위도/경도 컬럼에 정확한 좌표를 직접 입력하세요
+                  • 지원 컬럼명: 위도, latitude, lat, y좌표, y, 좌표y / 경도, longitude, lng, lon, x좌표, x, 좌표x
+                  • 직접 좌표가 있으면 주소 변환을 건너뛰고 정확한 위치에 마커가 표시됩니다
+                </CoordinateGuideText>
+                <CoordinateExample>
+                  위도: 37.435457100952576<br/>
+                  경도: 126.75222698988563
+                </CoordinateExample>
+                
+                <CoordinateGuideText>
+                  <strong>방법 2: 주소 자동 변환</strong>
+                </CoordinateGuideText>
+                <CoordinateGuideText>
+                  • 위도/경도를 비워두거나 0으로 입력하면 주소로 자동 변환됩니다
+                  • 정확한 주소를 입력하세요 (예: "인천시 남동구 서창동 538")
+                </CoordinateGuideText>
+              </CoordinateGuideSection>
+              <TemplateButton onClick={downloadTemplate}>
+                📥 엑셀 템플릿 다운로드
+              </TemplateButton>
+            </TemplateSection>
+
+            <FileUploadArea
+              isDragOver={isDragOver}
+              hasFile={!!selectedFile}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={handleUploadClick}
             >
-              {isUploading ? '업로드 중...' : '매물 등록'}
-            </Button>
-            <CancelButton onClick={onClose}>
-              취소
-            </CancelButton>
-          </ButtonGroup>
-        </UploadSection>
+              <UploadIcon>📁</UploadIcon>
+              <UploadText>
+                {selectedFile ? '파일이 선택되었습니다' : '엑셀 파일을 드래그하거나 클릭하여 업로드'}
+              </UploadText>
+              <UploadSubtext>
+                {selectedFile ? '다른 파일로 변경하려면 클릭하세요' : '지원 형식: .xlsx, .xls'}
+              </UploadSubtext>
+              
+              {selectedFile && (
+                <FileInfo>
+                  <FileIcon>📄</FileIcon>
+                  <div>
+                    <FileName>{selectedFile.name}</FileName>
+                    <FileSize> ({formatFileSize(selectedFile.size)})</FileSize>
+                  </div>
+                </FileInfo>
+              )}
+            </FileUploadArea>
+
+            <FileInput
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileSelect}
+            />
+
+            <ProgressSection className={isUploading ? 'visible' : ''}>
+              <ProgressText>업로드 중... {uploadProgress}%</ProgressText>
+            </ProgressSection>
+
+            {error && (
+              <div style={{
+                padding: '10px',
+                background: '#fee',
+                color: '#c33',
+                borderRadius: '4px',
+                marginBottom: '10px',
+                fontSize: '14px'
+              }}>
+                ❌ {error}
+              </div>
+            )}
+
+            <ButtonGroup>
+              <Button 
+                onClick={handleUpload}
+                disabled={!selectedFile || isUploading}
+              >
+                {isUploading ? '업로드 중...' : '매물 등록'}
+              </Button>
+              <CancelButton onClick={onClose}>
+                취소
+              </CancelButton>
+            </ButtonGroup>
+          </UploadSection>
+        )}
       </ModalContent>
     </ModalOverlay>
   );
