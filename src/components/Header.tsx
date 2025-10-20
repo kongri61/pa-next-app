@@ -1073,7 +1073,7 @@ const Header: React.FC<HeaderProps> = ({
       setAreaRange({ min: '', max: '' });
     }
 
-    // App.tsx로 필터 값 전달 - HomePage.tsx에서 기대하는 형식으로 변환
+    // App.tsx로 필터 값 전달 - 단일 값과 범위를 구분하여 전달
     let filterValue = '';
     if (newSelectedAreas.length === 1) {
       if (newSelectedAreas[0] === '~5평') {
@@ -1081,7 +1081,8 @@ const Header: React.FC<HeaderProps> = ({
       } else if (newSelectedAreas[0] === '200평~') {
         filterValue = '200평~최대값';
       } else {
-        filterValue = `${newSelectedAreas[0]}~${newSelectedAreas[0]}`;
+        // 단일 값은 "10평" 형식으로 전달 (범위가 아님)
+        filterValue = newSelectedAreas[0];
       }
     } else if (newSelectedAreas.length === 2) {
       const sorted = newSelectedAreas.sort((a, b) => {
@@ -1564,12 +1565,14 @@ const Header: React.FC<HeaderProps> = ({
                             filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
                           }
                         } else if (newAreaRange.min) {
-                          filterValue = `${newAreaRange.min}~${newAreaRange.min}`;
+                          // 단일 값은 "10평" 형식으로 전달
+                          filterValue = newAreaRange.min;
                         } else if (newAreaRange.max) {
                           if (newAreaRange.max === '최대값') {
                             filterValue = `0~최대값`;
                           } else {
-                            filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                            // 단일 값은 "10평" 형식으로 전달
+                            filterValue = newAreaRange.max;
                           }
                         }
                         
@@ -1599,12 +1602,14 @@ const Header: React.FC<HeaderProps> = ({
                             filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
                           }
                         } else if (newAreaRange.min) {
-                          filterValue = `${newAreaRange.min}~${newAreaRange.min}`;
+                          // 단일 값은 "10평" 형식으로 전달
+                          filterValue = newAreaRange.min;
                         } else if (newAreaRange.max) {
                           if (newAreaRange.max === '최대값') {
                             filterValue = `0~최대값`;
                           } else {
-                            filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                            // 단일 값은 "10평" 형식으로 전달
+                            filterValue = newAreaRange.max;
                           }
                         }
                         
