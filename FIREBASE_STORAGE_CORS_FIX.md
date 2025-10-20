@@ -94,3 +94,5 @@ service firebase.storage {
 2. **Console 탭**: 오류 메시지 확인
 3. **Application 탭**: IndexedDB에 저장된 데이터 확인
 
+
+

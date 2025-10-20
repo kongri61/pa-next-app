@@ -1026,11 +1026,16 @@ const Header: React.FC<HeaderProps> = ({
     let newSelectedAreas = [...selectedAreas];
     
     if (newSelectedAreas.includes(area)) {
+      // 이미 선택된 버튼을 클릭하면 선택 해제
       newSelectedAreas = newSelectedAreas.filter(a => a !== area);
     } else {
+      // 새로운 버튼을 선택
       if (newSelectedAreas.length >= 2) {
-        newSelectedAreas = [newSelectedAreas[1], area];
+        // 이미 2개가 선택된 상태에서 새로운 버튼을 선택하면
+        // 가장 오래된 선택을 제거하고 새로운 선택을 추가
+        newSelectedAreas = [newSelectedAreas[0], area];
       } else {
+        // 2개 미만이 선택된 상태면 그냥 추가
         newSelectedAreas.push(area);
       }
     }
@@ -1068,16 +1073,44 @@ const Header: React.FC<HeaderProps> = ({
       setAreaRange({ min: '', max: '' });
     }
 
-    // App.tsx로 필터 값 전달 - "~5평"을 "0,5"로 변환하여 전달
-    const processedAreas = newSelectedAreas.map(area => {
-      if (area === '~5평') return '0,5';
-      if (area === '200평~') return '200,999';
-      return area.replace(/[평~]/g, '');
-    });
+    // App.tsx로 필터 값 전달 - HomePage.tsx에서 기대하는 형식으로 변환
+    let filterValue = '';
+    if (newSelectedAreas.length === 1) {
+      if (newSelectedAreas[0] === '~5평') {
+        filterValue = '0평~5평';
+      } else if (newSelectedAreas[0] === '200평~') {
+        filterValue = '200평~최대값';
+      } else {
+        filterValue = `${newSelectedAreas[0]}~${newSelectedAreas[0]}`;
+      }
+    } else if (newSelectedAreas.length === 2) {
+      const sorted = newSelectedAreas.sort((a, b) => {
+        const aValue = parseInt(a.replace(/[평~]/g, ''));
+        const bValue = parseInt(b.replace(/[평~]/g, ''));
+        return aValue - bValue;
+      });
+      
+      let minValue = sorted[0];
+      let maxValue = sorted[1];
+      
+      if (sorted[0] === '~5평') {
+        minValue = '0평';
+      } else if (!minValue.includes('평')) {
+        minValue = `${minValue}평`;
+      }
+      
+      if (sorted[1] === '200평~') {
+        maxValue = '최대값';
+      } else if (!maxValue.includes('평')) {
+        maxValue = `${maxValue}평`;
+      }
+      
+      filterValue = `${minValue}~${maxValue}`;
+    }
     
     const newFilters = {
       ...filters,
-      area: processedAreas.length > 0 ? `${processedAreas.join(',')}` : ''
+      area: filterValue
     };
     onFilterChange?.(newFilters);
     
@@ -1524,11 +1557,20 @@ const Header: React.FC<HeaderProps> = ({
                         // 입력 필드 값이 변경될 때마다 필터 업데이트
                         let filterValue = '';
                         if (newAreaRange.min && newAreaRange.max) {
-                          filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
+                          // 최대값이 '최대값'인 경우 특별 처리
+                          if (newAreaRange.max === '최대값') {
+                            filterValue = `${newAreaRange.min}~최대값`;
+                          } else {
+                            filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
+                          }
                         } else if (newAreaRange.min) {
                           filterValue = `${newAreaRange.min}~${newAreaRange.min}`;
                         } else if (newAreaRange.max) {
-                          filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                          if (newAreaRange.max === '최대값') {
+                            filterValue = `0~최대값`;
+                          } else {
+                            filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                          }
                         }
                         
                         const newFilters = {
@@ -1550,11 +1592,20 @@ const Header: React.FC<HeaderProps> = ({
                         // 입력 필드 값이 변경될 때마다 필터 업데이트
                         let filterValue = '';
                         if (newAreaRange.min && newAreaRange.max) {
-                          filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
+                          // 최대값이 '최대값'인 경우 특별 처리
+                          if (newAreaRange.max === '최대값') {
+                            filterValue = `${newAreaRange.min}~최대값`;
+                          } else {
+                            filterValue = `${newAreaRange.min}~${newAreaRange.max}`;
+                          }
                         } else if (newAreaRange.min) {
                           filterValue = `${newAreaRange.min}~${newAreaRange.min}`;
                         } else if (newAreaRange.max) {
-                          filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                          if (newAreaRange.max === '최대값') {
+                            filterValue = `0~최대값`;
+                          } else {
+                            filterValue = `${newAreaRange.max}~${newAreaRange.max}`;
+                          }
                         }
                         
                         const newFilters = {

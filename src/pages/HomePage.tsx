@@ -914,12 +914,13 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       console.log('면적 필터 적용:', filters.area);
       
       if (filters.area.includes('~')) {
-        // 범위 형식 (예: "10평~20평")
+        // 범위 형식 (예: "10평~20평", "10평~최대값", "10평~10평")
         const parts = filters.area.split('~');
         console.log('면적 범위 파트:', parts);
         if (parts.length === 2) {
           const min = parseFloat(parts[0].replace(/[~평]/g, ''));
-          const max = parseFloat(parts[1].replace(/[~평]/g, ''));
+          const maxStr = parts[1].replace(/[~평]/g, '');
+          const max = maxStr === '최대값' ? Infinity : parseFloat(maxStr);
           console.log('면적 범위 파싱 결과:', min, '~', max);
           console.log('면적 범위 타입:', typeof min, typeof max);
           console.log('면적 범위 유효성:', !isNaN(min), !isNaN(max));
@@ -928,9 +929,21 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             filtered = filtered.filter(property => {
               // property.area를 m²에서 평으로 변환
               const areaInPyeong = Math.round(property.area / 3.3058);
-              const isInRange = areaInPyeong >= min && areaInPyeong <= max;
-              console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 범위: ${min}~${max}평, 포함여부: ${isInRange}`);
-              return isInRange;
+              
+              // 단일 값 선택인 경우 (±1평 허용)
+              if (min === max) {
+                const tolerance = 1;
+                const minArea = min - tolerance;
+                const maxArea = min + tolerance;
+                const isMatch = areaInPyeong >= minArea && areaInPyeong <= maxArea;
+                console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 단일검색: ${min}평(±${tolerance}), 범위: ${minArea}~${maxArea}평, 일치여부: ${isMatch}`);
+                return isMatch;
+              } else {
+                // 범위 선택인 경우 (정확한 범위)
+                const isInRange = areaInPyeong >= min && areaInPyeong <= max;
+                console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 범위: ${min}~${max === Infinity ? '최대값' : max}평, 포함여부: ${isInRange}`);
+                return isInRange;
+              }
             });
           }
         }
