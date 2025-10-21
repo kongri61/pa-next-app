@@ -1034,7 +1034,7 @@ const Header: React.FC<HeaderProps> = ({
       // 이미 선택된 버튼을 클릭하면 선택 해제
       newSelectedAreas = newSelectedAreas.filter(a => a !== area);
     } else {
-      // 새로운 버튼을 선택
+      // 새로운 버튼을 선택 - 최대 2개까지만 허용
       if (newSelectedAreas.length >= 2) {
         // 이미 2개가 선택된 상태에서 새로운 버튼을 선택하면
         // 가장 오래된 선택을 제거하고 새로운 선택을 추가
@@ -1528,16 +1528,10 @@ const Header: React.FC<HeaderProps> = ({
                         key={area}
                         isSelected={selectedAreas.includes(area)}
                         isActive={(() => {
-                          if (areaRange.min === '' || areaRange.max === '') return false;
-                          
-                          // '~5평'과 '200평~' 특별 처리
-                          if (area === '~5평' && areaRange.min === '0') return true;
-                          if (area === '200평~' && areaRange.max === '최대값') return true;
-                          
-                          return areaRange.min === area || areaRange.max === area;
+                          // 선택된 버튼은 항상 파란색으로 표시
+                          return selectedAreas.includes(area);
                         })()}
                         isInRange={(() => {
-                          if (areaRange.min === '' || areaRange.max === '') return false;
                           if (selectedAreas.length !== 2) return false; // 두 개 버튼이 선택된 경우에만 범위 표시
                           
                           // '~5평'과 '200평~' 특별 처리 - 범위 표시 안함
