@@ -959,8 +959,12 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         filtered = filtered.filter(property => {
           // property.area를 평 단위로 변환
           const area = Math.round(property.area / 3.3058);
-          const isInRange = area >= min && area <= max;
-          console.log(`매물 ${property.id} 면적: ${area}평(${Math.round(property.area)}m²), 범위: ${min}~${max}평, 포함여부: ${isInRange}`);
+          
+          // 999는 무제한을 의미 (200평~ 버튼)
+          const actualMax = max === 999 ? Infinity : max;
+          const isInRange = area >= min && area <= actualMax;
+          
+          console.log(`매물 ${property.id} 면적: ${area}평(${Math.round(property.area)}m²), 범위: ${min}~${actualMax === Infinity ? '무제한' : actualMax}평, 포함여부: ${isInRange}`);
           return isInRange;
         });
       }
