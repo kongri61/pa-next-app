@@ -1104,6 +1104,7 @@ const Header: React.FC<HeaderProps> = ({
         filterValue = selectedArea;
       }
     } else if (newSelectedAreas.length === 2) {
+      // 두 개 선택된 경우 - 범위로 처리
       const sorted = newSelectedAreas.sort((a, b) => {
         const aValue = parseInt(a.replace(/[평~]/g, ''));
         const bValue = parseInt(b.replace(/[평~]/g, ''));
@@ -1113,14 +1114,14 @@ const Header: React.FC<HeaderProps> = ({
       let minValue = '';
       let maxValue = '';
       
-      // 최소값 처리
+      // 최소값 처리 - 특별 케이스 먼저 처리
       if (sorted[0] === '~5평') {
         minValue = '0평';
       } else {
         minValue = sorted[0];
       }
       
-      // 최대값 처리
+      // 최대값 처리 - 특별 케이스 먼저 처리
       if (sorted[1] === '200평~') {
         maxValue = '최대값';
       } else {
@@ -1135,16 +1136,8 @@ const Header: React.FC<HeaderProps> = ({
         maxValue: maxValue
       });
       
-      // 중복된 평 단위 제거 및 정리
-      minValue = minValue.replace(/평+/g, '평');
-      maxValue = maxValue.replace(/평+/g, '평');
-      
-      // 최종 필터 값 생성 - 깔끔한 형식으로
-      if (minValue === maxValue) {
-        filterValue = minValue; // 단일 값인 경우
-      } else {
-        filterValue = `${minValue}~${maxValue}`; // 범위인 경우
-      }
+      // 최종 필터 값 생성 - 단순하게
+      filterValue = `${minValue}~${maxValue}`;
       
       console.log('🔧 최종 필터 값:', filterValue);
       console.log('🔧 필터 값 길이:', filterValue.length);
