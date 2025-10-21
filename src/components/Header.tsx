@@ -1086,6 +1086,12 @@ const Header: React.FC<HeaderProps> = ({
       return area.replace(/[평~]/g, '');
     });
     
+    console.log('🔧 면적 필터 디버깅:', {
+      selectedAreas: newSelectedAreas,
+      processedAreas: processedAreas,
+      finalAreaValue: processedAreas.length > 0 ? `${processedAreas.join(',')}` : ''
+    });
+    
     const newFilters = {
       ...filters,
       area: processedAreas.length > 0 ? `${processedAreas.join(',')}` : ''

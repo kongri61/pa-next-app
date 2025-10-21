@@ -125,6 +125,30 @@ const seoulSampleProperties: Omit<Property, 'id' | 'createdAt'>[] = [
     floor: '5/20층',
     parking: true,
     elevator: true
+  },
+  {
+    title: '강남 대형 상가',
+    description: '강남에 위치한 대형 상가입니다. 212평 규모의 넓은 공간을 제공합니다.',
+    price: 5000000000, // 50억
+    type: 'sale',
+    propertyType: 'commercial',
+    address: '서울시 강남구 테헤란로 123-45',
+    location: { lat: 37.5665, lng: 127.0330 },
+    area: 700.0, // 212평 (700㎡)
+    bedrooms: 0,
+    bathrooms: 3,
+    images: ['/images/default-property.svg'],
+    contact: {
+      name: '강남부동산',
+      phone: '02-7777-9999',
+      email: 'gangnam@realestate.com'
+    },
+    features: ['강남역', '주차가능', '엘리베이터', '대형공간'],
+    isActive: true,
+    confirmedDate: '25.07.23',
+    floor: '1/30층',
+    parking: true,
+    elevator: true
   }
 ];
 
