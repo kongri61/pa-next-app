@@ -626,10 +626,10 @@ const Header: React.FC<HeaderProps> = ({
     // area 필터 동기화
     if (filters.area) {
       const areaArray = filters.area.split(',').filter(a => a.trim() !== '');
-      // "0,5" 형태를 "~5평" 형태로 변환
+      // "1" 형태를 "1평" 형태로 변환
       const convertedAreas = areaArray.map(area => {
-        if (area === '0') return '~5평';
-        if (area === '999') return '200평~';
+        if (area === '1') return '1평';
+        if (area === '200') return '200평~';
         return area + '평';
       });
       setSelectedAreas(convertedAreas);
@@ -1203,8 +1203,8 @@ const Header: React.FC<HeaderProps> = ({
     if (filterType === 'area') {
       if (selectedAreas.length === 1) {
         // 단일 값 선택 시
-        if (selectedAreas[0] === '~5평') {
-          return '0~5평';
+        if (selectedAreas[0] === '1평') {
+          return '1평';
         } else if (selectedAreas[0] === '200평~') {
           return '200평~';
         }
@@ -1216,12 +1216,12 @@ const Header: React.FC<HeaderProps> = ({
           return aValue - bValue;
         });
         
-        // 범위 표시 시 "~5평"을 "0"으로 변환
+        // 범위 표시 시 "1평"을 "1평"으로 유지
         let minDisplay = sorted[0];
         let maxDisplay = sorted[1];
         
-        if (sorted[0] === '~5평') {
-          minDisplay = '0';
+        if (sorted[0] === '1평') {
+          minDisplay = '1평';
         }
         if (sorted[1] === '200평~') {
           maxDisplay = '200평~';
