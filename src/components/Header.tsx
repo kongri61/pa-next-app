@@ -1489,7 +1489,9 @@ const Header: React.FC<HeaderProps> = ({
                         isSelected={selectedAreas.includes(area)}
                         isActive={(() => {
                           // 선택된 버튼은 항상 파란색으로 표시
-                          return selectedAreas.includes(area);
+                          const isActive = selectedAreas.includes(area);
+                          console.log(`🔧 AreaButton ${area} isActive:`, isActive, 'selectedAreas:', selectedAreas);
+                          return isActive;
                         })()}
                         isInRange={(() => {
                           if (selectedAreas.length !== 2) return false; // 두 개 버튼이 선택된 경우에만 범위 표시
