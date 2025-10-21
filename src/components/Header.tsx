@@ -653,7 +653,7 @@ const Header: React.FC<HeaderProps> = ({
 
   // 면적 옵션들 (1차원 배열로 변경)
   const areaOptions = [
-    '~5평', '10평', '15평', '20평', '25평', '30평',
+    '1평', '10평', '15평', '20평', '25평', '30평',
     '35평', '40평', '45평', '50평', '55평', '60평',
     '65평', '70평', '100평', '150평', '180평', '200평~'
   ];
@@ -1042,8 +1042,8 @@ const Header: React.FC<HeaderProps> = ({
       setAreaRange({ min: '', max: '' });
     } else if (newSelectedAreas.length === 1) {
       const selectedArea = newSelectedAreas[0];
-      if (selectedArea === '~5평') {
-        setAreaRange({ min: '0', max: '5' });
+      if (selectedArea === '1평') {
+        setAreaRange({ min: '1', max: '1' });
       } else if (selectedArea === '200평~') {
         setAreaRange({ min: '200', max: '최대값' });
       } else {
@@ -1063,8 +1063,8 @@ const Header: React.FC<HeaderProps> = ({
       let maxValue = '';
       
       // 최소값 처리
-      if (sorted[0] === '~5평') {
-        minValue = '0';
+      if (sorted[0] === '1평') {
+        minValue = '1';
       } else {
         minValue = sorted[0].replace(/[평~]/g, '');
       }
@@ -1079,9 +1079,9 @@ const Header: React.FC<HeaderProps> = ({
       setAreaRange({ min: minValue, max: maxValue });
     }
 
-    // App.tsx로 필터 값 전달 - "~5평"을 "0,5"로 변환하여 전달
+    // App.tsx로 필터 값 전달 - "1평"을 "1"로 변환하여 전달
     const processedAreas = newSelectedAreas.map(area => {
-      if (area === '~5평') return '0,5';
+      if (area === '1평') return '1';
       if (area === '200평~') return '200'; // 200평~은 200만 전달
       return area.replace(/[평~]/g, '');
     });
@@ -1496,8 +1496,8 @@ const Header: React.FC<HeaderProps> = ({
                         isInRange={(() => {
                           if (selectedAreas.length !== 2) return false; // 두 개 버튼이 선택된 경우에만 범위 표시
                           
-                          // '~5평'과 '200평~' 특별 처리 - 범위 표시 안함
-                          if (area === '~5평' || area === '200평~') return false;
+                          // '1평'과 '200평~' 특별 처리 - 범위 표시 안함
+                          if (area === '1평' || area === '200평~') return false;
                           
                           // 선택된 버튼들 사이의 범위만 연한색으로 표시
                           const sortedAreas = selectedAreas.sort((a, b) => {
@@ -1511,8 +1511,8 @@ const Header: React.FC<HeaderProps> = ({
                           let maxValue = 999;
                           
                           // 최소값 처리
-                          if (sortedAreas[0] === '~5평') {
-                            minValue = 0;
+                          if (sortedAreas[0] === '1평') {
+                            minValue = 1;
                           } else {
                             minValue = parseFloat(sortedAreas[0].replace(/[평~]/g, ''));
                           }
