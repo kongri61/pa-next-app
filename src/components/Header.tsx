@@ -1023,28 +1023,37 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleAreaSelect = (area: string) => {
+    console.log('🔧 handleAreaSelect 호출:', { area, currentSelectedAreas: selectedAreas });
+    
     let newSelectedAreas = [...selectedAreas];
     
     // 중복 클릭 방지: 같은 버튼을 연속으로 클릭하면 무시
     if (newSelectedAreas.length === 1 && newSelectedAreas[0] === area) {
+      console.log('🔧 중복 클릭 방지 - 같은 버튼 재클릭');
       return; // 같은 버튼을 다시 클릭하면 아무것도 하지 않음
     }
     
     if (newSelectedAreas.includes(area)) {
       // 이미 선택된 버튼을 클릭하면 선택 해제
+      console.log('🔧 선택 해제:', area);
       newSelectedAreas = newSelectedAreas.filter(a => a !== area);
     } else {
       // 새로운 버튼을 선택 - 최대 2개까지만 허용
+      console.log('🔧 새로운 버튼 선택:', area, '현재 선택된 개수:', newSelectedAreas.length);
+      
       if (newSelectedAreas.length >= 2) {
         // 이미 2개가 선택된 상태에서 새로운 버튼을 선택하면
         // 가장 오래된 선택을 제거하고 새로운 선택을 추가
+        console.log('🔧 2개 초과 - 가장 오래된 선택 제거:', newSelectedAreas[0]);
         newSelectedAreas = [newSelectedAreas[1], area];
       } else {
         // 2개 미만이 선택된 상태면 그냥 추가
+        console.log('🔧 2개 미만 - 새 선택 추가');
         newSelectedAreas.push(area);
       }
     }
     
+    console.log('🔧 최종 선택된 면적들:', newSelectedAreas);
     setSelectedAreas(newSelectedAreas);
     
     // 범위 설정 로직 개선
