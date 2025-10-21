@@ -1023,37 +1023,18 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleAreaSelect = (area: string) => {
-    console.log('🔧 handleAreaSelect 호출:', { area, currentSelectedAreas: selectedAreas });
-    
     let newSelectedAreas = [...selectedAreas];
     
-    // 중복 클릭 방지: 같은 버튼을 연속으로 클릭하면 무시
-    if (newSelectedAreas.length === 1 && newSelectedAreas[0] === area) {
-      console.log('🔧 중복 클릭 방지 - 같은 버튼 재클릭');
-      return; // 같은 버튼을 다시 클릭하면 아무것도 하지 않음
-    }
-    
     if (newSelectedAreas.includes(area)) {
-      // 이미 선택된 버튼을 클릭하면 선택 해제
-      console.log('🔧 선택 해제:', area);
       newSelectedAreas = newSelectedAreas.filter(a => a !== area);
     } else {
-      // 새로운 버튼을 선택 - 최대 2개까지만 허용
-      console.log('🔧 새로운 버튼 선택:', area, '현재 선택된 개수:', newSelectedAreas.length);
-      
       if (newSelectedAreas.length >= 2) {
-        // 이미 2개가 선택된 상태에서 새로운 버튼을 선택하면
-        // 가장 오래된 선택을 제거하고 새로운 선택을 추가
-        console.log('🔧 2개 초과 - 가장 오래된 선택 제거:', newSelectedAreas[0]);
         newSelectedAreas = [newSelectedAreas[1], area];
       } else {
-        // 2개 미만이 선택된 상태면 그냥 추가
-        console.log('🔧 2개 미만 - 새 선택 추가');
         newSelectedAreas.push(area);
       }
     }
     
-    console.log('🔧 최종 선택된 면적들:', newSelectedAreas);
     setSelectedAreas(newSelectedAreas);
     
     // 범위 설정 로직 개선
@@ -1098,64 +1079,16 @@ const Header: React.FC<HeaderProps> = ({
       setAreaRange({ min: minValue, max: maxValue });
     }
 
-    // App.tsx로 필터 값 전달 - 깔끔한 형식으로 전달
-    let filterValue = '';
-    if (newSelectedAreas.length === 0) {
-      filterValue = '';
-    } else if (newSelectedAreas.length === 1) {
-      const selectedArea = newSelectedAreas[0];
-      if (selectedArea === '~5평') {
-        filterValue = '0평~5평';
-      } else if (selectedArea === '200평~') {
-        filterValue = '200평~최대값';
-      } else {
-        // 단일 값은 그대로 전달 (예: "10평")
-        filterValue = selectedArea;
-      }
-    } else if (newSelectedAreas.length === 2) {
-      // 두 개 선택된 경우 - 범위로 처리
-      const sorted = newSelectedAreas.sort((a, b) => {
-        const aValue = parseInt(a.replace(/[평~]/g, ''));
-        const bValue = parseInt(b.replace(/[평~]/g, ''));
-        return aValue - bValue;
-      });
-      
-      let minValue = '';
-      let maxValue = '';
-      
-      // 최소값 처리 - 특별 케이스 먼저 처리
-      if (sorted[0] === '~5평') {
-        minValue = '0평';
-      } else {
-        minValue = sorted[0];
-      }
-      
-      // 최대값 처리 - 특별 케이스 먼저 처리
-      if (sorted[1] === '200평~') {
-        maxValue = '최대값';
-      } else {
-        maxValue = sorted[1];
-      }
-      
-      // 디버깅 로그 추가
-      console.log('🔧 면적 필터 값 생성:', {
-        selectedAreas: newSelectedAreas,
-        sorted: sorted,
-        minValue: minValue,
-        maxValue: maxValue
-      });
-      
-      // 최종 필터 값 생성 - 단순하게
-      filterValue = `${minValue}~${maxValue}`;
-      
-      console.log('🔧 최종 필터 값:', filterValue);
-      console.log('🔧 필터 값 길이:', filterValue.length);
-      console.log('🔧 필터 값 분할:', filterValue.split('~'));
-    }
+    // App.tsx로 필터 값 전달 - "~5평"을 "0,5"로 변환하여 전달
+    const processedAreas = newSelectedAreas.map(area => {
+      if (area === '~5평') return '0,5';
+      if (area === '200평~') return '200,999';
+      return area.replace(/[평~]/g, '');
+    });
     
     const newFilters = {
       ...filters,
-      area: filterValue
+      area: processedAreas.length > 0 ? `${processedAreas.join(',')}` : ''
     };
     onFilterChange?.(newFilters);
   };
