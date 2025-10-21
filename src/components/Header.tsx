@@ -1025,6 +1025,11 @@ const Header: React.FC<HeaderProps> = ({
   const handleAreaSelect = (area: string) => {
     let newSelectedAreas = [...selectedAreas];
     
+    // 중복 클릭 방지: 같은 버튼을 연속으로 클릭하면 무시
+    if (newSelectedAreas.length === 1 && newSelectedAreas[0] === area) {
+      return; // 같은 버튼을 다시 클릭하면 아무것도 하지 않음
+    }
+    
     if (newSelectedAreas.includes(area)) {
       // 이미 선택된 버튼을 클릭하면 선택 해제
       newSelectedAreas = newSelectedAreas.filter(a => a !== area);
@@ -1033,7 +1038,7 @@ const Header: React.FC<HeaderProps> = ({
       if (newSelectedAreas.length >= 2) {
         // 이미 2개가 선택된 상태에서 새로운 버튼을 선택하면
         // 가장 오래된 선택을 제거하고 새로운 선택을 추가
-        newSelectedAreas = [newSelectedAreas[0], area];
+        newSelectedAreas = [newSelectedAreas[1], area];
       } else {
         // 2개 미만이 선택된 상태면 그냥 추가
         newSelectedAreas.push(area);
@@ -1042,47 +1047,61 @@ const Header: React.FC<HeaderProps> = ({
     
     setSelectedAreas(newSelectedAreas);
     
-    if (newSelectedAreas.length === 1) {
-      if (newSelectedAreas[0] === '~5평') {
+    // 범위 설정 로직 개선
+    if (newSelectedAreas.length === 0) {
+      setAreaRange({ min: '', max: '' });
+    } else if (newSelectedAreas.length === 1) {
+      const selectedArea = newSelectedAreas[0];
+      if (selectedArea === '~5평') {
         setAreaRange({ min: '0', max: '5' });
-      } else if (newSelectedAreas[0] === '200평~') {
+      } else if (selectedArea === '200평~') {
         setAreaRange({ min: '200', max: '최대값' });
       } else {
-        setAreaRange({ min: newSelectedAreas[0], max: newSelectedAreas[0] });
+        // 단일 값 선택 (예: "10평")
+        const areaValue = selectedArea.replace(/[평~]/g, '');
+        setAreaRange({ min: areaValue, max: areaValue });
       }
     } else if (newSelectedAreas.length === 2) {
+      // 두 값 선택 시 범위 설정
       const sorted = newSelectedAreas.sort((a, b) => {
         const aValue = parseInt(a.replace(/[평~]/g, ''));
         const bValue = parseInt(b.replace(/[평~]/g, ''));
         return aValue - bValue;
       });
       
-      // 최소값과 최대값 처리
-      let minValue = sorted[0];
-      let maxValue = sorted[1];
+      let minValue = '';
+      let maxValue = '';
       
+      // 최소값 처리
       if (sorted[0] === '~5평') {
         minValue = '0';
+      } else {
+        minValue = sorted[0].replace(/[평~]/g, '');
       }
+      
+      // 최대값 처리
       if (sorted[1] === '200평~') {
         maxValue = '최대값';
+      } else {
+        maxValue = sorted[1].replace(/[평~]/g, '');
       }
       
       setAreaRange({ min: minValue, max: maxValue });
-    } else {
-      setAreaRange({ min: '', max: '' });
     }
 
-    // App.tsx로 필터 값 전달 - 단일 값과 범위를 구분하여 전달
+    // App.tsx로 필터 값 전달 - 깔끔한 형식으로 전달
     let filterValue = '';
-    if (newSelectedAreas.length === 1) {
-      if (newSelectedAreas[0] === '~5평') {
+    if (newSelectedAreas.length === 0) {
+      filterValue = '';
+    } else if (newSelectedAreas.length === 1) {
+      const selectedArea = newSelectedAreas[0];
+      if (selectedArea === '~5평') {
         filterValue = '0평~5평';
-      } else if (newSelectedAreas[0] === '200평~') {
+      } else if (selectedArea === '200평~') {
         filterValue = '200평~최대값';
       } else {
-        // 단일 값은 "10평" 형식으로 전달 (범위가 아님)
-        filterValue = newSelectedAreas[0];
+        // 단일 값은 그대로 전달 (예: "10평")
+        filterValue = selectedArea;
       }
     } else if (newSelectedAreas.length === 2) {
       const sorted = newSelectedAreas.sort((a, b) => {
@@ -1091,19 +1110,19 @@ const Header: React.FC<HeaderProps> = ({
         return aValue - bValue;
       });
       
-      let minValue = sorted[0];
-      let maxValue = sorted[1];
+      let minValue = '';
+      let maxValue = '';
       
       if (sorted[0] === '~5평') {
         minValue = '0평';
-      } else if (!minValue.includes('평')) {
-        minValue = `${minValue}평`;
+      } else {
+        minValue = sorted[0];
       }
       
       if (sorted[1] === '200평~') {
         maxValue = '최대값';
-      } else if (!maxValue.includes('평')) {
-        maxValue = `${maxValue}평`;
+      } else {
+        maxValue = sorted[1];
       }
       
       filterValue = `${minValue}~${maxValue}`;
@@ -1114,8 +1133,6 @@ const Header: React.FC<HeaderProps> = ({
       area: filterValue
     };
     onFilterChange?.(newFilters);
-    
-    // 팝업 자동 닫기 제거 - 오직 외부 클릭 시에만 닫힘
   };
 
   const getFilterDisplayText = (filterType: string) => {
@@ -1266,6 +1283,10 @@ const Header: React.FC<HeaderProps> = ({
     if (areaRange.min && areaRange.max) {
       let minText = areaRange.min;
       let maxText = areaRange.max;
+      
+      // 중복된 평 단위 제거 및 정리
+      minText = minText.replace(/평+/g, '평'); // 연속된 평을 하나로 정리
+      maxText = maxText.replace(/평+/g, '평'); // 연속된 평을 하나로 정리
       
       // m² 변환을 위한 실제 값 계산
       let minM2Text = '';

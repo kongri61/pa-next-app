@@ -9,6 +9,7 @@ import { Property } from './types';
 import { initHybridDataManager } from './utils/hybridDataManager';
 import { FirebaseProvider } from './contexts/FirebaseContext';
 import FirebaseDebugger from './components/FirebaseDebugger';
+import './utils/addSampleData'; // 샘플 데이터 추가 함수 로드
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -139,8 +140,8 @@ function App() {
             console.log('P001 Firebase 동기화 호출 전');
           }
           
-          console.log(`매물 ${i + 1}/${uniqueProperties.length} Firebase 추가 시작:`, property.id, property.title);
-          await firebaseSync.addProperty(property);
+          console.log(`매물 ${i + 1}/${uniqueProperties.length} Firebase 동기화 시작:`, property.id, property.title);
+          await firebaseSync.updateProperty(property);
           
           // P001 특별 디버깅 - 성공 후
           if (property.id === 'P001') {

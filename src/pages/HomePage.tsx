@@ -908,11 +908,21 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       filtered = filtered.filter(property => property.propertyType === filters.propertyType);
     }
 
-    // 면적 필터 (Header에서 전달받는 형식: "10평~20평" 또는 "10평")
+    // 면적 필터 (Header에서 전달받는 형식: "10평~20평" 또는 "10평" 또는 "10,20")
     if (filters.area) {
       console.log('=== 면적 필터 디버깅 시작 ===');
       console.log('면적 필터 적용:', filters.area);
+      console.log('전체 매물 수:', allProperties.length);
+      console.log('필터링 전 매물 수:', filtered.length);
       
+      // 모든 매물의 면적 정보 출력
+      console.log('=== 모든 매물 면적 정보 ===');
+      allProperties.forEach(property => {
+        const areaInPyeong = Math.round(property.area / 3.3058);
+        console.log(`매물 ${property.id}: ${property.title}, 면적: ${areaInPyeong}평(${property.area}m²)`);
+      });
+      
+      // 1) 범위: ~ 구분
       if (filters.area.includes('~')) {
         // 범위 형식 (예: "10평~20평", "10평~최대값", "10평~10평")
         const parts = filters.area.split('~');
@@ -930,14 +940,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
               // property.area를 m²에서 평으로 변환
               const areaInPyeong = Math.round(property.area / 3.3058);
               
-              // 단일 값 선택인 경우 (±1평 허용)
+              // 단일 값 선택인 경우 (정확히 일치해야 함)
               if (min === max) {
-                const tolerance = 1;
-                const minArea = min - tolerance;
-                const maxArea = min + tolerance;
-                const isMatch = areaInPyeong >= minArea && areaInPyeong <= maxArea;
-                console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 단일검색: ${min}평(±${tolerance}), 범위: ${minArea}~${maxArea}평, 일치여부: ${isMatch}`);
-                return isMatch;
+                const isExact = areaInPyeong === min;
+                console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 단일검색: ${min}평, 일치여부: ${isExact}`);
+                return isExact;
               } else {
                 // 범위 선택인 경우 (정확한 범위)
                 const isInRange = areaInPyeong >= min && areaInPyeong <= max;
@@ -947,24 +954,38 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             });
           }
         }
+      // 2) 범위: , 구분 (예: "10,20")
+      } else if (filters.area.includes(',')) {
+        const parts = filters.area.split(',');
+        console.log('면적 콤마 범위 파트:', parts);
+        if (parts.length === 2) {
+          const min = parseFloat(parts[0].replace(/[^0-9.]/g, ''));
+          const max = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+          console.log('면적 콤마 범위 파싱 결과:', min, '~', max);
+          if (!isNaN(min) && !isNaN(max)) {
+            filtered = filtered.filter(property => {
+              const areaInPyeong = Math.round(property.area / 3.3058);
+              const isInRange = areaInPyeong >= min && areaInPyeong <= max;
+              console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 범위: ${min}~${max}평, 포함여부: ${isInRange}`);
+              return isInRange;
+            });
+          }
+        }
+
       } else {
-        // 단일 값 형식 (예: "10평") - 범위 검색으로 변경 (±1평 허용)
+        // 단일 값 형식 (예: "10평") - 정확히 일치하는 면적만 허용
         const area = parseFloat(filters.area.replace(/[~평]/g, ''));
         console.log('면적 단일 값:', area);
         console.log('면적 단일 값 타입:', typeof area);
         console.log('면적 단일 값 유효성:', !isNaN(area));
         
         if (!isNaN(area)) {
-          const tolerance = 1; // ±1평 허용
-          const minArea = area - tolerance;
-          const maxArea = area + tolerance;
-          
           filtered = filtered.filter(property => {
             // property.area를 m²에서 평으로 변환
             const areaInPyeong = Math.round(property.area / 3.3058);
-            const isMatch = areaInPyeong >= minArea && areaInPyeong <= maxArea;
-            console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 검색값: ${area}평(±${tolerance}), 범위: ${minArea}~${maxArea}평, 일치여부: ${isMatch}`);
-            return isMatch;
+            const isExact = areaInPyeong === area;
+            console.log(`매물 ${property.id} 면적: ${areaInPyeong}평(${property.area}m²), 검색값: ${area}평, 정확일치 여부: ${isExact}`);
+            return isExact;
           });
         }
       }
