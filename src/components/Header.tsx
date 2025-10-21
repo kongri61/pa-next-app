@@ -1125,6 +1125,10 @@ const Header: React.FC<HeaderProps> = ({
         maxValue = sorted[1];
       }
       
+      // 중복된 평 단위 제거
+      minValue = minValue.replace(/평+/g, '평');
+      maxValue = maxValue.replace(/평+/g, '평');
+      
       filterValue = `${minValue}~${maxValue}`;
     }
     
@@ -1534,31 +1538,39 @@ const Header: React.FC<HeaderProps> = ({
                         })()}
                         isInRange={(() => {
                           if (areaRange.min === '' || areaRange.max === '') return false;
+                          if (selectedAreas.length !== 2) return false; // 두 개 버튼이 선택된 경우에만 범위 표시
                           
-                          // '~5평'과 '200평~' 특별 처리
+                          // '~5평'과 '200평~' 특별 처리 - 범위 표시 안함
                           if (area === '~5평' || area === '200평~') return false;
                           
-                          const areaValue = parseFloat(area.replace(/[~평]/g, ''));
+                          // 선택된 버튼들 사이의 범위만 연한색으로 표시
+                          const sortedAreas = selectedAreas.sort((a, b) => {
+                            const aValue = parseInt(a.replace(/[평~]/g, ''));
+                            const bValue = parseInt(b.replace(/[평~]/g, ''));
+                            return aValue - bValue;
+                          });
+                          
+                          const areaValue = parseFloat(area.replace(/[평~]/g, ''));
                           let minValue = 0;
                           let maxValue = 999;
                           
                           // 최소값 처리
-                          if (areaRange.min === '0') {
-                            minValue = 0; // '~5평' 선택 시
+                          if (sortedAreas[0] === '~5평') {
+                            minValue = 0;
                           } else {
-                            minValue = parseFloat(areaRange.min.replace(/[~평]/g, ''));
+                            minValue = parseFloat(sortedAreas[0].replace(/[평~]/g, ''));
                           }
                           
                           // 최대값 처리
-                          if (areaRange.max === '최대값') {
-                            maxValue = 999; // '200평~' 선택 시
+                          if (sortedAreas[1] === '200평~') {
+                            maxValue = 999;
                           } else {
-                            maxValue = parseFloat(areaRange.max.replace(/[~평]/g, ''));
+                            maxValue = parseFloat(sortedAreas[1].replace(/[평~]/g, ''));
                           }
                           
+                          // 선택된 버튼들 사이의 값만 연한색으로 표시
                           return areaValue > minValue && areaValue < maxValue && 
-                                 !selectedAreas.includes(area) &&
-                                 area !== areaRange.min && area !== areaRange.max;
+                                 !selectedAreas.includes(area);
                         })()}
                         onClick={() => handleAreaSelect(area)}
                       >
