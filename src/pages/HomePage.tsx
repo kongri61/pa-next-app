@@ -938,15 +938,24 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             });
           }
         } else {
-          // 단일 값 (예: "10평")
+          // 단일 값 (예: "10평" 또는 "200" - 200평~ 버튼)
           const area = parseFloat(areaValue.replace(/[~평]/g, ''));
           console.log('면적 단일 값 파싱:', area);
           filtered = filtered.filter(property => {
             // property.area를 평 단위로 변환
             const propertyArea = Math.round(property.area / 3.3058);
-            const isMatch = propertyArea === area;
-            console.log(`매물 ${property.id} 면적: ${propertyArea}평(${Math.round(property.area)}m²), 필터: ${area}평, 일치여부: ${isMatch}`);
-            return isMatch;
+            
+            // 200은 200평 이상을 의미 (200평~ 버튼)
+            if (area === 200) {
+              const isMatch = propertyArea >= 200;
+              console.log(`매물 ${property.id} 면적: ${propertyArea}평(${Math.round(property.area)}m²), 필터: 200평 이상, 포함여부: ${isMatch}`);
+              return isMatch;
+            } else {
+              // 일반 단일 값은 정확히 일치해야 함
+              const isMatch = propertyArea === area;
+              console.log(`매물 ${property.id} 면적: ${propertyArea}평(${Math.round(property.area)}m²), 필터: ${area}평, 일치여부: ${isMatch}`);
+              return isMatch;
+            }
           });
         }
       } else if (areaValues.length === 2) {
