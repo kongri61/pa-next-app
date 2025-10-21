@@ -1082,7 +1082,7 @@ const Header: React.FC<HeaderProps> = ({
     // App.tsx로 필터 값 전달 - "~5평"을 "0,5"로 변환하여 전달
     const processedAreas = newSelectedAreas.map(area => {
       if (area === '~5평') return '0,5';
-      if (area === '200평~') return '200,999';
+      if (area === '200평~') return '200'; // 200평~은 200만 전달
       return area.replace(/[평~]/g, '');
     });
     
