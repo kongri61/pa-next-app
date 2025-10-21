@@ -1125,11 +1125,24 @@ const Header: React.FC<HeaderProps> = ({
         maxValue = sorted[1];
       }
       
-      // 중복된 평 단위 제거
+      // 디버깅 로그 추가
+      console.log('🔧 면적 필터 값 생성:', {
+        selectedAreas: newSelectedAreas,
+        sorted: sorted,
+        minValue: minValue,
+        maxValue: maxValue
+      });
+      
+      // 중복된 평 단위 제거 및 정리
       minValue = minValue.replace(/평+/g, '평');
       maxValue = maxValue.replace(/평+/g, '평');
       
-      filterValue = `${minValue}~${maxValue}`;
+      // 최종 필터 값 생성 - 깔끔한 형식으로
+      if (minValue === maxValue) {
+        filterValue = minValue; // 단일 값인 경우
+      } else {
+        filterValue = `${minValue}~${maxValue}`; // 범위인 경우
+      }
     }
     
     const newFilters = {
