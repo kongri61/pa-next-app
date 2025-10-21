@@ -1147,6 +1147,8 @@ const Header: React.FC<HeaderProps> = ({
       }
       
       console.log('🔧 최종 필터 값:', filterValue);
+      console.log('🔧 필터 값 길이:', filterValue.length);
+      console.log('🔧 필터 값 분할:', filterValue.split('~'));
     }
     
     const newFilters = {
