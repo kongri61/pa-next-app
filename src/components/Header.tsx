@@ -1113,12 +1113,14 @@ const Header: React.FC<HeaderProps> = ({
       let minValue = '';
       let maxValue = '';
       
+      // 최소값 처리
       if (sorted[0] === '~5평') {
         minValue = '0평';
       } else {
         minValue = sorted[0];
       }
       
+      // 최대값 처리
       if (sorted[1] === '200평~') {
         maxValue = '최대값';
       } else {
@@ -1143,6 +1145,8 @@ const Header: React.FC<HeaderProps> = ({
       } else {
         filterValue = `${minValue}~${maxValue}`; // 범위인 경우
       }
+      
+      console.log('🔧 최종 필터 값:', filterValue);
     }
     
     const newFilters = {
