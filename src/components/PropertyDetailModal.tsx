@@ -339,9 +339,9 @@ const ImageDeleteButton = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
   &:hover {
     background: rgba(220, 38, 38, 1);
@@ -571,10 +571,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
       if (onPropertyDelete) {
         onPropertyDelete(property.id);
         console.log('✅ onPropertyDelete 호출 완료');
-      } else {
+        } else {
         console.error('❌ onPropertyDelete 함수가 없습니다!');
         alert('삭제 기능이 제대로 연결되지 않았습니다. 페이지를 새로고침해주세요.');
-      }
+        }
       onClose();
     } else {
       console.log('❌ 삭제 취소됨');
@@ -641,7 +641,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
             } else if (error.message.includes('quota')) {
               errorMessage = '저장 공간이 부족합니다.';
-            } else {
+      } else {
               errorMessage = `업로드 실패: ${error.message}`;
             }
           }
@@ -669,7 +669,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     
     // 즉시 저장
     if (onPropertyUpdate) {
-      onPropertyUpdate(updatedProperty);
+        onPropertyUpdate(updatedProperty);
     }
     
     if (currentImageIndex >= newImages.length) {
@@ -702,32 +702,32 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
 
   return (
     <>
-      <ModalOverlay 
+    <ModalOverlay 
         onClick={(e) => {
           // 모달 배경 클릭 시에만 닫기
           if (e.target === e.currentTarget) {
             onClose();
           }
         }}
-        onContextMenu={handleContextMenu}
-        onDragStart={handleDragStart}
-        onKeyDown={handleKeyDown}
-        tabIndex={0}
-      >
+      onContextMenu={handleContextMenu}
+      onDragStart={handleDragStart}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
         <ModalContent 
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <CloseButton onClick={onClose}>&times;</CloseButton>
-          
-          <LeftPanel>
-            <Header>
-              <HeaderLeft>
-                <PropertyNumberBox>
-                  매물번호<br />
+        <CloseButton onClick={onClose}>&times;</CloseButton>
+        
+        <LeftPanel>
+          <Header>
+            <HeaderLeft>
+              <PropertyNumberBox>
+                매물번호<br />
                   {editData.id}
-                </PropertyNumberBox>
-              </HeaderLeft>
+              </PropertyNumberBox>
+            </HeaderLeft>
               <HeaderRight>
                 {isEditMode ? (
                   <>
@@ -749,43 +749,43 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 확인매물<br />
                 {editData.confirmedDate || '25.07.19'}
               </ConfirmedDateBox>
-            </Header>
+          </Header>
 
-            <ImageSection>
-              {currentImages.length > 0 ? (
-                <>
-                  <ImageNavigationButton 
-                    className="prev" 
-                    onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))} 
-                    disabled={currentImageIndex === 0}
-                  >
-                    &lt;
-                  </ImageNavigationButton>
-                  <ImageNavigationButton 
-                    className="next" 
-                    onClick={() => setCurrentImageIndex(prev => Math.min(currentImages.length - 1, prev + 1))} 
-                    disabled={currentImageIndex === currentImages.length - 1}
-                  >
-                    &gt;
-                  </ImageNavigationButton>
-                  <ImageContainer>
+          <ImageSection>
+            {currentImages.length > 0 ? (
+              <>
+                <ImageNavigationButton 
+                  className="prev" 
+                  onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))} 
+                  disabled={currentImageIndex === 0}
+                >
+                  &lt;
+                </ImageNavigationButton>
+                <ImageNavigationButton 
+                  className="next" 
+                  onClick={() => setCurrentImageIndex(prev => Math.min(currentImages.length - 1, prev + 1))} 
+                  disabled={currentImageIndex === currentImages.length - 1}
+                >
+                  &gt;
+                </ImageNavigationButton>
+                <ImageContainer>
                     <MainImage src={currentImages[currentImageIndex]} alt={editData.title} />
-                    {isAdmin && (
-                      <ImageDeleteButton 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleImageDelete(currentImageIndex);
-                        }}
-                        title="이미지 삭제"
-                      >
-                        ×
-                      </ImageDeleteButton>
-                    )}
-                  </ImageContainer>
-                  <ImageCounter>{currentImageIndex + 1}/{currentImages.length}</ImageCounter>
                   {isAdmin && (
-                    <ImageUploadButton 
+                    <ImageDeleteButton 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                          handleImageDelete(currentImageIndex);
+                      }}
+                      title="이미지 삭제"
+                    >
+                      ×
+                    </ImageDeleteButton>
+                  )}
+                </ImageContainer>
+                <ImageCounter>{currentImageIndex + 1}/{currentImages.length}</ImageCounter>
+                {isAdmin && (
+                  <ImageUploadButton 
                       onClick={() => {
                         console.log('📷 사진업로드 버튼 클릭');
                         console.log('🔍 fileInputRef.current:', fileInputRef.current);
@@ -798,29 +798,29 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                           console.error('❌ 파일 입력 요소를 찾을 수 없습니다');
                           alert('파일 입력 요소를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
                         }
-                      }}
-                      title="이미지 업로드"
-                    >
+                    }}
+                    title="이미지 업로드"
+                  >
                       📷
-                    </ImageUploadButton>
-                  )}
-                </>
-              ) : (
-                <div style={{
-                  width: '100%',
-                  height: '280px',
-                  background: '#f3f4f6',
-                  border: '2px dashed #d1d5db',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#6b7280',
-                  fontSize: '1rem',
-                  position: 'relative'
-                }}>
+                  </ImageUploadButton>
+                )}
+              </>
+            ) : (
+              <div style={{
+                width: '100%',
+                height: '280px',
+                background: '#f3f4f6',
+                border: '2px dashed #d1d5db',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280',
+                fontSize: '1rem',
+                position: 'relative'
+              }}>
                   {isAdmin && (
-                    <ImageUploadButton
+                <ImageUploadButton
                       onClick={() => {
                         console.log('📷 사진업로드 버튼 클릭 (빈 상태)');
                         console.log('🔍 fileInputRef.current:', fileInputRef.current);
@@ -836,17 +836,17 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       }}
                     >
                       📷
-                    </ImageUploadButton>
+                </ImageUploadButton>
                   )}
-                </div>
-              )}
-            </ImageSection>
+              </div>
+            )}
+          </ImageSection>
 
-            <InfoSection>
-              <SectionTitle>매물정보</SectionTitle>
-              <PropertyInfoGrid>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>주소</PropertyInfoLabel>
+          <InfoSection>
+            <SectionTitle>매물정보</SectionTitle>
+            <PropertyInfoGrid>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>주소</PropertyInfoLabel>
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditInput
@@ -858,10 +858,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       maskAddress(editData.address)
                     )}
                   </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>매물종류</PropertyInfoLabel>
-                  <PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>매물종류</PropertyInfoLabel>
+                <PropertyInfoValue>
                     {isEditMode ? (
                       <EditSelect
                         value={editData.propertyType}
@@ -877,10 +877,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       editData.propertyType === 'office' ? '사무실' :
                       editData.propertyType === 'building' ? '건물' : '기타'
                     )}
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>거래유형</PropertyInfoLabel>
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>거래유형</PropertyInfoLabel>
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditSelect
@@ -894,111 +894,255 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       editData.type === 'sale' ? '매매' : '임대'
                     )}
                   </PropertyInfoValue>
+              </PropertyInfoItem>
+                {editData.type === 'sale' ? (
+                  <>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>매매가</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.price}
+                            onChange={(e) => handleEditChange('price', parseInt(e.target.value) || 0)}
+                            placeholder="매매가를 입력하세요 (억 단위)"
+                          />
+                        ) : (
+                          editData.price && editData.price > 0 ? formatPrice(editData.price) : '정보 없음'
+                        )}
+                      </PropertyInfoValue>
+              </PropertyInfoItem>
+                    <PropertyInfoItem>
+                      <PropertyInfoLabel>기보증금/월세</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.keyDepositMonthly || 0}
+                            onChange={(e) => handleEditChange('keyDepositMonthly', parseInt(e.target.value) || 0)}
+                            placeholder="기보증금/월세 (만원)"
+                          />
+                        ) : (
+                          editData.keyDepositMonthly && editData.keyDepositMonthly > 0 
+                            ? `${editData.keyDepositMonthly}만원` 
+                            : '-'
+                        )}
+                      </PropertyInfoValue>
+                    </PropertyInfoItem>
+                    <PropertyInfoItem>
+                      <PropertyInfoLabel>관리비</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.maintenanceFee || 0}
+                            onChange={(e) => handleEditChange('maintenanceFee', parseInt(e.target.value) || 0)}
+                            placeholder="관리비 (원)"
+                          />
+                        ) : (
+                          editData.maintenanceFee && editData.maintenanceFee > 0
+                            ? `${editData.maintenanceFee.toLocaleString()}원`
+                            : '-'
+                        )}
+                      </PropertyInfoValue>
+                    </PropertyInfoItem>
+                    <PropertyInfoItem>
+                      <PropertyInfoLabel>관리비포함항목</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            value={editData.maintenanceIncluded || ''}
+                            onChange={(e) => handleEditChange('maintenanceIncluded', e.target.value)}
+                            placeholder="관리비포함항목"
+                          />
+                        ) : (
+                          editData.maintenanceIncluded || '-'
+                        )}
+                      </PropertyInfoValue>
+                    </PropertyInfoItem>
+                    <PropertyInfoItem>
+                      <PropertyInfoLabel>융자금</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.loanAmount || 0}
+                            onChange={(e) => handleEditChange('loanAmount', parseInt(e.target.value) || 0)}
+                            placeholder="융자금 (억 단위)"
+                          />
+                        ) : (
+                          editData.loanAmount && editData.loanAmount > 0
+                            ? formatPrice(editData.loanAmount)
+                            : '-'
+                        )}
+                      </PropertyInfoValue>
+                    </PropertyInfoItem>
+                  </>
+                ) : (
+                <>
+                  <PropertyInfoItem>
+                    <PropertyInfoLabel>보증금</PropertyInfoLabel>
+                    <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.deposit || 0}
+                            onChange={(e) => handleEditChange('deposit', parseInt(e.target.value) || 0)}
+                            placeholder="보증금 (만원)"
+                          />
+                        ) : (
+                          editData.deposit && editData.deposit > 0
+                            ? formatDeposit(editData.deposit)
+                            : '정보 없음'
+                        )}
+                    </PropertyInfoValue>
+                  </PropertyInfoItem>
+                  <PropertyInfoItem>
+                    <PropertyInfoLabel>월세</PropertyInfoLabel>
+                    <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.rentPrice || 0}
+                            onChange={(e) => handleEditChange('rentPrice', parseInt(e.target.value) || 0)}
+                            placeholder="월세 (만원)"
+                          />
+                        ) : (
+                          editData.rentPrice && editData.rentPrice > 0
+                            ? `${editData.rentPrice}만원`
+                            : '정보 없음'
+                        )}
+                    </PropertyInfoValue>
+                  </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>관리비</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.maintenanceFee || 0}
+                            onChange={(e) => handleEditChange('maintenanceFee', parseInt(e.target.value) || 0)}
+                            placeholder="관리비 (원)"
+                          />
+                        ) : (
+                          editData.maintenanceFee && editData.maintenanceFee > 0
+                            ? `${editData.maintenanceFee.toLocaleString()}원`
+                            : '-'
+                        )}
+                      </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                      <PropertyInfoLabel>관리비포함항목</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            value={editData.maintenanceIncluded || ''}
+                            onChange={(e) => handleEditChange('maintenanceIncluded', e.target.value)}
+                            placeholder="관리비포함항목"
+                          />
+                        ) : (
+                          editData.maintenanceIncluded || '-'
+                        )}
+                      </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                      <PropertyInfoLabel>권리금</PropertyInfoLabel>
+                      <PropertyInfoValue>
+                        {isEditMode ? (
+                          <EditInput
+                            type="number"
+                            value={editData.keyMoney || 0}
+                            onChange={(e) => handleEditChange('keyMoney', parseInt(e.target.value) || 0)}
+                            placeholder="권리금 (만원)"
+                          />
+                        ) : (
+                          editData.keyMoney && editData.keyMoney > 0
+                            ? `${editData.keyMoney}만원`
+                            : '-'
+                        )}
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+                  </>
+                )}
+              <PropertyInfoItem>
+                  <PropertyInfoLabel>매물현황</PropertyInfoLabel>
+                <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.propertyStatus || ''}
+                        onChange={(e) => handleEditChange('propertyStatus', e.target.value)}
+                        placeholder="매물현황"
+                      />
+                    ) : (
+                      editData.propertyStatus || '-'
+                    )}
+                  </PropertyInfoValue>
                 </PropertyInfoItem>
                 <PropertyInfoItem>
-                  <PropertyInfoLabel>매매가</PropertyInfoLabel>
+                  <PropertyInfoLabel>면적정보</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>공급면적:</span>
+                          <EditInput
+                            type="number"
+                            step="0.1"
+                            value={editData.supplyArea ? Math.round(editData.supplyArea / 3.3058) : Math.round(editData.area / 3.3058)}
+                            onChange={(e) => {
+                              const pyeongValue = parseFloat(e.target.value) || 0;
+                              const m2Value = pyeongValue * 3.3058;
+                              handleEditChange('supplyArea', m2Value);
+                            }}
+                            placeholder="공급면적 (평)"
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>전용면적:</span>
+                          <EditInput
+                            type="number"
+                            step="0.1"
+                            value={editData.dedicatedArea ? Math.round(editData.dedicatedArea / 3.3058) : Math.round(editData.area / 3.3058)}
+                            onChange={(e) => {
+                              const pyeongValue = parseFloat(e.target.value) || 0;
+                              const m2Value = pyeongValue * 3.3058;
+                              handleEditChange('dedicatedArea', m2Value);
+                            }}
+                            placeholder="전용면적 (평)"
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      (() => {
+                        const supplyArea = editData.supplyArea || editData.area;
+                        const dedicatedArea = editData.dedicatedArea || editData.area;
+                        const supplyAreaM2 = Math.round(supplyArea);
+                        const supplyAreaPyeong = Math.round(supplyArea / 3.3058);
+                        const dedicatedAreaM2 = Math.round(dedicatedArea);
+                        const dedicatedAreaPyeong = Math.round(dedicatedArea / 3.3058);
+                        return `공급${supplyAreaM2}m²(${supplyAreaPyeong}평)/전용${dedicatedAreaM2}m²(${dedicatedAreaPyeong}평)`;
+                      })()
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>주요구조부</PropertyInfoLabel>
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditInput
-                        type="number"
-                        value={editData.price}
-                        onChange={(e) => handleEditChange('price', parseInt(e.target.value) || 0)}
-                        placeholder="매매가를 입력하세요 (만원)"
+                        value={editData.mainStructure || ''}
+                        onChange={(e) => handleEditChange('mainStructure', e.target.value)}
+                        placeholder="주요구조부"
                       />
                     ) : (
-                      editData.type === 'sale' ? formatPrice(editData.price) : '-'
+                      editData.mainStructure || '-'
                     )}
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>보증금/임대료</PropertyInfoLabel>
-                  <PropertyInfoValue>
-                    {isEditMode ? (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <EditInput
-                          type="number"
-                          value={editData.deposit || 0}
-                          onChange={(e) => handleEditChange('deposit', parseInt(e.target.value) || 0)}
-                          placeholder="보증금 (만원)"
-                          style={{ flex: 1 }}
-                        />
-                        <EditInput
-                          type="number"
-                          value={editData.type === 'rent' ? (editData.rentPrice || 0) : 0}
-                          onChange={(e) => handleEditChange('rentPrice', parseInt(e.target.value) || 0)}
-                          placeholder="임대료 (만원)"
-                          style={{ flex: 1 }}
-                        />
-                      </div>
-                    ) : (
-                      editData.type === 'rent' 
-                        ? `보증금 ${formatDeposit(editData.deposit || 0)} / 월세 ${editData.rentPrice || 0}만원`
-                        : '-'
-                    )}
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>공급/전용면적</PropertyInfoLabel>
-                  <PropertyInfoValue>
-                    {isEditMode ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <EditInput
-                          type="number"
-                          step="0.1"
-                          value={Math.round(editData.area / 3.3058)}
-                          onChange={(e) => {
-                            const pyeongValue = parseFloat(e.target.value) || 0;
-                            const m2Value = pyeongValue * 3.3058;
-                            handleEditChange('area', m2Value);
-                          }}
-                          placeholder="면적을 입력하세요 (평)"
-                          style={{ flex: 1 }}
-                        />
-                        <span style={{ 
-                          fontSize: '14px',
-                          color: '#6b7280',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          평
-                        </span>
-                        <span style={{ 
-                          fontSize: '14px',
-                          color: '#6b7280',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          ({Math.round(editData.area)}㎡)
-                        </span>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                        <span style={{ 
-                          display: 'inline-block', 
-                          padding: '4px 8px', 
-                          backgroundColor: '#f8fafc', 
-                          borderRadius: '4px',
-                          border: 'none',
-                          fontSize: '14px',
-                          color: '#374151'
-                        }}>
-                          {Math.round(editData.area / 3.3058)}평
-                        </span>
-                        <span style={{ 
-                          display: 'inline-block', 
-                          padding: '4px 8px', 
-                          backgroundColor: '#f8fafc', 
-                          borderRadius: '4px',
-                          border: 'none',
-                          fontSize: '14px',
-                          color: '#6b7280'
-                        }}>
-                          ({editData.area}㎡)
-                        </span>
-                      </div>
-                    )}
-                  </PropertyInfoValue>
-                </PropertyInfoItem>
-                <PropertyInfoItem>
-                  <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>해당층/전체층</PropertyInfoLabel>
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditInput
@@ -1012,7 +1156,91 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   </PropertyInfoValue>
                 </PropertyInfoItem>
                 <PropertyInfoItem>
-                  <PropertyInfoLabel>주차</PropertyInfoLabel>
+                  <PropertyInfoLabel>건축물용도</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.propertyType === 'commercial' ? '상가' : editData.propertyType === 'office' ? '사무실' : editData.propertyType === 'building' ? '건물' : '기타'}
+                        readOnly
+                        style={{ backgroundColor: '#f3f4f6' }}
+                      />
+                    ) : (
+                      editData.propertyType === 'commercial' ? '상가' :
+                      editData.propertyType === 'office' ? '사무실' :
+                      editData.propertyType === 'building' ? '건물' : '기타'
+                    )}
+                  </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
+                <PropertyInfoValue>
+                    {isEditMode ? (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <EditInput
+                          type="number"
+                          value={editData.bedrooms || 0}
+                          onChange={(e) => handleEditChange('bedrooms', parseInt(e.target.value) || 0)}
+                          placeholder="방"
+                          style={{ flex: 1 }}
+                        />
+                        <span>/</span>
+                        <EditInput
+                          type="number"
+                          value={editData.bathrooms || 0}
+                          onChange={(e) => handleEditChange('bathrooms', parseInt(e.target.value) || 0)}
+                          placeholder="화장실"
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    ) : (
+                      `${editData.bedrooms || 0} / ${editData.bathrooms || 0}`
+                    )}
+                </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                  <PropertyInfoLabel>방향</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.direction || ''}
+                        onChange={(e) => handleEditChange('direction', e.target.value)}
+                        placeholder="방향"
+                      />
+                    ) : (
+                      editData.direction || '-'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>냉/난방</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.coolingHeating || ''}
+                        onChange={(e) => handleEditChange('coolingHeating', e.target.value)}
+                        placeholder="냉/난방"
+                      />
+                    ) : (
+                      editData.coolingHeating || '-'
+                    )}
+                  </PropertyInfoValue>
+                </PropertyInfoItem>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>인테리어</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.interior || ''}
+                        onChange={(e) => handleEditChange('interior', e.target.value)}
+                        placeholder="인테리어"
+                      />
+                    ) : (
+                      editData.interior || '-'
+                    )}
+                  </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>주차</PropertyInfoLabel>
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditSelect
@@ -1028,7 +1256,22 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   </PropertyInfoValue>
                 </PropertyInfoItem>
                 <PropertyInfoItem>
-                  <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
+                  <PropertyInfoLabel>주차대수</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        type="number"
+                        value={editData.parkingCount || 0}
+                        onChange={(e) => handleEditChange('parkingCount', parseInt(e.target.value) || 0)}
+                        placeholder="주차대수"
+                      />
+                    ) : (
+                      editData.parkingCount && editData.parkingCount > 0 ? `${editData.parkingCount}대` : '-'
+                    )}
+                  </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>엘리베이터</PropertyInfoLabel>
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditSelect
@@ -1043,12 +1286,54 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     )}
                   </PropertyInfoValue>
                 </PropertyInfoItem>
-              </PropertyInfoGrid>
-            </InfoSection>
+                <PropertyInfoItem>
+                  <PropertyInfoLabel>입주가능일</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.moveInDate || ''}
+                        onChange={(e) => handleEditChange('moveInDate', e.target.value)}
+                        placeholder="입주가능일"
+                      />
+                    ) : (
+                      editData.moveInDate || '-'
+                    )}
+                  </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                <PropertyInfoLabel>사용승인일</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.approvalDate || ''}
+                        onChange={(e) => handleEditChange('approvalDate', e.target.value)}
+                        placeholder="사용승인일"
+                      />
+                    ) : (
+                      editData.approvalDate || '-'
+                    )}
+                  </PropertyInfoValue>
+              </PropertyInfoItem>
+              <PropertyInfoItem>
+                  <PropertyInfoLabel>추천업종</PropertyInfoLabel>
+                  <PropertyInfoValue>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.recommendedBusiness || ''}
+                        onChange={(e) => handleEditChange('recommendedBusiness', e.target.value)}
+                        placeholder="추천업종"
+                      />
+                    ) : (
+                      editData.recommendedBusiness || '-'
+                    )}
+                  </PropertyInfoValue>
+              </PropertyInfoItem>
+            </PropertyInfoGrid>
+          </InfoSection>
 
-            <Section>
-              <SectionTitle>매물설명</SectionTitle>
-              <div>
+          <Section>
+            <SectionTitle>매물설명</SectionTitle>
+            <div>
                 {isEditMode ? (
                   <EditTextarea
                     value={editData.description}
@@ -1058,13 +1343,13 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 ) : (
                   editData.description
                 )}
-              </div>
-            </Section>
+            </div>
+          </Section>
 
-            <Section>
-              <SectionTitle>연락처</SectionTitle>
-              <ContactInfo>
-                <ContactHeader>
+          <Section>
+            <SectionTitle>연락처</SectionTitle>
+            <ContactInfo>
+              <ContactHeader>
                   <ContactName>
                     {isEditMode ? (
                       <EditInput
@@ -1076,40 +1361,117 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       editData.contact.name
                     )}
                   </ContactName>
-                </ContactHeader>
-                <ContactItem>
-                  <ContactLabel>전화번호</ContactLabel>
-                  <ContactValue>
-                    {isEditMode ? (
-                      <EditInput
-                        value={editData.contact.phone}
-                        onChange={(e) => handleNestedEditChange('contact', 'phone', e.target.value)}
-                        placeholder="전화번호를 입력하세요"
-                      />
-                    ) : (
-                      editData.contact.phone
+              </ContactHeader>
+              <ContactItem>
+                  {editData.contact.photo && !isEditMode && (
+                    <img 
+                      src={editData.contact.photo} 
+                      alt="프로필 사진" 
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                        border: '2px solid #e2e8f0',
+                        marginRight: '0.5rem'
+                      }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  <div style={{ flex: 1 }}>
+                <ContactLabel>전화번호</ContactLabel>
+                    <ContactValue>
+                      {isEditMode ? (
+                        <EditInput
+                          value={editData.contact.phone}
+                          onChange={(e) => handleNestedEditChange('contact', 'phone', e.target.value)}
+                          placeholder="전화번호를 입력하세요"
+                        />
+                      ) : (
+                        editData.contact.phone
+                      )}
+                    </ContactValue>
+                  </div>
+              </ContactItem>
+                {editData.contact.phone2 && (
+              <ContactItem>
+                    {editData.contact.photo && !isEditMode && (
+                      <div style={{ width: '40px', marginRight: '0.5rem' }}></div>
                     )}
-                  </ContactValue>
-                </ContactItem>
+                    <div style={{ flex: 1 }}>
+                      <ContactLabel></ContactLabel>
+                      <ContactValue>
+                        {isEditMode ? (
+                          <EditInput
+                            value={editData.contact.phone2}
+                            onChange={(e) => handleNestedEditChange('contact', 'phone2', e.target.value)}
+                            placeholder="두 번째 전화번호를 입력하세요"
+                          />
+                        ) : (
+                          editData.contact.phone2
+                        )}
+                      </ContactValue>
+                    </div>
+                  </ContactItem>
+                )}
                 <ContactItem>
-                  <ContactLabel>이메일</ContactLabel>
-                  <ContactValue>
-                    {isEditMode ? (
-                      <EditInput
-                        type="email"
-                        value={editData.contact.email}
-                        onChange={(e) => handleNestedEditChange('contact', 'email', e.target.value)}
-                        placeholder="이메일을 입력하세요"
-                      />
-                    ) : (
-                      editData.contact.email
-                    )}
-                  </ContactValue>
-                </ContactItem>
-              </ContactInfo>
+                  {editData.contact.photo && !isEditMode && (
+                    <div style={{ width: '40px', marginRight: '0.5rem' }}></div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                <ContactLabel>이메일</ContactLabel>
+                    <ContactValue>
+                      {isEditMode ? (
+                        <EditInput
+                          type="email"
+                          value={editData.contact.email}
+                          onChange={(e) => handleNestedEditChange('contact', 'email', e.target.value)}
+                          placeholder="이메일을 입력하세요"
+                        />
+                      ) : (
+                        editData.contact.email
+                      )}
+                    </ContactValue>
+                  </div>
+              </ContactItem>
+            </ContactInfo>
+          </Section>
+
+          {editData.mapImage && (
+            <Section>
+              <SectionTitle>위치정보</SectionTitle>
+              <div style={{
+                width: '100%',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+              }}>
+                <img 
+                  src={editData.mapImage} 
+                  alt="위치정보 지도"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    maxHeight: '500px',
+                    objectFit: 'contain'
+                  }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = '<div style="padding: 2rem; text-align: center; color: #9ca3af; background: #f3f4f6;">지도 이미지를 불러올 수 없습니다</div>';
+                    }
+                  }}
+                />
+              </div>
             </Section>
-          </LeftPanel>
-        </ModalContent>
+          )}
+        </LeftPanel>
+      </ModalContent>
         
         {/* 숨겨진 파일 입력 */}
         <input
@@ -1125,7 +1487,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
             pointerEvents: 'none'
           }}
         />
-      </ModalOverlay>
+    </ModalOverlay>
     </>
   );
 };
