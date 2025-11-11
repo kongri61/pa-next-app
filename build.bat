@@ -1,5 +1,5 @@
 @echo off
-cd /d "C:\Users\user\매물지도보기"
+cd /d "%~dp0"
 echo Building project...
 call npm run build
 echo Build completed!
