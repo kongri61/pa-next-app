@@ -930,10 +930,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             console.log('면적 범위 유효성:', !isNaN(min), !isNaN(max));
             
             filtered = filtered.filter(property => {
-              // property.area를 평 단위로 변환
-              const area = Math.round(property.area / 3.3058);
+              // dedicatedArea가 있으면 그것을 사용, 없으면 area 사용
+              const areaForFilter = property.dedicatedArea || property.area;
+              const area = Math.round(areaForFilter / 3.3058);
               const isInRange = area >= min && area <= max;
-              console.log(`매물 ${property.id} 면적: ${area}평(${Math.round(property.area)}m²), 범위: ${min}~${max}평, 포함여부: ${isInRange}`);
+              console.log(`매물 ${property.id} 면적: ${area}평(${Math.round(areaForFilter)}m²), 범위: ${min}~${max}평, 포함여부: ${isInRange}`);
               return isInRange;
             });
           }
@@ -942,18 +943,19 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           const area = parseFloat(areaValue.replace(/[~평]/g, ''));
           console.log('면적 단일 값 파싱:', area);
           filtered = filtered.filter(property => {
-            // property.area를 평 단위로 변환
-            const propertyArea = Math.round(property.area / 3.3058);
+            // dedicatedArea가 있으면 그것을 사용, 없으면 area 사용
+            const areaForFilter = property.dedicatedArea || property.area;
+            const propertyArea = Math.round(areaForFilter / 3.3058);
             
             // 200은 200평 이상을 의미 (200평~ 버튼)
             if (area === 200) {
               const isMatch = propertyArea >= 200;
-              console.log(`매물 ${property.id} 면적: ${propertyArea}평(${Math.round(property.area)}m²), 필터: 200평 이상, 포함여부: ${isMatch}`);
+              console.log(`매물 ${property.id} 면적: ${propertyArea}평(${Math.round(areaForFilter)}m²), 필터: 200평 이상, 포함여부: ${isMatch}`);
               return isMatch;
             } else {
               // 일반 단일 값은 정확히 일치해야 함
               const isMatch = propertyArea === area;
-              console.log(`매물 ${property.id} 면적: ${propertyArea}평(${Math.round(property.area)}m²), 필터: ${area}평, 일치여부: ${isMatch}`);
+              console.log(`매물 ${property.id} 면적: ${propertyArea}평(${Math.round(areaForFilter)}m²), 필터: ${area}평, 일치여부: ${isMatch}`);
               return isMatch;
             }
           });
@@ -966,14 +968,15 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         console.log('면적 두 값 유효성:', !isNaN(min), !isNaN(max));
         
         filtered = filtered.filter(property => {
-          // property.area를 평 단위로 변환
-          const area = Math.round(property.area / 3.3058);
+          // dedicatedArea가 있으면 그것을 사용, 없으면 area 사용
+          const areaForFilter = property.dedicatedArea || property.area;
+          const area = Math.round(areaForFilter / 3.3058);
           
           // 200은 200평 이상을 의미 (200평~ 버튼)
           const actualMax = max === 200 ? Infinity : max;
           const isInRange = area >= min && area <= actualMax;
           
-          console.log(`매물 ${property.id} 면적: ${area}평(${Math.round(property.area)}m²), 범위: ${min}~${actualMax === Infinity ? '무제한' : actualMax}평, 포함여부: ${isInRange}`);
+          console.log(`매물 ${property.id} 면적: ${area}평(${Math.round(areaForFilter)}m²), 범위: ${min}~${actualMax === Infinity ? '무제한' : actualMax}평, 포함여부: ${isInRange}`);
           return isInRange;
         });
       }
@@ -1405,7 +1408,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                          color: '#374151',
                          marginRight: '4px'
                        }}>
-                         전용 {Math.round(property.area / 3.3058)}평
+                         전용 {Math.round((property.dedicatedArea || property.area) / 3.3058)}평
                        </span>
                        {property.type === 'sale' ? '매매' : '임대'} {property.floor} 주차 {property.parking ? '가능' : '불가능'} 엘리베이터 {property.elevator ? '유' : '무'}
                      </PCPropertyDetails>

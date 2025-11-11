@@ -304,12 +304,12 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
       '매물번호', '매물제목', '매물설명', '거래유형', '매물종류',
       '매매가(억원)', '보증금(만원)', '월세(만원)', '주소', '위도', '경도',
       '공급/전용면적(평)', '공급/전용면적(㎡)', '방/화장실', '해당층/전체층',
-      '주차', '엘리베이터', '확인매물날짜', '연락처이름', '연락처전화번호', '연락처이메일'
+      '주차', '엘리베이터', '확인매물날짜', '연락처이름', '연락처전화번호', '연락처전화번호2', '연락처이메일', '연락처프로필사진URL', '위치정보지도이미지URL'
     ];
 
     const sampleData = [
-      ['P001', '강남구 역삼동 상가', '1층 상가 매매', '매매', '상가', '8.5', '0', '0', '서울시 강남구 역삼동 123-45', '37.5008', '127.0374', '19.5', '64.5', '3/2', '1/5층', 'Y', 'Y', '25.07.19', '김부동산', '02-1234-5678', 'kim@realestate.com'],
-      ['P002', '서초구 서초동 사무실', '고층 사무실 임대', '임대', '사무실', '0', '1000', '50', '서울시 서초구 서초동 456-78', '37.4947', '127.0276', '25.0', '82.5', '4/3', '10/20층', 'Y', 'Y', '25.07.20', '이부동산', '02-2345-6789', 'lee@realestate.com']
+      ['P001', '강남구 역삼동 상가', '1층 상가 매매', '매매', '상가', '8.5', '0', '0', '서울시 강남구 역삼동 123-45', '37.5008', '127.0374', '19.5', '64.5', '3/2', '1/5층', 'Y', 'Y', '25.07.19', '김부동산', '02-1234-5678', '02-1234-5679', 'kim@realestate.com', 'https://example.com/profile.jpg', 'https://example.com/map.jpg'],
+      ['P002', '서초구 서초동 사무실', '고층 사무실 임대', '임대', '사무실', '0', '1000', '50', '서울시 서초구 서초동 456-78', '37.4947', '127.0276', '25.0', '82.5', '4/3', '10/20층', 'Y', 'Y', '25.07.20', '이부동산', '02-2345-6789', '', 'lee@realestate.com', '', '']
     ];
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
@@ -371,7 +371,10 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         const confirmedDate = row[17] || undefined;
         const contactName = row[18] || '중개소';
         const contactPhone = row[19] || '02-0000-0000';
-        const contactEmail = row[20] || 'contact@realestate.com';
+        const contactPhone2 = row[20] || undefined;
+        const contactEmail = row[21] || 'contact@realestate.com';
+        const contactPhoto = row[22] || undefined;
+        const mapImage = row[23] || undefined;
 
         const property: Property = {
           id: propertyId,
@@ -391,7 +394,9 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           contact: {
             name: contactName,
             phone: contactPhone,
-            email: contactEmail
+            phone2: contactPhone2 || undefined,
+            email: contactEmail,
+            photo: contactPhoto || undefined
           },
           features: [],
           createdAt: new Date(),
@@ -399,7 +404,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           confirmedDate,
           floor,
           parking,
-          elevator
+          elevator,
+          mapImage: mapImage || undefined
         };
 
         properties.push(property);
