@@ -235,12 +235,12 @@ console.log('🚫 자동 정리 로직 비활성화됨 - 수동 정리만 사용
   }
 };
 
-// PC용 최적화된 2개 섹션 구조 (사이드바 제거) + 모바일 반응형
+// 모바일 우선 2개 섹션 구조 + PC 반응형
 const HomeContainer = styled.div`
   display: flex;
-  flex-direction: row;
-  height: calc(100vh - 140px); // PC에서 더 많은 공간 활용
-  min-height: 700px;
+  flex-direction: column; /* 모바일 우선: 세로 배치 */
+  height: calc(100vh - 140px);
+  min-height: 100vh;
   position: relative;
   top: 0;
   left: 0;
@@ -255,18 +255,16 @@ const HomeContainer = styled.div`
   width: 100%;
   box-sizing: border-box;
 
-  /* 모바일 반응형 */
-  @media (max-width: 768px) {
-    flex-direction: column;
-    height: auto;
-    min-height: 100vh;
-    overflow: visible;
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    flex-direction: row; /* PC: 가로 배치 */
+    height: calc(100vh - 140px);
+    min-height: 700px;
   }
 `;
 
-// 1. 지도 섹션 (PC용) - 메인 콘텐츠 (확장) + 모바일 반응형
-const MapSection = styled.div`
-  flex: 1;
+// 1. 지도 섹션 (모바일 우선) - 전체 화면 또는 숨김
+const MapSection = styled.div<{ show: boolean }>`
   position: relative;
   background: white;
   border-radius: 0;
@@ -277,34 +275,42 @@ const MapSection = styled.div`
   padding: 0;
   width: 100%;
   box-sizing: border-box;
+  height: calc(100vh - 140px);
+  min-height: calc(100vh - 140px);
+  display: ${props => props.show ? 'block' : 'none'};
 
-  /* 모바일 반응형 */
+  /* 모바일: 탭 전환 */
   @media (max-width: 768px) {
-    height: 50vh;
-    min-height: 300px;
-    flex: none;
-    border-radius: 8px;
-    margin: 0.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: calc(100vh - 200px);
+    min-height: calc(100vh - 200px);
+    border-radius: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  /* PC: 항상 표시 */
+  @media (min-width: 769px) {
+    flex: 1;
+    display: block;
+    height: 100%;
+    min-height: 100%;
   }
 `;
 
-// 2. 매물 목록 섹션 (PC용) - 우측 패널 - 완전한 스크롤 보장 + 모바일 반응형
-const PropertyListSection = styled.div`
-  flex: 0 0 450px; /* 고정 너비 */
+// 2. 매물 목록 섹션 (모바일 우선) - 전체 화면 또는 숨김
+const PropertyListSection = styled.div<{ show: boolean }>`
   background: white;
-  border-left: 1px solid #e2e8f0;
   margin: 0;
   padding: 0;
   
   /* Flexbox 컨테이너 설정 */
-  display: flex;
+  display: ${props => props.show ? 'flex' : 'none'};
   flex-direction: column;
   
-  /* 높이 설정 - 화면 크기에 관계없이 완전한 스크롤 보장 */
-  height: 100vh;
-  min-height: 100vh;
-  max-height: 100vh;
+  /* 높이 설정 */
+  height: calc(100vh - 140px);
+  min-height: calc(100vh - 140px);
+  max-height: calc(100vh - 140px);
   
   /* 오버플로우 처리 */
   overflow: hidden;
@@ -314,25 +320,36 @@ const PropertyListSection = styled.div`
   -webkit-overflow-scrolling: touch;
   
   /* 시각적 효과 */
-  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   
   /* 고정 위치 */
-  position: sticky;
+  position: relative;
   top: 0;
+  width: 100%;
 
-  /* 모바일 반응형 */
+  /* 모바일: 탭 전환 */
   @media (max-width: 768px) {
-    flex: none;
-    width: 100%;
-    height: auto;
-    min-height: 50vh;
-    max-height: none;
+    height: calc(100vh - 200px);
+    min-height: calc(100vh - 200px);
+    max-height: calc(100vh - 200px);
     border-left: none;
-    border-top: 1px solid #e2e8f0;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-    position: relative;
-    margin: 0.5rem;
-    border-radius: 8px;
+    border-top: none;
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  /* PC: 항상 표시, 우측 패널 */
+  @media (min-width: 769px) {
+    flex: 0 0 450px;
+    display: flex;
+    height: 100vh;
+    min-height: 100vh;
+    max-height: 100vh;
+    border-left: 1px solid #e2e8f0;
+    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
   }
 `;
 
@@ -639,6 +656,25 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   const [defaultProperties, setDefaultProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(false); // 로딩 화면 비활성화
   const [error, setError] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<'map' | 'list'>('map'); // 모바일 뷰 전환
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768); // 모바일 여부
+
+  // 화면 크기 감지
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // PC로 전환 시 항상 둘 다 표시
+      if (!mobile) {
+        setMobileView('map');
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // 초기 실행
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // 기본 매물 데이터 (빈 배열로 초기화 - 서울 매물 제거됨)
   const initialProperties: Property[] = useMemo(() => [], []);
@@ -1262,10 +1298,48 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     );
   }
 
+  // 모바일 탭 전환 버튼 스타일
+  const MobileTabBar = styled.div`
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    z-index: 1000;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+
+    @media (max-width: 768px) {
+      display: flex;
+      gap: 0.5rem;
+    }
+  `;
+
+  const MobileTabButton = styled.button<{ active: boolean }>`
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: ${props => props.active ? '#2563eb' : '#f3f4f6'};
+    color: ${props => props.active ? 'white' : '#6b7280'};
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    min-height: 48px;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  `;
+
   return (
     <>
       <HomeContainer>
-        <MapSection>
+        <MapSection show={!isMobile || mobileView === 'map'}>
           <GoogleMap
             ref={mapRef}
             properties={displayProperties}
@@ -1273,12 +1347,15 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             onClusterClick={(clusterProperties) => {
               console.log('클러스터 클릭됨:', clusterProperties.length, '개 매물');
               setSelectedClusterProperties(clusterProperties);
-              // 모바일 목록 표시 제거
+              // 모바일에서 목록으로 전환
+              if (isMobile) {
+                setMobileView('list');
+              }
             }}
           />
         </MapSection>
         
-        <PropertyListSection>
+        <PropertyListSection show={!isMobile || mobileView === 'list'}>
           <PropertyListHeader>
             <div className="property-count">
               {selectedClusterProperties.length > 0 
@@ -1436,6 +1513,24 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           </PropertyListContainer>
         </PropertyListSection>
       </HomeContainer>
+
+      {/* 모바일 탭 바 */}
+      {isMobile && (
+        <MobileTabBar>
+          <MobileTabButton
+            active={mobileView === 'map'}
+            onClick={() => setMobileView('map')}
+          >
+            🗺️ 지도
+          </MobileTabButton>
+          <MobileTabButton
+            active={mobileView === 'list'}
+            onClick={() => setMobileView('list')}
+          >
+            📋 목록
+          </MobileTabButton>
+        </MobileTabBar>
+      )}
 
       {selectedPropertyForDetail && (
         <PropertyDetailModal

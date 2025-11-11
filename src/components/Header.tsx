@@ -6,7 +6,7 @@ import { firebaseSync } from '../utils/firebaseSync';
 const HeaderContainer = styled.header`
   background: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 1rem 2rem;
+  padding: 0.75rem 1rem; /* 모바일 우선: 작은 패딩 */
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -15,6 +15,11 @@ const HeaderContainer = styled.header`
   max-width: 100vw;
   box-sizing: border-box;
   border-bottom: 1px solid #e5e7eb;
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    padding: 1rem 2rem;
+  }
 `;
 
 const MainSection = styled.div`
@@ -34,9 +39,15 @@ const MainSection = styled.div`
 const LeftSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem; // 0.75rem에서 1rem으로 증가
+  gap: 0.5rem; /* 모바일 우선: 작은 간격 */
   flex-shrink: 0;
-  min-width: 200px; // 로고 영역 최소 너비 추가
+  min-width: auto; /* 모바일 우선: 최소 너비 제거 */
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    gap: 1rem;
+    min-width: 200px;
+  }
 `;
 
 // 중앙 섹션 (검색 + 필터)
@@ -46,16 +57,27 @@ const CenterSection = styled.div`
   gap: 0.5rem;
   flex: 1;
   justify-content: center;
-  max-width: 800px; // 최대 너비 제한 추가
+  max-width: 100%; /* 모바일 우선: 전체 너비 */
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    max-width: 800px;
+  }
 `;
 
 // 오른쪽 섹션 (버튼들)
 const RightSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem; // 0.5rem에서 0.75rem으로 증가
+  gap: 0.5rem; /* 모바일 우선: 작은 간격 */
   flex-shrink: 0;
-  min-width: 300px; // 최소 너비 추가
+  min-width: auto; /* 모바일 우선: 최소 너비 제거 */
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    gap: 0.75rem;
+    min-width: 300px;
+  }
 `;
 
 const LogoSection = styled.div`
@@ -79,26 +101,41 @@ const CompanyName = styled.div`
   line-height: 1.2;
 
   .company-main {
-    font-size: 1.5rem;
+    font-size: 1rem; /* 모바일 우선: 작은 폰트 */
     font-weight: 700;
     color: #000000;
   }
 
   .company-sub {
-    font-size: 1rem;
+    font-size: 0.75rem; /* 모바일 우선: 작은 폰트 */
     font-weight: 400;
     color: #6b7280;
+    display: none; /* 모바일에서 숨김 */
+  }
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    .company-main {
+      font-size: 1.5rem;
+    }
+
+    .company-sub {
+      font-size: 1rem;
+      display: flex;
+    }
   }
 `;
 
 // 검색 필드
 const SearchInput = styled.input`
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem; /* 모바일 우선: 큰 터치 영역 */
   border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 8px;
+  font-size: 1rem; /* 모바일 우선: 큰 폰트 */
   background: white;
-  min-width: 200px;
+  min-width: 0; /* 모바일 우선: 최소 너비 제거 */
+  width: 100%;
+  min-height: 44px; /* 모바일 터치 최적화 */
   
   &:focus {
     outline: none;
@@ -109,50 +146,83 @@ const SearchInput = styled.input`
   &::placeholder {
     color: #9ca3af;
   }
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    min-width: 200px;
+    width: auto;
+    min-height: auto;
+  }
 `;
 
 // 필터 버튼 (기본 상태)
 const FilterButtonDefault = styled.button`
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem; /* 모바일 우선: 큰 터치 영역 */
   background: white;
   color: #4b5563;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  min-height: 44px; /* 모바일 터치 최적화 */
+  touch-action: manipulation;
   
   &:hover {
     background: #f9fafb;
     border-color: #9ca3af;
   }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    padding: 0.5rem 0.75rem;
+    min-height: auto;
+  }
 `;
 
 // 액션 버튼
 const ActionButton = styled.button`
-  padding: 0.5rem 0.75rem; // 1rem에서 0.75rem으로 줄임
+  padding: 0.75rem 1rem; /* 모바일 우선: 큰 터치 영역 */
   background: #4b5563;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  white-space: nowrap; // 텍스트 줄바꿈 방지
+  white-space: nowrap;
+  min-height: 44px; /* 모바일 터치 최적화 */
+  touch-action: manipulation;
   
   &:hover {
     background: #374151;
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
   
   svg {
     width: 16px;
     height: 16px;
+  }
+
+  /* PC 반응형 */
+  @media (min-width: 769px) {
+    padding: 0.5rem 0.75rem;
+    min-height: auto;
   }
 `;
 
