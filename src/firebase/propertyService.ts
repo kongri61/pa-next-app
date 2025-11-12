@@ -4,17 +4,58 @@ import {
   getDocs, 
   doc, 
   updateDoc, 
+  deleteDoc,
   query, 
   where, 
   getDoc,
   QueryDocumentSnapshot,
-  DocumentData
+  DocumentData,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from './config';
 import { Property } from '../types';
 
 // 컬렉션 이름
 const PROPERTIES_COLLECTION = 'properties';
+
+// 안전한 Timestamp 변환 함수
+const safeConvertTimestamp = (timestamp: any): Date => {
+  try {
+    if (!timestamp) return new Date();
+    
+    // Firebase Timestamp 객체
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    
+    // 이미 Date 객체
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
+    
+    // 문자열 형태의 날짜
+    if (typeof timestamp === 'string') {
+      const date = new Date(timestamp);
+      return isNaN(date.getTime()) ? new Date() : date;
+    }
+    
+    // Firebase Timestamp 형태의 객체
+    if (timestamp && typeof timestamp === 'object' && timestamp.seconds) {
+      return new Date(timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000);
+    }
+    
+    // 숫자 형태
+    if (typeof timestamp === 'number') {
+      const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
+      return isNaN(date.getTime()) ? new Date() : date;
+    }
+    
+    return new Date();
+  } catch (error) {
+    console.warn('Timestamp 변환 실패, 기본값 사용:', error);
+    return new Date();
+  }
+};
 
 // 매물 추가
 export const addProperty = async (property: Omit<Property, 'id' | 'createdAt'>): Promise<string> => {
@@ -23,15 +64,6 @@ export const addProperty = async (property: Omit<Property, 'id' | 'createdAt'>):
     console.log('Firebase 프로젝트 ID:', db.app.options.projectId);
     console.log('컬렉션 이름:', PROPERTIES_COLLECTION);
     console.log('매물 데이터:', property);
-    
-    // Firebase 인증 상태 확인
-    const { getCurrentUser } = await import('./authService');
-    const currentUser = getCurrentUser();
-    console.log('현재 인증된 사용자:', currentUser?.uid);
-    
-    if (!currentUser) {
-      throw new Error('인증된 사용자가 없습니다. 로그인이 필요합니다.');
-    }
     
     const docRef = await addDoc(collection(db, PROPERTIES_COLLECTION), {
       ...property,
@@ -98,8 +130,8 @@ export const getProperties = async (
         // 필드명 매핑 (Firebase에서 다른 필드명으로 저장된 경우)
         price: data.price || data.rentPrice || 0,
         deposit: data.deposit || 0,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        createdAt: safeConvertTimestamp(data.createdAt),
+        updatedAt: safeConvertTimestamp(data.updatedAt),
         isActive: data.isActive !== false // isActive가 없거나 true인 경우 true로 설정
       } as Property;
       
@@ -154,8 +186,8 @@ export const getProperty = async (id: string): Promise<Property | null> => {
       return {
         id: docSnap.id,
         ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date()
+        createdAt: safeConvertTimestamp(data.createdAt),
+        updatedAt: safeConvertTimestamp(data.updatedAt)
       } as Property;
     } else {
       return null;
@@ -194,6 +226,163 @@ export const deleteProperty = async (id: string): Promise<void> => {
   }
 };
 
+// 매물 완전 삭제 (실제 문서 삭제)
+export const permanentlyDeleteProperty = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, PROPERTIES_COLLECTION, id);
+    await deleteDoc(docRef);
+    console.log('매물 완전 삭제 성공:', id);
+  } catch (error) {
+    console.error('매물 완전 삭제 오류:', error);
+    throw new Error('매물을 완전히 삭제하는 중 오류가 발생했습니다.');
+  }
+};
+
+// 테스트 매물만 삭제 (제목에 "테스트"가 포함된 매물)
+export const deleteTestProperties = async (): Promise<number> => {
+  try {
+    console.log('=== 테스트 매물 삭제 시작 ===');
+    
+    // 모든 매물 가져오기
+    const querySnapshot = await getDocs(collection(db, PROPERTIES_COLLECTION));
+    console.log('전체 매물 수:', querySnapshot.docs.length);
+    
+    if (querySnapshot.empty) {
+      console.log('삭제할 매물이 없습니다.');
+      return 0;
+    }
+    
+    // 테스트 매물 필터링 (제목에 "테스트"가 포함된 것들)
+    const testProperties: Array<{ id: string; title: string }> = [];
+    
+    querySnapshot.docs.forEach((docSnapshot) => {
+      const data = docSnapshot.data();
+      const title = data.title || '';
+      const description = data.description || '';
+      const contactName = data.contact?.name || '';
+      
+      // 테스트 매물 판별 조건
+      const isTestProperty = 
+        title.includes('테스트') || 
+        title.includes('test') ||
+        title.includes('Test') ||
+        description.includes('테스트') ||
+        contactName.includes('테스트');
+      
+      if (isTestProperty) {
+        testProperties.push({
+          id: docSnapshot.id,
+          title: title
+        });
+      }
+    });
+    
+    console.log('삭제할 테스트 매물 수:', testProperties.length);
+    
+    if (testProperties.length === 0) {
+      console.log('삭제할 테스트 매물이 없습니다.');
+      return 0;
+    }
+    
+    // 삭제할 매물 목록 출력
+    testProperties.forEach((prop, index) => {
+      console.log(`  ${index + 1}. ${prop.title} (ID: ${prop.id})`);
+    });
+    
+    // 배치로 삭제
+    const batchSize = 500;
+    let deletedCount = 0;
+    
+    for (let i = 0; i < testProperties.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const batchProps = testProperties.slice(i, i + batchSize);
+      
+      for (const prop of batchProps) {
+        batch.delete(doc(db, PROPERTIES_COLLECTION, prop.id));
+        deletedCount++;
+      }
+      
+      await batch.commit();
+      console.log(`${Math.min(i + batchSize, testProperties.length)}/${testProperties.length}개 테스트 매물 삭제 완료...`);
+    }
+    
+    console.log(`=== 테스트 매물 삭제 완료: ${deletedCount}개 ===`);
+    return deletedCount;
+  } catch (error) {
+    console.error('=== 테스트 매물 삭제 오류 ===');
+    console.error('오류:', error);
+    console.error('오류 상세:', {
+      code: (error as any)?.code,
+      message: (error as any)?.message,
+      stack: (error as any)?.stack
+    });
+    
+    let errorMessage = '테스트 매물을 삭제하는 중 오류가 발생했습니다.';
+    if ((error as any)?.code === 'permission-denied') {
+      errorMessage = '권한이 없습니다. Firestore 보안 규칙을 확인해주세요.';
+    } else if ((error as any)?.code === 'unauthenticated') {
+      errorMessage = '인증이 필요합니다. 로그인해주세요.';
+    }
+    
+    throw new Error(errorMessage);
+  }
+};
+
+// 모든 매물 삭제 (주의: 모든 데이터가 삭제됩니다)
+export const deleteAllProperties = async (): Promise<number> => {
+  try {
+    console.log('=== 모든 매물 삭제 시작 ===');
+    
+    // 모든 매물 가져오기
+    const querySnapshot = await getDocs(collection(db, PROPERTIES_COLLECTION));
+    console.log('삭제할 매물 수:', querySnapshot.docs.length);
+    
+    if (querySnapshot.empty) {
+      console.log('삭제할 매물이 없습니다.');
+      return 0;
+    }
+    
+    // 배치로 삭제 (Firestore는 한 번에 최대 500개까지 처리 가능)
+    const batchSize = 500;
+    let deletedCount = 0;
+    const allDocs = querySnapshot.docs;
+    
+    // 여러 배치로 나눠서 처리
+    for (let i = 0; i < allDocs.length; i += batchSize) {
+      const batch = writeBatch(db);
+      const batchDocs = allDocs.slice(i, i + batchSize);
+      
+      for (const docSnapshot of batchDocs) {
+        batch.delete(doc(db, PROPERTIES_COLLECTION, docSnapshot.id));
+        deletedCount++;
+      }
+      
+      await batch.commit();
+      console.log(`${Math.min(i + batchSize, allDocs.length)}/${allDocs.length}개 매물 삭제 완료...`);
+    }
+    
+    console.log(`=== 모든 매물 삭제 완료: ${deletedCount}개 ===`);
+    return deletedCount;
+  } catch (error) {
+    console.error('=== 모든 매물 삭제 오류 ===');
+    console.error('오류:', error);
+    console.error('오류 상세:', {
+      code: (error as any)?.code,
+      message: (error as any)?.message,
+      stack: (error as any)?.stack
+    });
+    
+    let errorMessage = '모든 매물을 삭제하는 중 오류가 발생했습니다.';
+    if ((error as any)?.code === 'permission-denied') {
+      errorMessage = '권한이 없습니다. Firestore 보안 규칙을 확인해주세요.';
+    } else if ((error as any)?.code === 'unauthenticated') {
+      errorMessage = '인증이 필요합니다. 로그인해주세요.';
+    }
+    
+    throw new Error(errorMessage);
+  }
+};
+
 // 매물 검색
 export const searchProperties = async (
   searchTerm: string,
@@ -225,8 +414,8 @@ export const searchProperties = async (
       const property = {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date()
+        createdAt: safeConvertTimestamp(data.createdAt),
+        updatedAt: safeConvertTimestamp(data.updatedAt)
       } as Property;
 
       // 검색어 필터링 (제목, 설명, 주소에서 검색)
@@ -249,15 +438,6 @@ export const searchProperties = async (
 export const addTestProperty = async (): Promise<string> => {
   try {
     console.log('=== 테스트 매물 추가 시작 ===');
-    
-    // Firebase 인증 상태 확인
-    const { getCurrentUser } = await import('./authService');
-    const currentUser = getCurrentUser();
-    console.log('현재 인증된 사용자:', currentUser?.uid);
-    
-    if (!currentUser) {
-      throw new Error('인증된 사용자가 없습니다. 로그인이 필요합니다.');
-    }
     
     // 매매용 테스트 매물
     const saleProperty = {
@@ -283,8 +463,8 @@ export const addTestProperty = async (): Promise<string> => {
       floor: '3/10층',
       parking: true,
       elevator: true,
-      createdBy: currentUser.uid,
-      updatedBy: currentUser.uid
+      createdBy: 'system',
+      updatedBy: 'system'
     };
 
     console.log('테스트 매물 데이터:', saleProperty);
@@ -325,15 +505,6 @@ export const addTestRentProperty = async (): Promise<string> => {
   try {
     console.log('=== 임대용 테스트 매물 추가 시작 ===');
     
-    // Firebase 인증 상태 확인
-    const { getCurrentUser } = await import('./authService');
-    const currentUser = getCurrentUser();
-    console.log('현재 인증된 사용자:', currentUser?.uid);
-    
-    if (!currentUser) {
-      throw new Error('인증된 사용자가 없습니다. 로그인이 필요합니다.');
-    }
-    
     // 임대용 테스트 매물
     const rentProperty = {
       title: '테스트 임대 매물',
@@ -359,8 +530,8 @@ export const addTestRentProperty = async (): Promise<string> => {
       floor: '2/5층',
       parking: false,
       elevator: true,
-      createdBy: currentUser.uid,
-      updatedBy: currentUser.uid
+      createdBy: 'system',
+      updatedBy: 'system'
     };
 
     console.log('임대용 테스트 매물 데이터:', rentProperty);

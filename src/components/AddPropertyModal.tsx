@@ -375,6 +375,23 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         const contactEmail = row[21] || 'contact@realestate.com';
         const contactPhoto = row[22] || undefined;
         const mapImage = row[23] || undefined;
+        
+        // 추가 필드들 (Excel 컬럼 확장 가능)
+        const maintenanceIncluded = row[24] || undefined;
+        const propertyStatus = row[25] || undefined;
+        const parkingCount = row[26] ? parseInt(row[26]) : undefined;
+        const recommendedBusiness = row[27] || undefined;
+        const contactCompanyName = row[28] || undefined;
+        // 매매용 필드들
+        const loanAmount = row[29] ? parseFloat(row[29]) : undefined;
+        const keyDepositMonthly = row[30] ? parseFloat(row[30]) : undefined;
+        // 임대용 필드들
+        const keyMoney = row[31] ? parseFloat(row[31]) : undefined;
+
+        // 전화번호 배열 생성 (phone, phone2 모두 포함)
+        const phones: string[] = [];
+        if (contactPhone) phones.push(contactPhone);
+        if (contactPhone2) phones.push(contactPhone2);
 
         const property: Property = {
           id: propertyId,
@@ -393,8 +410,10 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           images: [],
           contact: {
             name: contactName,
+            companyName: contactCompanyName || undefined,
             phone: contactPhone,
             phone2: contactPhone2 || undefined,
+            phones: phones.length > 0 ? phones : undefined,
             email: contactEmail,
             photo: contactPhoto || undefined
           },
@@ -405,7 +424,17 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           floor,
           parking,
           elevator,
-          mapImage: mapImage || undefined
+          mapImage: mapImage || undefined,
+          // 추가 필드들
+          maintenanceIncluded: maintenanceIncluded || undefined,
+          propertyStatus: propertyStatus || undefined,
+          parkingCount: parkingCount || undefined,
+          recommendedBusiness: recommendedBusiness || undefined,
+          // 매매용 필드들
+          loanAmount: loanAmount || undefined,
+          keyDepositMonthly: keyDepositMonthly || undefined,
+          // 임대용 필드들
+          keyMoney: keyMoney || undefined
         };
 
         properties.push(property);

@@ -19,11 +19,13 @@ export interface Property {
   dedicatedArea?: number; // 전용면적 (평방미터)
   images: string[];
   contact: {
-    name: string;
-    phone: string;
-    phone2?: string; // 두 번째 전화번호
+    name: string; // 담당자명 또는 상호명
+    companyName?: string; // 상호명 (회사명)
+    phone: string; // 첫 번째 전화번호 (하위 호환성 유지)
+    phone2?: string; // 두 번째 전화번호 (하위 호환성 유지)
+    phones?: string[]; // 전화번호 배열 (2개 이상 지원)
     email: string;
-    photo?: string; // 프로필 사진 URL
+    photo?: string; // 프로필 사진 URL (PC 사이트와 연동)
   };
   features: string[];
   createdAt: Date;

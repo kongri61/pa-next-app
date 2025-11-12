@@ -1,6 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { Property } from '../types';
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -255,8 +261,8 @@ const ImageCounter = styled.div`
 
 const ImageNavigationButton = styled.button`
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 0.3rem;
+  transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
@@ -273,7 +279,7 @@ const ImageNavigationButton = styled.button`
 
   &:hover {
     background: rgba(0, 0, 0, 0.8);
-    transform: translateY(-50%) scale(1.1);
+    transform: translateX(-50%) scale(1.1);
   }
 
   &:disabled {
@@ -282,11 +288,11 @@ const ImageNavigationButton = styled.button`
   }
 
   &.prev {
-    left: 1rem;
+    left: calc(50% - 30px); /* 가운데에서 왼쪽으로 30px */
   }
 
   &.next {
-    right: 1rem;
+    left: calc(50% + 30px); /* 가운데에서 오른쪽으로 30px */
   }
 `;
 
@@ -398,8 +404,18 @@ const ContactInfo = styled.div`
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
-  max-width: 300px;
+  max-width: 100%;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  
+  @media (min-width: 769px) {
+    flex-direction: row;
+    padding: 1.25rem;
+    gap: 1.25rem;
+    max-width: 400px;
+  }
   
   &::before {
     content: '';
@@ -412,42 +428,143 @@ const ContactInfo = styled.div`
   }
 `;
 
+const ContactPhoto = styled.div`
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  
+  @media (min-width: 769px) {
+    width: 120px;
+    height: 120px;
+  }
+  
+  img {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+    display: block;
+  }
+  
+  > div {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
 const ContactHeader = styled.div`
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #e2e8f0;
+  
+  @media (min-width: 769px) {
+    padding-bottom: 0.75rem;
+  }
+`;
+
+const MobileContactHeader = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  @media (min-width: 769px) {
+    display: none;
+  }
+`;
+
+const ContactContent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0; /* 텍스트 오버플로우 방지 */
+  
+  @media (min-width: 769px) {
+    gap: 0.75rem;
+  }
+  
+  /* 모바일에서 ContactHeader 숨김 */
+  @media (max-width: 768px) {
+    > ${ContactHeader} {
+      display: none;
+    }
+  }
 `;
 
 const ContactName = styled.h3`
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+  line-height: 1.3;
+  word-break: break-word;
+  
+  @media (min-width: 769px) {
+    font-size: 1rem;
+  }
+`;
+
+const ContactRepresentative = styled.div`
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 0.25rem;
+  line-height: 1.3;
+  
+  @media (min-width: 769px) {
+    font-size: 0.875rem;
+    margin-top: 0.375rem;
+  }
 `;
 
 const ContactItem = styled.div`
   display: flex;
-  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
   padding: 0.25rem 0;
   font-size: 0.75rem;
   border-bottom: 1px solid #f1f5f9;
+  
+  @media (min-width: 769px) {
+    padding: 0.375rem 0;
+    font-size: 0.875rem;
+    gap: 0.625rem;
+  }
   
   &:last-child {
     border-bottom: none;
   }
 `;
 
+const ContactItemEmail = styled(ContactItem)`
+  font-size: 0.6875rem; /* 0.75rem에서 1단계 줄임 (11px) */
+  
+  @media (min-width: 769px) {
+    font-size: 0.8125rem; /* 0.875rem에서 1단계 줄임 (13px) */
+  }
+`;
+
 const ContactLabel = styled.span`
   color: #64748b;
   font-weight: 500;
-  min-width: 60px;
+  flex-shrink: 0;
 `;
 
 const ContactValue = styled.span`
   color: #1e293b;
   font-weight: 600;
-  text-align: right;
   flex: 1;
+  word-break: keep-all; /* 단어 단위로 줄바꿈 (전화번호 보호) */
+  overflow-wrap: break-word; /* 긴 단어만 줄바꿈 */
 `;
 
 const Section = styled.div`
@@ -474,6 +591,17 @@ const MapPlaceholder = styled.div`
   font-size: 1rem;
   position: relative;
   border-radius: 8px;
+`;
+
+const MapContainer = styled.div`
+  width: 100%;
+  height: 225px; /* 300px에서 25% 줄임 (300 * 0.75 = 225) */
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  background: #f3f4f6;
 `;
 
 const formatPrice = (price: number) => {
@@ -518,10 +646,25 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [editData, setEditData] = useState<Property>(property);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const [photoLoadError, setPhotoLoadError] = useState(false);
+
+  // property가 변경되면 editData도 업데이트
+  useEffect(() => {
+    // property 객체를 그대로 사용 (상대 경로는 firebaseSync에서 절대 URL로 변환됨)
+    setEditData(property);
+    setCurrentImages(property.images || []);
+    setCurrentImageIndex(0);
+    setPhotoLoadError(false); // 프로필 사진 에러 상태 초기화
+  }, [property]);
 
   // 수정 모드 토글 함수
   const toggleEditMode = () => {
     if (isEditMode) {
+      // 편집 모드 종료 시 property로 복원 (상대 경로는 firebaseSync에서 절대 URL로 변환됨)
       setEditData(property);
     }
     setIsEditMode(!isEditMode);
@@ -678,6 +821,114 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     console.log('🗑️ 이미지 삭제 완료:', index);
   };
 
+  // 프로필 사진 업로드 핸들러
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 프로필 사진 파일 선택됨:', e.target.files?.length || 0);
+    
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      console.log('📄 선택된 파일:', file.name, file.type, file.size);
+      
+      if (file.type.startsWith('image/')) {
+        try {
+          // 파일 크기 체크 (5MB 제한)
+          if (file.size > 5 * 1024 * 1024) {
+            alert('이미지 파일 크기는 5MB 이하여야 합니다.');
+            return;
+          }
+
+          console.log('🔥 Firebase Storage에 프로필 사진 업로드 시작...');
+          
+          // Firebase Storage에 이미지 업로드
+          const { uploadImage } = await import('../firebase/storageService');
+          
+          // 업로드 전에 Firebase 인증 상태 확인
+          const { auth } = await import('../firebase/config');
+          console.log('🔐 Firebase 인증 상태:', auth.currentUser ? '로그인됨' : '로그인 안됨');
+          
+          const photoUrl = await uploadImage(file, 'contacts');
+          
+          console.log('✅ 프로필 사진 Base64 변환 완료:', {
+            photoUrlLength: photoUrl.length,
+            photoUrlPreview: photoUrl.substring(0, 50) + '...',
+            isBase64: photoUrl.startsWith('data:')
+          });
+          
+          // contact 객체가 없으면 생성
+          const currentContact = editData.contact || {
+            name: '',
+            phone: '',
+            email: ''
+          };
+          
+          const updatedProperty = { 
+            ...editData, 
+            contact: {
+              ...currentContact,
+              photo: photoUrl
+            }
+          };
+          
+          console.log('📋 업데이트할 매물 정보:', {
+            id: updatedProperty.id,
+            hasContact: !!updatedProperty.contact,
+            hasPhoto: !!updatedProperty.contact?.photo,
+            photoLength: updatedProperty.contact?.photo?.length || 0
+          });
+          
+          setEditData(updatedProperty);
+          
+          // 즉시 저장
+          if (onPropertyUpdate) {
+            console.log('💾 매물 정보 저장 시작...');
+            try {
+              await onPropertyUpdate(updatedProperty);
+              console.log('✅ 매물 정보 저장 완료');
+            } catch (saveError) {
+              console.error('❌ 매물 정보 저장 실패:', saveError);
+              throw saveError;
+            }
+          } else {
+            console.warn('⚠️ onPropertyUpdate 함수가 없습니다');
+            alert('⚠️ 저장 함수가 없습니다. 페이지를 새로고침해주세요.');
+          }
+          
+          console.log('📷 프로필 사진 업로드 완료:', file.name);
+          alert('✅ 프로필 사진이 성공적으로 업로드되었습니다!');
+          
+        } catch (error) {
+          console.error('❌ 프로필 사진 업로드 실패:', error);
+          console.error('❌ 오류 상세:', error);
+          
+          // 더 자세한 오류 메시지 제공
+          let errorMessage = '프로필 사진 업로드 중 오류가 발생했습니다.';
+          if (error instanceof Error) {
+            if (error.message.includes('permission')) {
+              errorMessage = '권한이 없습니다. 관리자로 로그인해주세요.';
+            } else if (error.message.includes('network')) {
+              errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
+            } else if (error.message.includes('quota')) {
+              errorMessage = '저장 공간이 부족합니다.';
+            } else {
+              errorMessage = `업로드 실패: ${error.message}`;
+            }
+          }
+          
+          alert(`❌ ${errorMessage}\n\n다시 시도해주세요.`);
+        }
+      } else {
+        console.warn('⚠️ 이미지 파일이 아님:', file.type);
+        alert('이미지 파일만 업로드 가능합니다. (JPG, PNG, WebP)');
+      }
+    } else {
+      console.log('📁 파일이 선택되지 않음');
+    }
+    
+    // 파일 입력 초기화 (같은 파일을 다시 선택할 수 있도록)
+    e.target.value = '';
+  };
+
   // 펌방지 기능
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -693,12 +944,110 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     }
   };
 
-  // useEffect 의존성 배열 수정
-  React.useEffect(() => {
-    setEditData(property);
-    setCurrentImages(property.images || []);
-    setCurrentImageIndex(0);
-  }, [property]);
+
+  // 위치정보 지도 초기화 (mapImage가 없고 location이 있는 경우)
+  useEffect(() => {
+    if (!mapRef.current || !editData.location || editData.mapImage) {
+      return;
+    }
+
+    const initMap = () => {
+      if (!window.google || !window.google.maps) {
+        // Google Maps API가 아직 로드되지 않은 경우 재시도
+        setTimeout(() => {
+          initMap();
+        }, 500);
+        return;
+      }
+
+      try {
+        // 기존 지도 인스턴스 제거
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current = null;
+        }
+        if (markerRef.current) {
+          markerRef.current.setMap(null);
+          markerRef.current = null;
+        }
+
+        const location = editData.location;
+        if (!location || !location.lat || !location.lng) {
+          return;
+        }
+
+        // 지도 생성
+        const map = new window.google.maps.Map(mapRef.current, {
+          center: { lat: location.lat, lng: location.lng },
+          zoom: 16,
+          mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+          zoomControl: true,
+          mapTypeControl: false,
+          scaleControl: true,
+          streetViewControl: false,
+          rotateControl: false,
+          fullscreenControl: false,
+          gestureHandling: 'cooperative',
+          disableDefaultUI: false,
+          clickableIcons: false,
+          draggable: true,
+          scrollwheel: true,
+        });
+
+        mapInstanceRef.current = map;
+
+        // 마커 생성 (원형, 진회색, 반투명, 50% 더 넓게)
+        const markerIcon = {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="21" fill="#4b5563" fill-opacity="0.7" stroke="#374151" stroke-width="3" stroke-opacity="0.8"/>
+            </svg>
+          `),
+          scaledSize: new window.google.maps.Size(48, 48),
+          anchor: new window.google.maps.Point(24, 24)
+        };
+
+        const marker = new window.google.maps.Marker({
+          position: { lat: location.lat, lng: location.lng },
+          map: map,
+          title: editData.address || editData.title,
+          icon: markerIcon,
+        });
+
+        markerRef.current = marker;
+
+        // 정보창 생성 (선택사항)
+        const infoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="padding: 0.5rem;">
+              <strong>${editData.title}</strong><br/>
+              <span style="color: #666; font-size: 0.875rem;">${editData.address}</span>
+            </div>
+          `,
+        });
+
+        // 마커 클릭 시 정보창 표시
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker);
+        });
+
+      } catch (error) {
+        console.error('지도 초기화 오류:', error);
+      }
+    };
+
+    initMap();
+
+    // cleanup
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [editData.location, editData.mapImage, editData.address, editData.title]);
 
   return (
     <>
@@ -729,21 +1078,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               </PropertyNumberBox>
             </HeaderLeft>
               <HeaderRight>
-                {isEditMode ? (
-                  <>
-                    <CancelButton onClick={toggleEditMode}>취소</CancelButton>
-                    <SaveButton onClick={handleSave}>저장</SaveButton>
-                  </>
-                ) : (
-                  <>
-                    {isAdmin && (
-                      <EditButton onClick={toggleEditMode}>수정</EditButton>
-                    )}
-                    {isAdmin && (
-                      <DeleteButton onClick={handleDeleteProperty}>삭제</DeleteButton>
-                    )}
-                  </>
-                )}
               </HeaderRight>
               <ConfirmedDateBox>
                 확인매물<br />
@@ -770,40 +1104,8 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 </ImageNavigationButton>
                 <ImageContainer>
                     <MainImage src={currentImages[currentImageIndex]} alt={editData.title} />
-                  {isAdmin && (
-                    <ImageDeleteButton 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                          handleImageDelete(currentImageIndex);
-                      }}
-                      title="이미지 삭제"
-                    >
-                      ×
-                    </ImageDeleteButton>
-                  )}
                 </ImageContainer>
                 <ImageCounter>{currentImageIndex + 1}/{currentImages.length}</ImageCounter>
-                {isAdmin && (
-                  <ImageUploadButton 
-                      onClick={() => {
-                        console.log('📷 사진업로드 버튼 클릭');
-                        console.log('🔍 fileInputRef.current:', fileInputRef.current);
-                        console.log('🔍 관리자 권한:', isAdmin);
-                        
-                        if (fileInputRef.current) {
-                          console.log('✅ 파일 입력 요소 클릭 실행');
-                          fileInputRef.current.click();
-                        } else {
-                          console.error('❌ 파일 입력 요소를 찾을 수 없습니다');
-                          alert('파일 입력 요소를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
-                        }
-                    }}
-                    title="이미지 업로드"
-                  >
-                      📷
-                  </ImageUploadButton>
-                )}
               </>
             ) : (
               <div style={{
@@ -819,25 +1121,6 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 fontSize: '1rem',
                 position: 'relative'
               }}>
-                  {isAdmin && (
-                <ImageUploadButton
-                      onClick={() => {
-                        console.log('📷 사진업로드 버튼 클릭 (빈 상태)');
-                        console.log('🔍 fileInputRef.current:', fileInputRef.current);
-                        console.log('🔍 관리자 권한:', isAdmin);
-                        
-                        if (fileInputRef.current) {
-                          console.log('✅ 파일 입력 요소 클릭 실행 (빈 상태)');
-                          fileInputRef.current.click();
-                        } else {
-                          console.error('❌ 파일 입력 요소를 찾을 수 없습니다 (빈 상태)');
-                          alert('파일 입력 요소를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
-                        }
-                      }}
-                    >
-                      📷
-                </ImageUploadButton>
-                  )}
               </div>
             )}
           </ImageSection>
@@ -937,11 +1220,11 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             type="number"
                             value={editData.maintenanceFee || 0}
                             onChange={(e) => handleEditChange('maintenanceFee', parseInt(e.target.value) || 0)}
-                            placeholder="관리비 (원)"
+                            placeholder="관리비 (만원)"
                           />
                         ) : (
                           editData.maintenanceFee && editData.maintenanceFee > 0
-                            ? `${editData.maintenanceFee.toLocaleString()}원`
+                            ? `${editData.maintenanceFee.toLocaleString()}만원`
                             : '-'
                         )}
                       </PropertyInfoValue>
@@ -1022,11 +1305,11 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             type="number"
                             value={editData.maintenanceFee || 0}
                             onChange={(e) => handleEditChange('maintenanceFee', parseInt(e.target.value) || 0)}
-                            placeholder="관리비 (원)"
+                            placeholder="관리비 (만원)"
                           />
                         ) : (
                           editData.maintenanceFee && editData.maintenanceFee > 0
-                            ? `${editData.maintenanceFee.toLocaleString()}원`
+                            ? `${editData.maintenanceFee.toLocaleString()}만원`
                             : '-'
                         )}
                       </PropertyInfoValue>
@@ -1122,7 +1405,12 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                         const supplyAreaPyeong = Math.round(supplyArea / 3.3058);
                         const dedicatedAreaM2 = Math.round(dedicatedArea);
                         const dedicatedAreaPyeong = Math.round(dedicatedArea / 3.3058);
-                        return `공급${supplyAreaM2}m²(${supplyAreaPyeong}평)/전용${dedicatedAreaM2}m²(${dedicatedAreaPyeong}평)`;
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span>공급{supplyAreaM2}m²({supplyAreaPyeong}평)</span>
+                            <span>전용{dedicatedAreaM2}m²({dedicatedAreaPyeong}평)</span>
+                          </div>
+                        );
                       })()
                     )}
                   </PropertyInfoValue>
@@ -1349,98 +1637,433 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           <Section>
             <SectionTitle>연락처</SectionTitle>
             <ContactInfo>
-              <ContactHeader>
+              {/* 모바일: 상단에 헤더 먼저 표시 */}
+              <MobileContactHeader>
+                <ContactHeader>
                   <ContactName>
                     {isEditMode ? (
                       <EditInput
-                        value={editData.contact.name}
-                        onChange={(e) => handleNestedEditChange('contact', 'name', e.target.value)}
-                        placeholder="연락처명을 입력하세요"
+                        value={editData.contact.companyName || ''}
+                        onChange={(e) => handleNestedEditChange('contact', 'companyName', e.target.value)}
+                        placeholder="상호명을 입력하세요"
                       />
                     ) : (
-                      editData.contact.name
+                      <>
+                        <span>
+                          {editData.contact.companyName || editData.contact.name?.replace(/대표\s*.*/g, '').trim() || ''}
+                        </span>
+                        {(() => {
+                          let representativeName = editData.contact.name || '';
+                          if (editData.contact.companyName) {
+                            representativeName = representativeName.replace(editData.contact.companyName, '').trim();
+                          }
+                          representativeName = representativeName.replace(/대표\s*/g, '').trim();
+                          representativeName = representativeName.replace(/피에이공인중개사사무소\s*/g, '').trim();
+                          const namePattern = /^[가-힣]{2,4}$/;
+                          if (representativeName && namePattern.test(representativeName)) {
+                            return (
+                              <span style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
+                                대표 {representativeName}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </>
                     )}
                   </ContactName>
-              </ContactHeader>
-              <ContactItem>
-                  {editData.contact.photo && !isEditMode && (
-                    <img 
-                      src={editData.contact.photo} 
-                      alt="프로필 사진" 
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        flexShrink: 0,
-                        border: '2px solid #e2e8f0',
-                        marginRight: '0.5rem'
-                      }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  )}
-                  <div style={{ flex: 1 }}>
-                <ContactLabel>전화번호</ContactLabel>
-                    <ContactValue>
-                      {isEditMode ? (
-                        <EditInput
-                          value={editData.contact.phone}
-                          onChange={(e) => handleNestedEditChange('contact', 'phone', e.target.value)}
-                          placeholder="전화번호를 입력하세요"
-                        />
-                      ) : (
-                        editData.contact.phone
-                      )}
-                    </ContactValue>
-                  </div>
-              </ContactItem>
-                {editData.contact.phone2 && (
-              <ContactItem>
-                    {editData.contact.photo && !isEditMode && (
-                      <div style={{ width: '40px', marginRight: '0.5rem' }}></div>
-                    )}
-                    <div style={{ flex: 1 }}>
-                      <ContactLabel></ContactLabel>
-                      <ContactValue>
-                        {isEditMode ? (
-                          <EditInput
-                            value={editData.contact.phone2}
-                            onChange={(e) => handleNestedEditChange('contact', 'phone2', e.target.value)}
-                            placeholder="두 번째 전화번호를 입력하세요"
+                </ContactHeader>
+              </MobileContactHeader>
+              
+              {/* 사진과 나머지 정보를 가로로 배치 */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '1rem', 
+                width: '100%', 
+                alignItems: 'flex-start',
+                flexDirection: 'row'
+              }}>
+                <ContactPhoto>
+                {isEditMode ? (
+                  <div style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    border: '2px dashed #d1d5db',
+                    borderRadius: '8px',
+                    background: '#f9fafb',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => photoInputRef.current?.click()}
+                  >
+                    {(() => {
+                      const photoUrl = editData.contact?.photo || property.contact?.photo || '';
+                      const isValidUrl = photoUrl && (
+                        photoUrl.startsWith('data:') ||
+                        photoUrl.startsWith('http://') ||
+                        photoUrl.startsWith('https://') ||
+                        photoUrl.startsWith('blob:')
+                      );
+                      // 상대 경로는 firebaseSync에서 절대 URL로 변환되므로 별도 처리 불필요
+                      if (isValidUrl && !photoLoadError) {
+                        return (
+                          <img 
+                            src={photoUrl} 
+                            alt="프로필 사진" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                            onError={(e) => {
+                              console.error('❌ 프로필 사진 로드 실패 (편집 모드):', {
+                                propertyId: editData.id,
+                                editDataHasPhoto: !!editData.contact?.photo,
+                                propertyHasPhoto: !!property.contact?.photo,
+                                src: (e.target as HTMLImageElement).src?.substring(0, 100),
+                                photoUrl: photoUrl.substring(0, 100) + '...'
+                              });
+                              setPhotoLoadError(true);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                            onLoad={() => {
+                              console.log('✅ 프로필 사진 로드 성공 (편집 모드):', {
+                                propertyId: editData.id,
+                                editDataHasPhoto: !!editData.contact?.photo,
+                                propertyHasPhoto: !!property.contact?.photo
+                              });
+                              setPhotoLoadError(false);
+                            }}
                           />
-                        ) : (
-                          editData.contact.phone2
-                        )}
-                      </ContactValue>
-                    </div>
-                  </ContactItem>
-                )}
-                <ContactItem>
-                  {editData.contact.photo && !isEditMode && (
-                    <div style={{ width: '40px', marginRight: '0.5rem' }}></div>
-                  )}
-                  <div style={{ flex: 1 }}>
-                <ContactLabel>이메일</ContactLabel>
-                    <ContactValue>
-                      {isEditMode ? (
-                        <EditInput
-                          type="email"
-                          value={editData.contact.email}
-                          onChange={(e) => handleNestedEditChange('contact', 'email', e.target.value)}
-                          placeholder="이메일을 입력하세요"
-                        />
-                      ) : (
-                        editData.contact.email
-                      )}
-                    </ContactValue>
+                        );
+                      }
+                      
+                      return (
+                        <>
+                          <span style={{ fontSize: '2rem' }}>📷</span>
+                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                            프로필 사진 업로드
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
-              </ContactItem>
+                ) : (() => {
+                  const photoUrl = editData.contact?.photo || property.contact?.photo || '';
+                  const isValidUrl = photoUrl && (
+                    photoUrl.startsWith('data:') || // Base64
+                    photoUrl.startsWith('http://') || // HTTP URL
+                    photoUrl.startsWith('https://') || // HTTPS URL
+                    photoUrl.startsWith('blob:') // Blob URL
+                  );
+                  
+                  // 상대 경로인 경우 (예: /contact-photo.jpg)는 절대 URL로 변환되어 이미 isValidUrl에 포함됨
+                  // 유효한 URL이고 에러가 없는 경우 이미지 표시
+                  if (isValidUrl && !photoLoadError) {
+                    return (
+                      <img 
+                        src={photoUrl} 
+                        alt="프로필 사진" 
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '2px solid #e2e8f0'
+                        }}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          const src = target.src || photoUrl;
+                          const isBase64 = src.startsWith('data:');
+                          const srcLength = src.length;
+                          const isHttpUrl = src.startsWith('http://') || src.startsWith('https://');
+                          
+                          console.error('❌ 프로필 사진 로드 실패:', {
+                            propertyId: editData.id,
+                            editDataHasPhoto: !!editData.contact?.photo,
+                            propertyHasPhoto: !!property.contact?.photo,
+                            photoUrl: photoUrl.substring(0, 150),
+                            isBase64: isBase64,
+                            isHttpUrl: isHttpUrl,
+                            srcLength: srcLength,
+                            srcPreview: src.substring(0, 150),
+                            fullUrl: isHttpUrl ? src : 'N/A',
+                            error: '이미지 로드 실패 - URL이 존재하지 않거나 접근 불가능할 수 있습니다',
+                            // 원본 Firebase 데이터 확인
+                            originalPhoto: property.contact?.photo ? property.contact.photo.substring(0, 150) : '없음'
+                          });
+                          
+                          // Base64 이미지가 너무 긴 경우 경고
+                          if (isBase64 && srcLength > 1000000) {
+                            console.warn('⚠️ Base64 이미지가 너무 깁니다 (1MB 초과):', srcLength);
+                          }
+                          
+                          // HTTP/HTTPS URL인 경우 URL 접근성 확인
+                          if (isHttpUrl) {
+                            console.warn('⚠️ HTTP URL 이미지 로드 실패 - URL이 존재하지 않거나 CORS 문제일 수 있습니다:', {
+                              url: src.substring(0, 150),
+                              fullUrl: src,
+                              note: 'PC 사이트의 public 폴더에 파일이 없거나, Firebase Storage URL을 사용해야 할 수 있습니다.'
+                            });
+                          }
+                          
+                          setPhotoLoadError(true);
+                          target.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('✅ 프로필 사진 로드 성공:', {
+                            propertyId: editData.id,
+                            editDataHasPhoto: !!editData.contact?.photo,
+                            propertyHasPhoto: !!property.contact?.photo,
+                            srcLength: photoUrl.length,
+                            photoType: photoUrl.startsWith('data:') ? 'Base64' : 'URL'
+                          });
+                          setPhotoLoadError(false);
+                        }}
+                      />
+                    );
+                  }
+                  
+                  // 유효하지 않은 URL이거나 에러가 있는 경우 대체 UI 표시
+                  if ((photoUrl && !isValidUrl) || photoLoadError || !photoUrl) {
+                    return (
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        background: '#f3f4f6'
+                      }}>
+                        <span style={{ fontSize: '2rem', color: '#9ca3af' }}>👤</span>
+                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                          {photoLoadError ? '프로필 사진 없음' : '프로필 사진 없음'}
+                        </span>
+                      </div>
+                    );
+                  }
+                  
+                  // 프로필 사진이 없는 경우
+                  return (
+                    <div style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      border: '2px solid #e2e8f0',
+                      borderRadius: '8px',
+                      background: '#f3f4f6'
+                    }}>
+                      <span style={{ fontSize: '2rem', color: '#9ca3af' }}>👤</span>
+                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>프로필 사진 없음</span>
+                    </div>
+                  );
+                })()}
+                </ContactPhoto>
+                <ContactContent>
+                <ContactHeader>
+                  <ContactName>
+                    {isEditMode ? (
+                      <EditInput
+                        value={editData.contact.companyName || ''}
+                        onChange={(e) => handleNestedEditChange('contact', 'companyName', e.target.value)}
+                        placeholder="상호명을 입력하세요"
+                      />
+                    ) : (
+                      <>
+                        <span>
+                          {editData.contact.companyName || editData.contact.name?.replace(/대표\s*.*/g, '').trim() || ''}
+                        </span>
+                        {(() => {
+                          let representativeName = editData.contact.name || '';
+                          if (editData.contact.companyName) {
+                            representativeName = representativeName.replace(editData.contact.companyName, '').trim();
+                          }
+                          representativeName = representativeName.replace(/대표\s*/g, '').trim();
+                          representativeName = representativeName.replace(/피에이공인중개사사무소\s*/g, '').trim();
+                          const namePattern = /^[가-힣]{2,4}$/;
+                          if (representativeName && namePattern.test(representativeName)) {
+                            return (
+                              <span style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
+                                대표 {representativeName}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </>
+                    )}
+                  </ContactName>
+                  {(() => {
+                    // 대표자명 추출: name에서 상호명과 "대표" 제거
+                    let representativeName = editData.contact.name || '';
+                    
+                    // companyName이 있으면 name에서 제거
+                    if (editData.contact.companyName) {
+                      representativeName = representativeName.replace(editData.contact.companyName, '').trim();
+                    }
+                    
+                    // "대표" 제거
+                    representativeName = representativeName.replace(/대표\s*/g, '').trim();
+                    
+                    // 상호명 패턴 제거 (혹시 남아있을 경우)
+                    representativeName = representativeName.replace(/피에이공인중개사사무소\s*/g, '').trim();
+                    
+                    // 대표자명만 남았는지 확인 (한글 이름 패턴: 2-4자 한글)
+                    const namePattern = /^[가-힣]{2,4}$/;
+                    if (representativeName && namePattern.test(representativeName)) {
+                      return (
+                        <ContactRepresentative>
+                          {isEditMode ? (
+                            <EditInput
+                              value={representativeName}
+                              onChange={(e) => handleNestedEditChange('contact', 'name', e.target.value)}
+                              placeholder="대표자명을 입력하세요"
+                              style={{ fontSize: '0.875rem', fontWeight: 400, color: '#64748b' }}
+                            />
+                          ) : (
+                            `대표 ${representativeName}`
+                          )}
+                        </ContactRepresentative>
+                      );
+                    }
+                    return null;
+                  })()}
+                </ContactHeader>
+                {(() => {
+                  // 전화번호 배열 생성 (phones 배열이 있으면 사용, 없으면 phone, phone2를 배열로 변환)
+                  const getPhones = (): string[] => {
+                    if (editData.contact.phones && editData.contact.phones.length > 0) {
+                      return editData.contact.phones;
+                    }
+                    const phones: string[] = [];
+                    // phone 필드에 쉼표가 있으면 분리
+                    if (editData.contact.phone) {
+                      const phoneParts = editData.contact.phone.split(',').map(p => p.trim()).filter(p => p);
+                      phones.push(...phoneParts);
+                    }
+                    if (editData.contact.phone2) {
+                      const phone2Parts = editData.contact.phone2.split(',').map(p => p.trim()).filter(p => p);
+                      phones.push(...phone2Parts);
+                    }
+                    return phones;
+                  };
+
+                  let phones = getPhones();
+                  
+                  // 편집 모드이고 전화번호가 1개 이하일 때 기본적으로 2개까지 표시
+                  if (isEditMode && phones.length < 2) {
+                    while (phones.length < 2) {
+                      phones.push('');
+                    }
+                  }
+                  
+                  const hasPhones = phones.length > 0 || isEditMode;
+
+                  if (!hasPhones) return null;
+
+                  return (
+                    <>
+                      {phones.map((phone, index) => (
+                        <ContactItem key={index}>
+                          <ContactLabel>전화번호{phones.length > 1 ? ` ${index + 1}` : ''}</ContactLabel>
+                          <ContactValue>
+                            {isEditMode ? (
+                              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <EditInput
+                                  value={phone}
+                                  onChange={(e) => {
+                                    const newPhones = [...phones];
+                                    newPhones[index] = e.target.value;
+                                    handleNestedEditChange('contact', 'phones', newPhones);
+                                  }}
+                                  placeholder="전화번호를 입력하세요"
+                                  style={{ flex: 1 }}
+                                />
+                                {phones.length > 2 && (
+                                  <button
+                                    onClick={() => {
+                                      const newPhones = phones.filter((_, i) => i !== index);
+                                      handleNestedEditChange('contact', 'phones', newPhones);
+                                    }}
+                                    style={{
+                                      background: '#ef4444',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      padding: '0.25rem 0.5rem',
+                                      cursor: 'pointer',
+                                      fontSize: '0.75rem'
+                                    }}
+                                  >
+                                    삭제
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              phone.replace(/,/g, '').trim() // 쉼표 제거
+                            )}
+                          </ContactValue>
+                        </ContactItem>
+                      ))}
+                      {isEditMode && (
+                        <ContactItem>
+                          <ContactLabel></ContactLabel>
+                          <ContactValue>
+                            <button
+                              onClick={() => {
+                                const newPhones = [...phones, ''];
+                                handleNestedEditChange('contact', 'phones', newPhones);
+                              }}
+                              style={{
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '0.5rem 1rem',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                width: '100%'
+                              }}
+                            >
+                              + 전화번호 추가
+                            </button>
+                          </ContactValue>
+                        </ContactItem>
+                      )}
+                    </>
+                  );
+                })()}
+                <ContactItemEmail>
+                  <ContactLabel>이메일</ContactLabel>
+                  <ContactValue>
+                    {isEditMode ? (
+                      <EditInput
+                        type="email"
+                        value={editData.contact.email}
+                        onChange={(e) => handleNestedEditChange('contact', 'email', e.target.value)}
+                        placeholder="이메일을 입력하세요"
+                      />
+                    ) : (
+                      editData.contact.email
+                    )}
+                  </ContactValue>
+                </ContactItemEmail>
+              </ContactContent>
+              </div>
             </ContactInfo>
           </Section>
 
-          {editData.mapImage && (
-            <Section>
-              <SectionTitle>위치정보</SectionTitle>
+          <Section>
+            <SectionTitle>위치정보</SectionTitle>
+            {editData.mapImage ? (
               <div style={{
                 width: '100%',
                 borderRadius: '8px',
@@ -1468,17 +2091,50 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   }}
                 />
               </div>
-            </Section>
-          )}
+            ) : editData.location && editData.location.lat && editData.location.lng ? (
+              <MapContainer ref={mapRef} />
+            ) : (
+              <div 
+                style={{
+                  width: '100%',
+                  minHeight: '200px',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  background: '#f3f4f6',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>위치 정보가 없습니다</span>
+              </div>
+            )}
+          </Section>
         </LeftPanel>
       </ModalContent>
         
-        {/* 숨겨진 파일 입력 */}
+        {/* 숨겨진 파일 입력 - 매물 이미지 */}
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleImageUpload}
+          style={{ 
+            position: 'absolute',
+            top: '-9999px',
+            left: '-9999px',
+            visibility: 'hidden',
+            pointerEvents: 'none'
+          }}
+        />
+        {/* 숨겨진 파일 입력 - 프로필 사진 */}
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
           style={{ 
             position: 'absolute',
             top: '-9999px',

@@ -235,12 +235,9 @@ console.log('🚫 자동 정리 로직 비활성화됨 - 수동 정리만 사용
   }
 };
 
-// 모바일 우선 2개 섹션 구조 + PC 반응형
+// 모바일 전용 2개 섹션 구조 (모든 화면 크기에서 모바일 레이아웃 강제)
 const HomeContainer = styled.div`
-  display: flex;
-  flex-direction: column; /* 모바일 우선: 세로 배치 */
-  height: calc(100vh - 140px);
-  min-height: 100vh;
+  display: flex !important;
   position: relative;
   top: 0;
   left: 0;
@@ -252,52 +249,49 @@ const HomeContainer = styled.div`
   margin: 0;
   padding: 0;
   gap: 0;
-  width: 100%;
+  width: 100% !important;
   box-sizing: border-box;
-
-  /* PC 반응형 */
-  @media (min-width: 769px) {
-    flex-direction: row; /* PC: 가로 배치 */
-    height: calc(100vh - 140px);
-    min-height: 700px;
-  }
+  
+  /* 모바일 전용: 항상 세로 배치 (지도 위, 매물 아래) */
+  flex-direction: column !important;
+  height: calc(100vh - 80px) !important; /* 헤더 높이 조정 (모바일은 더 작음) */
+  min-height: calc(100vh - 80px) !important;
+  max-height: calc(100vh - 80px) !important;
+  align-items: stretch !important;
+  flex-wrap: nowrap !important;
 `;
 
-// 1. 지도 섹션 (모바일 우선) - 전체 화면 또는 숨김
+// 1. 지도 섹션 (모바일 전용) - 반만 보이도록
 const MapSection = styled.div<{ show: boolean }>`
   position: relative;
   background: white;
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
-  z-index: 1;
   margin: 0;
   padding: 0;
   width: 100%;
   box-sizing: border-box;
-  height: calc(100vh - 140px);
-  min-height: calc(100vh - 140px);
-  display: ${props => props.show ? 'block' : 'none'};
+  display: ${props => props.show ? 'flex' : 'none'};
+  flex-direction: column;
 
-  /* 모바일: 탭 전환 */
-  @media (max-width: 768px) {
-    height: calc(100vh - 200px);
-    min-height: calc(100vh - 200px);
-    border-radius: 0;
-    margin: 0;
-    box-shadow: none;
-  }
-
-  /* PC: 항상 표시 */
-  @media (min-width: 769px) {
-    flex: 1;
-    display: block;
-    height: 100%;
-    min-height: 100%;
+  /* 모바일 전용: 항상 반만 보이도록 - flex 속성으로 강제 */
+  flex: 0 0 50% !important;
+  height: 50% !important;
+  min-height: 50% !important;
+  max-height: 50% !important;
+  width: 100% !important;
+  z-index: 1;
+  order: 1;
+  
+  /* 지도 컨테이너가 전체 높이를 차지하도록 */
+  > div {
+    height: 100% !important;
+    width: 100% !important;
   }
 `;
 
-// 2. 매물 목록 섹션 (모바일 우선) - 전체 화면 또는 숨김
+// 2. 매물 목록 섹션 (모바일 전용) - 반만 보이도록
 const PropertyListSection = styled.div<{ show: boolean }>`
   background: white;
   margin: 0;
@@ -306,11 +300,6 @@ const PropertyListSection = styled.div<{ show: boolean }>`
   /* Flexbox 컨테이너 설정 */
   display: ${props => props.show ? 'flex' : 'none'};
   flex-direction: column;
-  
-  /* 높이 설정 */
-  height: calc(100vh - 140px);
-  min-height: calc(100vh - 140px);
-  max-height: calc(100vh - 140px);
   
   /* 오버플로우 처리 */
   overflow: hidden;
@@ -322,47 +311,35 @@ const PropertyListSection = styled.div<{ show: boolean }>`
   /* 시각적 효과 */
   box-shadow: none;
   
-  /* 고정 위치 */
-  position: relative;
-  top: 0;
   width: 100%;
 
-  /* 모바일: 탭 전환 */
-  @media (max-width: 768px) {
-    height: calc(100vh - 200px);
-    min-height: calc(100vh - 200px);
-    max-height: calc(100vh - 200px);
-    border-left: none;
-    border-top: none;
-    box-shadow: none;
-    border-radius: 0;
-    margin: 0;
-  }
-
-  /* PC: 항상 표시, 우측 패널 */
-  @media (min-width: 769px) {
-    flex: 0 0 450px;
-    display: flex;
-    height: 100vh;
-    min-height: 100vh;
-    max-height: 100vh;
-    border-left: 1px solid #e2e8f0;
-    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 0;
-  }
+  /* 모바일 전용: 항상 반만 보이도록 */
+  flex: 0 0 50% !important;
+  height: 50% !important;
+  min-height: 50% !important;
+  max-height: 50% !important;
+  width: 100% !important;
+  display: flex !important;
+  border-left: none;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: none;
+  border-radius: 0;
+  margin: 0;
+  position: relative;
+  z-index: 0;
+  order: 2;
 `;
 
 // 매물 목록 헤더 - 고정 높이로 스크롤 영역 확보
 const PropertyListHeader = styled.div`
   flex: 0 0 auto; /* 고정 높이 */
-  padding: 1rem;
+  padding: 0.4rem 1rem; /* 상하 패딩 축소 */
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 60px; /* 최소 높이 보장 */
+  min-height: auto; /* 최소 높이 제거 */
   
   .property-count {
     font-size: 0.75rem;
@@ -417,59 +394,37 @@ const PropertyListContainer = styled.div`
   padding-bottom: 3rem;
 `;
 
-// 매물 카드 (PC용 최적화) + 모바일 반응형
+// 매물 카드 (모바일 전용)
 const PCPropertyCard = styled.div`
-  padding: 0.75rem; // 1rem에서 0.75rem으로 더 줄임
-  border-bottom: 1px solid #e2e8f0;
+  padding: 1rem;
+  border-bottom: none;
   cursor: pointer;
   transition: all 0.2s ease;
   background: white;
   display: flex;
-  gap: 0.8rem; // 간격 줄임
+  gap: 1rem;
   align-items: flex-start;
-  margin: 0; /* 마진 제거 */
+  margin: 0.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   
-  &:hover {
-    background: #f7fafc;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
   
   &:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    /* 마지막 매물까지 완전한 스크롤을 위한 충분한 하단 여백 */
-    padding-bottom: 4rem;
-    margin-bottom: 2rem;
-  }
-
-  /* 모바일 반응형 */
-  @media (max-width: 768px) {
-    padding: 1rem;
-    gap: 1rem;
-    margin: 0.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-bottom: none;
-    
-    &:hover {
-      transform: none;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-    
-    &:last-child {
-      margin-bottom: 0.5rem;
-      padding-bottom: 1rem;
-    }
+    margin-bottom: 0.5rem;
+    padding-bottom: 1rem;
   }
 `;
 
-// 매물 이미지 영역 + 모바일 반응형
+// 매물 이미지 영역 (모바일 전용)
 const PropertyImageSection = styled.div`
   flex-shrink: 0;
-  width: 120px;
-  height: 90px;
-  border-radius: 8px;
+  width: 100px;
+  height: 80px;
+  border-radius: 6px;
   overflow: hidden;
   background: #f3f4f6;
   display: flex;
@@ -482,45 +437,24 @@ const PropertyImageSection = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.2s ease;
-  }
-  
-  &:hover img {
-    transform: scale(1.05);
-  }
-
-  /* 모바일 반응형 */
-  @media (max-width: 768px) {
-    width: 100px;
-    height: 80px;
-    border-radius: 6px;
-    
-    &:hover img {
-      transform: none;
-    }
   }
 `;
 
-// 매물 정보 영역 + 모바일 반응형
+// 매물 정보 영역 (모바일 전용)
 const PropertyInfoSection = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem; // 간격 줄임
+  gap: 0.5rem;
   min-width: 0;
-
-  /* 모바일 반응형 */
-  @media (max-width: 768px) {
-    gap: 0.5rem;
-  }
 `;
 
-// 매물 헤더 (번호 + 주소)
+// 매물 헤더 (번호 + 주소) - 모바일 전용
 const PropertyHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem; // 0.9rem에서 0.75rem으로 축소
+  font-size: 0.875rem;
   color: #374151;
   font-weight: 500;
 `;
@@ -537,36 +471,21 @@ const PropertyAddress = styled.span`
   font-weight: 500;
 `;
 
-// 매물 제목 + 모바일 반응형
+// 매물 제목 (모바일 전용)
 const PCPropertyTitle = styled.div`
-  font-size: 0.875rem; // 1rem에서 0.875rem으로 축소
+  font-size: 1rem;
   font-weight: 600;
   color: #1a202c;
-  line-height: 1.3;
-
-  /* 모바일 반응형 */
-  @media (max-width: 768px) {
-    font-size: 1rem;
-    line-height: 1.4;
-  }
+  line-height: 1.4;
 `;
 
-// 매물 상세 정보 + 모바일 반응형
+// 매물 상세 정보 (모바일 전용)
 const PCPropertyDetails = styled.div`
-  font-size: 0.75rem; // 0.875rem에서 0.75rem으로 축소
+  font-size: 0.875rem;
   color: #6b7280;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  /* 모바일 반응형 */
-  @media (max-width: 768px) {
-    font-size: 0.875rem;
-    line-height: 1.4;
-    white-space: normal;
-    text-overflow: unset;
-  }
+  line-height: 1.4;
+  white-space: normal;
+  text-overflow: unset;
 `;
 
 // 가격 정보 컨테이너
@@ -576,24 +495,24 @@ const PriceContainer = styled.div`
   flex-wrap: wrap;
 `;
 
-// 매매가 버튼
+// 매매가 버튼 (모바일 전용)
 const SalePriceButton = styled.div`
   background: #f97316;
   color: white;
-  padding: 0.25rem 0.5rem; // 0.3rem 0.6rem에서 0.25rem 0.5rem으로 축소
+  padding: 0.3rem 0.6rem;
   border-radius: 4px;
-  font-size: 0.7rem; // 0.8rem에서 0.7rem으로 축소
+  font-size: 0.8rem;
   font-weight: 600;
   display: inline-block;
 `;
 
-// 임대료 버튼들
+// 임대료 버튼들 (모바일 전용)
 const RentPriceButton = styled.div`
   background: #10b981;
   color: white;
-  padding: 0.25rem 0.5rem; // 0.3rem 0.6rem에서 0.25rem 0.5rem으로 축소
+  padding: 0.3rem 0.6rem;
   border-radius: 4px;
-  font-size: 0.7rem; // 0.8rem에서 0.7rem으로 축소
+  font-size: 0.8rem;
   font-weight: 600;
   display: inline-block;
 `;
@@ -656,25 +575,8 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   const [defaultProperties, setDefaultProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(false); // 로딩 화면 비활성화
   const [error, setError] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<'map' | 'list'>('map'); // 모바일 뷰 전환
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768); // 모바일 여부
-
-  // 화면 크기 감지
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      // PC로 전환 시 항상 둘 다 표시
-      if (!mobile) {
-        setMobileView('map');
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize(); // 초기 실행
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // 모바일 전용 사이트이므로 화면 크기 감지 제거
+  // 항상 모바일 레이아웃 사용
 
   // 기본 매물 데이터 (빈 배열로 초기화 - 서울 매물 제거됨)
   const initialProperties: Property[] = useMemo(() => [], []);
@@ -695,9 +597,14 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         await firebaseSync.initialize((properties) => {
           console.log('🔄 Firebase 실시간 업데이트 받음:', properties.length, '개 매물');
           console.log('📊 받은 매물들:', properties.map(p => ({ id: p.id, title: p.title, address: p.address })));
+          console.log('📋 받은 매물 ID 목록:', properties.map(p => p.id).join(', '));
           
-          // Firebase 데이터로 업데이트
+          // Firebase 데이터로 즉시 업데이트
+          console.log('🔄 defaultProperties 업데이트 중...');
+          console.log(`  이전 개수: ${defaultProperties.length}`);
+          console.log(`  새 개수: ${properties.length}`);
           setDefaultProperties(properties);
+          console.log('✅ defaultProperties 업데이트 완료');
         });
         
         console.log('✅ Firebase 실시간 동기화 설정 완료');
@@ -706,8 +613,8 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       }
     };
 
-    // 백그라운드에서 초기화
-    setTimeout(initializeFirebase, 1000);
+    // 즉시 초기화 (지연 제거)
+    initializeFirebase();
     
     return () => {
       try {
@@ -716,6 +623,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         console.warn('Firebase 연결 해제 실패:', error);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProperties]); // initialProperties는 상수이지만 ESLint 요구사항 충족
 
   // 지도 리셋 함수를 부모 컴포넌트에 노출
@@ -730,17 +638,17 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         // 2. 모바일 목록 숨기기
         // setShowMobileList(false); // 이 변수는 모바일 목록 컴포넌트에서 관리하므로 여기서는 제거
         
-        // 4. 지도 중심을 인천으로 설정
-        const incheonCenter = { lat: 37.4563, lng: 126.7052 };
-        mapRef.current.setCenter(incheonCenter);
-        mapRef.current.setZoom(12);
+        // 4. 지도 중심을 구월동으로 설정 (초기화 버튼 클릭 시)
+        const guwolDongCenter = { lat: 37.4563, lng: 126.7052 }; // 구월동 중심 좌표
+        mapRef.current.setCenter(guwolDongCenter);
+        mapRef.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
         
         // 5. 마커 재설정
         if (mapRef.current.resetMarkers) {
           mapRef.current.resetMarkers();
         }
         
-        console.log('지도 리셋 완료 - 인천 중심으로 설정, 모든 상태 초기화');
+        console.log('지도 리셋 완료 - 구월동 중심으로 설정, 모든 상태 초기화');
       } else {
         console.log('mapRef.current가 null입니다');
       }
@@ -763,9 +671,12 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   }, [defaultProperties, newProperties]);
 
   // 디버깅을 위한 로그
+  console.log('📊 === HomePage 렌더링 상태 ===');
   console.log('defaultProperties 개수:', defaultProperties.length);
+  console.log('defaultProperties ID:', defaultProperties.map(p => p.id).join(', '));
   console.log('newProperties 개수:', newProperties.length);
   console.log('allProperties 개수:', allProperties.length);
+  console.log('allProperties ID:', allProperties.map(p => p.id).join(', '));
   console.log('allProperties:', allProperties.map(p => ({ id: p.id, title: p.title, price: p.price, type: p.type })));
   
   // 매매가 매물 디버깅
@@ -1298,48 +1209,12 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     );
   }
 
-  // 모바일 탭 전환 버튼 스타일
-  const MobileTabBar = styled.div`
-    display: none;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: white;
-    border-top: 1px solid #e2e8f0;
-    padding: 0.75rem;
-    z-index: 1000;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-
-    @media (max-width: 768px) {
-      display: flex;
-      gap: 0.5rem;
-    }
-  `;
-
-  const MobileTabButton = styled.button<{ active: boolean }>`
-    flex: 1;
-    padding: 0.75rem 1rem;
-    border: none;
-    border-radius: 8px;
-    background: ${props => props.active ? '#2563eb' : '#f3f4f6'};
-    color: ${props => props.active ? 'white' : '#6b7280'};
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    touch-action: manipulation;
-    min-height: 48px;
-
-    &:active {
-      transform: scale(0.98);
-    }
-  `;
+  // 모바일 전용 사이트이므로 탭 전환 버튼 불필요 (지도와 목록이 동시에 보임)
 
   return (
     <>
       <HomeContainer>
-        <MapSection show={!isMobile || mobileView === 'map'}>
+        <MapSection show={true}>
           <GoogleMap
             ref={mapRef}
             properties={displayProperties}
@@ -1347,15 +1222,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             onClusterClick={(clusterProperties) => {
               console.log('클러스터 클릭됨:', clusterProperties.length, '개 매물');
               setSelectedClusterProperties(clusterProperties);
-              // 모바일에서 목록으로 전환
-              if (isMobile) {
-                setMobileView('list');
-              }
             }}
           />
         </MapSection>
         
-        <PropertyListSection show={!isMobile || mobileView === 'list'}>
+        <PropertyListSection show={true}>
           <PropertyListHeader>
             <div className="property-count">
               {selectedClusterProperties.length > 0 
@@ -1404,7 +1275,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                           const parent = target.parentElement;
                           if (parent) {
                             parent.innerHTML = '🏠';
-                            parent.style.fontSize = window.innerWidth <= 768 ? '1.5rem' : '2rem';
+                            parent.style.fontSize = '1.5rem';
                             parent.style.color = '#9ca3af';
                             parent.style.display = 'flex';
                             parent.style.alignItems = 'center';
@@ -1425,8 +1296,8 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                           width: '100%', 
                           height: '100%', 
                           objectFit: 'cover',
-                          borderRadius: window.innerWidth <= 768 ? '6px' : '8px',
-                          minHeight: window.innerWidth <= 768 ? '80px' : '90px',
+                          borderRadius: '6px',
+                          minHeight: '80px',
                           display: 'block',
                           backgroundColor: '#f3f4f6',
                           opacity: '0',
@@ -1435,14 +1306,14 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                       />
                     ) : (
                       <div style={{
-                        fontSize: window.innerWidth <= 768 ? '1.5rem' : '2rem',
+                        fontSize: '1.5rem',
                         color: '#9ca3af',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         width: '100%',
                         height: '100%',
-                        minHeight: window.innerWidth <= 768 ? '80px' : '90px'
+                        minHeight: '80px'
                       }}>
                         🏠
                       </div>
@@ -1475,19 +1346,24 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                     </PropertyHeader>
                     <PCPropertyTitle>{cleanPropertyTitle(property.title)}</PCPropertyTitle>
                     <PCPropertyDetails>
-                       <span style={{ 
-                         display: 'inline-block', 
-                         padding: '2px 6px', 
-                         backgroundColor: '#f8fafc', 
-                         borderRadius: '3px',
-                         border: 'none',
-                         fontSize: '12px',
-                         color: '#374151',
-                         marginRight: '4px'
-                       }}>
-                         전용 {Math.round((property.dedicatedArea || property.area) / 3.3058)}평
-                       </span>
-                       {property.type === 'sale' ? '매매' : '임대'} {property.floor} 주차 {property.parking ? '가능' : '불가능'} 엘리베이터 {property.elevator ? '유' : '무'}
+                       <div style={{ marginBottom: '0.25rem' }}>
+                         <span style={{ 
+                           display: 'inline-block', 
+                           padding: '2px 6px', 
+                           backgroundColor: '#f8fafc', 
+                           borderRadius: '3px',
+                           border: 'none',
+                           fontSize: '12px',
+                           color: '#374151',
+                           marginRight: '4px'
+                         }}>
+                           전용 {Math.round((property.dedicatedArea || property.area) / 3.3058)}평
+                         </span>
+                         {property.type === 'sale' ? '매매' : '임대'} {property.floor}
+                       </div>
+                       <div>
+                         주차 {property.parking ? '가능' : '불가능'} 엘리베이터 {property.elevator ? '유' : '무'}
+                       </div>
                      </PCPropertyDetails>
                      <PriceContainer>
                        {property.type === 'sale' ? (
@@ -1514,24 +1390,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         </PropertyListSection>
       </HomeContainer>
 
-      {/* 모바일 탭 바 */}
-      {isMobile && (
-        <MobileTabBar>
-          <MobileTabButton
-            active={mobileView === 'map'}
-            onClick={() => setMobileView('map')}
-          >
-            🗺️ 지도
-          </MobileTabButton>
-          <MobileTabButton
-            active={mobileView === 'list'}
-            onClick={() => setMobileView('list')}
-          >
-            📋 목록
-          </MobileTabButton>
-        </MobileTabBar>
-      )}
-
       {selectedPropertyForDetail && (
         <PropertyDetailModal
           property={selectedPropertyForDetail}
@@ -1545,15 +1403,26 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
               // 실제 삭제 로직 호출
               await firebaseSync.deleteProperty(propertyId);
               
-              // 로컬 상태에서도 제거
-              setDefaultProperties(prevProperties => 
-                prevProperties.filter(property => property.id !== propertyId)
-              );
+              // 로컬 상태에서 즉시 제거 (UI 즉시 반영)
+              setDefaultProperties(prevProperties => {
+                const filtered = prevProperties.filter(property => property.id !== propertyId);
+                console.log('🔄 로컬 상태 업데이트:', {
+                  이전개수: prevProperties.length,
+                  삭제후개수: filtered.length,
+                  삭제된ID: propertyId
+                });
+                return filtered;
+              });
               
               // 선택된 매물이 삭제된 경우 모달 닫기
               if (selectedPropertyForDetail?.id === propertyId) {
                 setSelectedPropertyForDetail(null);
               }
+              
+              // 클러스터 선택된 매물 목록에서도 제거
+              setSelectedClusterProperties(prev => 
+                prev.filter(property => property.id !== propertyId)
+              );
               
               console.log('✅ 매물 삭제 완료:', propertyId);
               alert('매물이 성공적으로 삭제되었습니다!');

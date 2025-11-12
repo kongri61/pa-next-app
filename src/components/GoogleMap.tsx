@@ -5,33 +5,21 @@ import { Property } from '../types';
 const MapContainer = styled.div`
   width: 100%;
   height: 100%;
-  min-height: 300px;
+  min-height: 0; /* 모바일 전용: 최소 높이 제거 */
   position: relative;
   background: #f8fafc;
-  
-  @media (max-width: 768px) {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-  }
+  /* 모바일 전용: 부모 컨테이너의 50% 높이를 차지 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 const MapDiv = styled.div`
   width: 100%;
   height: 100%;
-  min-height: 300px;
-  
-  @media (max-width: 768px) {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-  }
+  min-height: 0; /* 모바일 전용: 최소 높이 제거 */
+  flex: 1;
+  position: relative;
 `;
 
 interface GoogleMapProps {
@@ -93,7 +81,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         
         const map = new window.google.maps.Map(mapRef.current, {
           center: incheonCenter,
-          zoom: 12, // 적당한 클로즈업 줌 레벨
+          zoom: 10, // 인천광역시 전체가 보이도록 설정
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
           zoomControl: false, // 줌 컨트롤 제거
           mapTypeControl: false,
@@ -134,7 +122,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         mapInstance.current = map;
 
         map.panTo(incheonCenter);
-        map.setZoom(6);
+        map.setZoom(10); // 인천광역시 전체가 보이도록 설정
 
         map.addListener('tilesloaded', () => {
           setIsLoaded(true);
@@ -744,10 +732,10 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
     },
     resetMarkers: () => {
       if (mapInstance.current) {
-        // 인천 중심점
-        const incheonCenter = { lat: 37.4563, lng: 126.7052 };
-        mapInstance.current.panTo(incheonCenter);
-        mapInstance.current.setZoom(12);
+        // 구월동 중심점 (초기화 버튼 클릭 시)
+        const guwolDongCenter = { lat: 37.4563, lng: 126.7052 };
+        mapInstance.current.panTo(guwolDongCenter);
+        mapInstance.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
       }
       
       // 마커 재생성

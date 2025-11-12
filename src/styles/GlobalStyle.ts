@@ -88,29 +88,14 @@ const GlobalStyle = createGlobalStyle`
     color: white;
   }
 
-  /* 모바일 최적화 */
-  @media (max-width: 768px) {
-    html {
-      font-size: 14px;
-    }
-    
-    /* 모바일에서 터치 영역 확대 */
-    button, input, select, textarea {
-      min-height: 44px;
-    }
+  /* 모바일 전용: 모든 화면 크기에서 모바일 스타일 적용 */
+  html {
+    font-size: 14px;
   }
-
-  /* PC 최적화 */
-  @media (min-width: 769px) {
-    /* PC에서 더 나은 가독성 */
-    body {
-      font-size: 16px;
-    }
-    
-    /* PC에서 호버 효과 */
-    button:hover {
-      transform: translateY(-1px);
-    }
+  
+  /* 모바일 전용: 터치 영역 확대 */
+  button, input, select, textarea {
+    min-height: 44px;
   }
 
   /* 다크 모드 지원 (선택적) */

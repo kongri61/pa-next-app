@@ -62,7 +62,7 @@ class FirebaseSync {
       } else {
         console.log('📱 모바일 서버 감지 - Firebase에서 데이터 로드');
         // 모바일 서버: Firebase에서 데이터 로드
-        await this.loadFromFirebase();
+        await this.loadFromFirebase(onPropertyUpdate);
       }
       
       // 실시간 동기화 설정
@@ -100,7 +100,7 @@ class FirebaseSync {
   }
 
   // Firebase에서 모든 매물 데이터 로드 (이미지 마이그레이션 포함)
-  private async loadFromFirebase(): Promise<void> {
+  private async loadFromFirebase(onPropertyUpdate?: (properties: Property[]) => void): Promise<void> {
     try {
       if (!db) {
         console.warn('Firebase가 초기화되지 않음 - 로드 건너뛰기');
@@ -111,18 +111,198 @@ class FirebaseSync {
       const querySnapshot = await getDocs(q);
       
       const firebaseProperties: Property[] = [];
+      const rawDataMap = new Map<string, any>(); // 원본 데이터 저장용
+      
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        rawDataMap.set(doc.id, data); // 원본 데이터 저장
+        
         // Timestamp를 Date로 변환
+        // contact 객체를 명시적으로 복사하여 photo 필드가 누락되지 않도록 함
         const property: Property = {
           ...data,
           id: doc.id,
           createdAt: this.safeConvertTimestamp(data.createdAt),
+          // contact 객체를 명시적으로 복사 (모든 필드 보존)
+          contact: data.contact ? {
+            ...data.contact,
+            // companyName 명시적으로 보존
+            companyName: data.contact.companyName || undefined,
+            // name 명시적으로 보존
+            name: data.contact.name || undefined,
+            // phone 명시적으로 보존
+            phone: data.contact.phone || undefined,
+            // phone2 명시적으로 보존
+            phone2: data.contact.phone2 || undefined,
+            // email 명시적으로 보존
+            email: data.contact.email || undefined,
+            // photo 필드 처리: Firebase Storage URL, Base64, HTTP/HTTPS URL은 유지, 상대 경로는 절대 URL로 변환
+            photo: (() => {
+              const photo = data.contact.photo;
+              if (!photo || typeof photo !== 'string') return undefined;
+              // 상대 경로인 경우 절대 URL로 변환 (PC 사이트의 정적 파일 경로)
+              if (photo.startsWith('/') && !photo.startsWith('//')) {
+                // PC 사이트의 base URL과 결합
+                // 환경 변수에서 가져오거나, 기본값으로 실제 PC 사이트 Vercel URL 사용
+                const pcSiteUrl = process.env.REACT_APP_PC_SITE_URL || 
+                                 'https://pa-realestate-pc.vercel.app';
+                const absoluteUrl = `${pcSiteUrl}${photo}`;
+                console.log(`📷 매물 ${doc.id}: 상대 경로 프로필 사진을 절대 URL로 변환:`, {
+                  relative: photo,
+                  absolute: absoluteUrl,
+                  pcSiteUrl: pcSiteUrl
+                });
+                return absoluteUrl;
+              }
+              // Firebase Storage URL, Base64, HTTP/HTTPS URL은 유지
+              return photo;
+            })(),
+            // phones 배열도 명시적으로 복사
+            phones: data.contact.phones || (data.contact.phone ? [data.contact.phone] : []),
+          } : data.contact,
+          // 매물정보 필드 명시적으로 보존
+          maintenanceIncluded: data.maintenanceIncluded || undefined,
+          propertyStatus: data.propertyStatus || undefined,
+          parkingCount: data.parkingCount || undefined,
+          recommendedBusiness: data.recommendedBusiness || undefined,
+          keyMoney: data.keyMoney || undefined,
+          loanAmount: data.loanAmount || undefined,
+          keyDepositMonthly: data.keyDepositMonthly || undefined,
+          bedrooms: data.bedrooms || undefined,
+          bathrooms: data.bathrooms || undefined,
+          maintenanceFee: data.maintenanceFee || undefined,
+          propertyType: data.propertyType || undefined,
+          mapImage: data.mapImage || undefined,
         } as Property;
+        
+        // 디버깅: 모든 필수 필드 확인
+        const rawContact = data.contact || null;
+        const hasPhoto = rawContact && rawContact.photo;
+        const rawPhoto = rawContact?.photo;
+        
+        console.log(`📋 Firebase에서 로드된 매물 ${doc.id}:`, {
+          title: property.title,
+          // 매물정보 필드
+          maintenanceIncluded: property.maintenanceIncluded || '없음',
+          propertyStatus: property.propertyStatus || '없음',
+          parkingCount: property.parkingCount || '없음',
+          recommendedBusiness: property.recommendedBusiness || '없음',
+          propertyType: property.propertyType || '없음',
+          // 연락처 필드 (상세 디버깅)
+          hasContact: !!property.contact,
+          hasRawContact: !!rawContact,
+          rawContactKeys: rawContact ? Object.keys(rawContact) : [],
+          contact: property.contact ? {
+            companyName: property.contact.companyName || '없음',
+            name: property.contact.name || '없음',
+            phone: property.contact.phone || '없음',
+            phones: property.contact.phones || '없음',
+            email: property.contact.email || '없음',
+            hasPhoto: !!property.contact.photo,
+            photoType: property.contact.photo ? (
+              property.contact.photo.startsWith('data:') ? 'Base64' : 
+              (property.contact.photo.includes('firebasestorage.googleapis.com') ? 'Firebase Storage' : 
+              (property.contact.photo.startsWith('http://') || property.contact.photo.startsWith('https://') ? 'HTTP/HTTPS URL' : '기타'))
+            ) : '없음',
+            photoLength: property.contact.photo?.length || 0,
+            photo: property.contact.photo ? property.contact.photo.substring(0, 200) + '...' : '없음',
+            // 실제 프로필 사진 URL 전체 (처음 200자만)
+            photoFullUrl: property.contact.photo ? property.contact.photo.substring(0, 200) : '없음'
+          } : '없음',
+          // 원본 Firebase 데이터의 contact.photo 확인 (변환 전)
+          rawContactPhoto: rawPhoto ? (typeof rawPhoto === 'string' ? {
+            type: rawPhoto.startsWith('/') ? '상대 경로' : 
+                  (rawPhoto.startsWith('data:') ? 'Base64' : 
+                  (rawPhoto.includes('firebasestorage.googleapis.com') ? 'Firebase Storage' : 
+                  (rawPhoto.startsWith('http://') || rawPhoto.startsWith('https://') ? 'HTTP/HTTPS URL' : '기타'))),
+            value: rawPhoto.substring(0, 200) + '...',
+            length: rawPhoto.length
+          } : typeof rawPhoto) : '없음',
+          // 변환 후 프로필 사진 URL
+          convertedPhoto: property.contact?.photo ? {
+            type: property.contact.photo.startsWith('data:') ? 'Base64' : 
+                  (property.contact.photo.includes('firebasestorage.googleapis.com') ? 'Firebase Storage' : 
+                  (property.contact.photo.startsWith('http://') || property.contact.photo.startsWith('https://') ? 'HTTP/HTTPS URL' : '기타')),
+            value: property.contact.photo.substring(0, 200) + '...',
+            length: property.contact.photo.length
+          } : '없음',
+          // 위치정보
+          hasMapImage: !!property.mapImage,
+          mapImage: property.mapImage ? property.mapImage.substring(0, 50) + '...' : '없음',
+          // Firebase에 실제로 저장된 모든 필드
+          allFields: Object.keys(data)
+        });
+        
         firebaseProperties.push(property);
       });
 
       console.log(`🔥 Firebase에서 ${firebaseProperties.length}개 매물 로드됨`);
+
+      // 모바일에서는 Firebase 데이터로 IndexedDB를 완전히 교체
+      // 1. 기존 IndexedDB의 모든 매물 가져오기
+      const existingProperties = await IndexedDB.getAllProperties();
+      console.log(`📱 기존 IndexedDB 매물 수: ${existingProperties.length}`);
+      
+      // 2. Firebase에 없는 매물들을 IndexedDB에서 삭제
+      const firebaseIds = new Set(firebaseProperties.map(p => p.id));
+      const toDelete = existingProperties.filter(p => !firebaseIds.has(p.id));
+      
+      if (toDelete.length > 0) {
+        console.log(`🗑️ Firebase에 없는 ${toDelete.length}개 매물을 IndexedDB에서 삭제...`);
+        console.log(`🗑️ 삭제할 매물 ID: ${toDelete.map(p => p.id).join(', ')}`);
+        for (const property of toDelete) {
+          try {
+            await IndexedDB.deleteProperty(property.id);
+            console.log(`  ✅ 삭제 완료: ${property.id} - ${property.title}`);
+          } catch (deleteError) {
+            console.error(`  ❌ 삭제 실패: ${property.id}`, deleteError);
+          }
+        }
+      } else if (firebaseProperties.length === 0 && existingProperties.length > 0) {
+        // Firebase가 비어있고 IndexedDB에 데이터가 있으면 모두 삭제
+        console.log(`⚠️ Firebase가 비어있음 - IndexedDB의 모든 매물 삭제...`);
+        console.log(`🗑️ 삭제할 매물 ID: ${existingProperties.map(p => p.id).join(', ')}`);
+        for (const property of existingProperties) {
+          try {
+            await IndexedDB.deleteProperty(property.id);
+            console.log(`  ✅ 삭제 완료: ${property.id} - ${property.title}`);
+          } catch (deleteError) {
+            console.error(`  ❌ 삭제 실패: ${property.id}`, deleteError);
+          }
+        }
+      }
+      
+      // 3. IndexedDB에 있는 모든 매물을 가져와서 Firebase와 비교 (이중 체크)
+      const allIndexedDBAfterDelete = await IndexedDB.getAllProperties();
+      const stillToDelete = allIndexedDBAfterDelete.filter(p => !firebaseIds.has(p.id));
+      if (stillToDelete.length > 0) {
+        console.log(`⚠️ 이중 체크: 여전히 ${stillToDelete.length}개 매물이 남아있음 - 강제 삭제...`);
+        console.log(`🗑️ 강제 삭제할 매물 ID:`, stillToDelete.map(p => p.id));
+        for (const property of stillToDelete) {
+          try {
+            await IndexedDB.deleteProperty(property.id);
+            console.log(`  ✅ 강제 삭제 완료: ${property.id} - ${property.title}`);
+          } catch (deleteError) {
+            console.error(`  ❌ 강제 삭제 실패: ${property.id}`, deleteError);
+          }
+        }
+      }
+      
+      // 4. 최종 확인: IndexedDB에 Firebase에 없는 매물이 남아있는지 다시 확인
+      const finalCheck = await IndexedDB.getAllProperties();
+      const finalToDelete = finalCheck.filter(p => !firebaseIds.has(p.id));
+      if (finalToDelete.length > 0) {
+        console.log(`⚠️ 최종 체크: ${finalToDelete.length}개 매물이 여전히 남아있음 - 재시도...`);
+        console.log(`🗑️ 최종 삭제할 매물 ID:`, finalToDelete.map(p => p.id));
+        for (const property of finalToDelete) {
+          try {
+            await IndexedDB.deleteProperty(property.id);
+            console.log(`  ✅ 최종 삭제 완료: ${property.id} - ${property.title}`);
+          } catch (deleteError) {
+            console.error(`  ❌ 최종 삭제 실패: ${property.id}`, deleteError);
+          }
+        }
+      }
 
       // Base64 이미지가 있는 매물들을 Firebase Storage로 마이그레이션
       const propertiesWithBase64Images = firebaseProperties.filter(property => 
@@ -149,7 +329,7 @@ class FirebaseSync {
           
           console.log('✅ Base64 이미지 마이그레이션 완료');
           
-          // IndexedDB에 마이그레이션된 데이터 저장
+          // IndexedDB에 마이그레이션된 데이터 저장 (Firebase에 있는 것만)
           for (const property of updatedProperties) {
             await IndexedDB.updateProperty(property);
           }
@@ -162,13 +342,62 @@ class FirebaseSync {
           }
         }
       } else {
-        // Base64 이미지가 없으면 그대로 저장
+        // Base64 이미지가 없으면 그대로 저장 (Firebase에 있는 것만)
         for (const property of firebaseProperties) {
+          // 디버깅: IndexedDB 저장 전 필드 확인
+          console.log(`💾 IndexedDB 저장 전 매물 ${property.id} 필드 확인:`, {
+            hasContact: !!property.contact,
+            contact: property.contact,
+            hasContactPhoto: !!property.contact?.photo,
+            contactPhotoType: property.contact?.photo ? (property.contact.photo.startsWith('data:') ? 'Base64' : 'URL') : '없음',
+            contactPhotoLength: property.contact?.photo?.length || 0,
+            hasMapImage: !!property.mapImage,
+            mapImage: property.mapImage ? property.mapImage.substring(0, 50) + '...' : '없음'
+          });
+          
+          // contact.photo가 있는지 다시 한 번 확인하고 명시적으로 보존
+          const originalData = rawDataMap.get(property.id);
+          if (property.contact && !property.contact.photo && originalData?.contact?.photo) {
+            // 상대 경로가 아닌 경우에만 복원
+            if (!originalData.contact.photo.startsWith('/')) {
+              console.warn(`⚠️ 매물 ${property.id}: contact.photo가 누락됨 - 원본 데이터에서 복원 시도`);
+              property.contact.photo = originalData.contact.photo;
+            } else {
+              console.warn(`⚠️ 매물 ${property.id}: contact.photo가 상대 경로 형식 - 제거됨:`, originalData.contact.photo);
+              // 상대 경로는 제거 (유효하지 않은 형식)
+              property.contact.photo = undefined;
+            }
+          } else if (property.contact?.photo && property.contact.photo.startsWith('/')) {
+            // 상대 경로인 경우 제거
+            console.warn(`⚠️ 매물 ${property.id}: contact.photo가 상대 경로 형식 - 제거됨:`, property.contact.photo);
+            property.contact.photo = undefined;
+          }
+          
           await IndexedDB.updateProperty(property);
+          
+          // 저장 후 확인
+          const savedProperty = await IndexedDB.getProperty(property.id);
+          console.log(`✅ IndexedDB 저장 후 매물 ${property.id} 확인:`, {
+            hasContact: !!savedProperty?.contact,
+            hasContactPhoto: !!savedProperty?.contact?.photo,
+            contactPhotoLength: savedProperty?.contact?.photo?.length || 0
+          });
         }
       }
 
+      // 최종 확인: IndexedDB의 매물 수 확인
+      const finalProperties = await IndexedDB.getAllProperties();
+      console.log(`📱 최종 IndexedDB 매물 수: ${finalProperties.length}개 (Firebase와 동일해야 함)`);
       console.log('📱 Firebase → IndexedDB 동기화 완료');
+      
+      // 콜백이 있으면 즉시 UI 업데이트 (Firebase 데이터 직접 사용)
+      if (onPropertyUpdate) {
+        console.log('🔄 초기 로드 후 UI 업데이트 호출');
+        console.log(`📊 Firebase에서 가져온 매물 수: ${firebaseProperties.length}개`);
+        console.log(`📋 Firebase 매물 ID: ${firebaseProperties.map(p => p.id).join(', ')}`);
+        // IndexedDB가 아닌 Firebase 데이터를 직접 전달
+        onPropertyUpdate(firebaseProperties);
+      }
     } catch (error) {
       console.error('❌ Firebase 로드 실패:', error);
       console.log('📱 Firebase 권한 오류 - IndexedDB 데이터만 사용');
@@ -188,13 +417,43 @@ class FirebaseSync {
     this.unsubscribe = onSnapshot(q, async (snapshot) => {
       console.log('🔄 Firebase 실시간 업데이트 감지');
       console.log(`📊 현재 Firebase 매물 수: ${snapshot.docs.length}`);
+      console.log(`📋 Firebase 매물 ID 목록:`, snapshot.docs.map(doc => doc.id));
       
-      // P001 특별 디버깅
-      const p001Doc = snapshot.docs.find(doc => doc.id === 'P001');
-      if (p001Doc) {
-        console.log('🔍 P001 Firebase 실시간 감지됨:', p001Doc.data().title);
-      } else {
-        console.log('⚠️ P001 Firebase 실시간에서 발견되지 않음');
+      // 모바일 서버인 경우: 먼저 Firebase에 없는 매물을 IndexedDB에서 삭제
+      const isMainServer = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '192.168.219.105' ||
+                          window.location.hostname.includes('vercel.app');
+      
+      if (!isMainServer) {
+        // 모바일 서버: Firebase 스냅샷과 IndexedDB를 먼저 동기화
+        const firebaseIds = new Set(snapshot.docs.map(doc => doc.id));
+        const allIndexedDBProperties = await IndexedDB.getAllProperties();
+        const toDeleteFromIndexedDB = allIndexedDBProperties.filter(p => !firebaseIds.has(p.id));
+        
+        if (toDeleteFromIndexedDB.length > 0) {
+          console.log(`🗑️ 실시간 동기화: Firebase에 없는 ${toDeleteFromIndexedDB.length}개 매물을 IndexedDB에서 삭제...`);
+          console.log(`🗑️ 삭제할 매물 ID:`, toDeleteFromIndexedDB.map(p => p.id));
+          for (const property of toDeleteFromIndexedDB) {
+            try {
+              await IndexedDB.deleteProperty(property.id);
+              console.log(`  ✅ 삭제 완료: ${property.id} - ${property.title}`);
+            } catch (deleteError) {
+              console.error(`  ❌ 삭제 실패: ${property.id}`, deleteError);
+            }
+          }
+        } else if (snapshot.docs.length === 0 && allIndexedDBProperties.length > 0) {
+          // Firebase가 비어있고 IndexedDB에 데이터가 있으면 모두 삭제
+          console.log(`⚠️ 실시간 동기화: Firebase가 비어있음 - IndexedDB의 모든 매물 삭제...`);
+          console.log(`🗑️ 삭제할 매물 ID:`, allIndexedDBProperties.map(p => p.id));
+          for (const property of allIndexedDBProperties) {
+            try {
+              await IndexedDB.deleteProperty(property.id);
+              console.log(`  ✅ 삭제 완료: ${property.id} - ${property.title}`);
+            } catch (deleteError) {
+              console.error(`  ❌ 삭제 실패: ${property.id}`, deleteError);
+            }
+          }
+        }
       }
       
       const updatedProperties: Property[] = [];
@@ -203,11 +462,81 @@ class FirebaseSync {
       for (const change of snapshot.docChanges()) {
         try {
           const data = change.doc.data();
+          // contact 객체를 명시적으로 복사하여 photo 필드가 누락되지 않도록 함
           const property: Property = {
             ...data,
             id: change.doc.id,
-            createdAt: data.createdAt?.toDate() || new Date(),
+            createdAt: this.safeConvertTimestamp(data.createdAt),
+            // contact 객체를 명시적으로 복사 (모든 필드 보존)
+            contact: data.contact ? {
+              ...data.contact,
+              // companyName 명시적으로 보존
+              companyName: data.contact.companyName || undefined,
+              // name 명시적으로 보존
+              name: data.contact.name || undefined,
+              // phone 명시적으로 보존
+              phone: data.contact.phone || undefined,
+              // phone2 명시적으로 보존
+              phone2: data.contact.phone2 || undefined,
+              // email 명시적으로 보존
+              email: data.contact.email || undefined,
+              // photo 필드 처리: Firebase Storage URL, Base64, HTTP/HTTPS URL은 유지, 상대 경로는 절대 URL로 변환
+              photo: (() => {
+                const photo = data.contact.photo;
+                if (!photo || typeof photo !== 'string') return undefined;
+                // 상대 경로인 경우 절대 URL로 변환 (PC 사이트의 정적 파일 경로)
+                if (photo.startsWith('/') && !photo.startsWith('//')) {
+                  // PC 사이트의 base URL과 결합
+                  const pcSiteUrl = process.env.REACT_APP_PC_SITE_URL || 
+                                   'https://pa-realestate-pc.vercel.app';
+                  const absoluteUrl = `${pcSiteUrl}${photo}`;
+                  console.log(`📷 매물 ${change.doc.id}: 실시간 동기화 - 상대 경로 프로필 사진을 절대 URL로 변환:`, {
+                    relative: photo,
+                    absolute: absoluteUrl,
+                    pcSiteUrl: pcSiteUrl
+                  });
+                  return absoluteUrl;
+                }
+                // Firebase Storage URL, Base64, HTTP/HTTPS URL은 유지
+                return photo;
+              })(),
+              // phones 배열도 명시적으로 복사
+              phones: data.contact.phones || (data.contact.phone ? [data.contact.phone] : []),
+            } : data.contact,
+            // 매물정보 필드 명시적으로 보존
+            maintenanceIncluded: data.maintenanceIncluded || undefined,
+            propertyStatus: data.propertyStatus || undefined,
+            parkingCount: data.parkingCount || undefined,
+            recommendedBusiness: data.recommendedBusiness || undefined,
+            keyMoney: data.keyMoney || undefined,
+            loanAmount: data.loanAmount || undefined,
+            keyDepositMonthly: data.keyDepositMonthly || undefined,
+            bedrooms: data.bedrooms || undefined,
+            bathrooms: data.bathrooms || undefined,
+            maintenanceFee: data.maintenanceFee || undefined,
+            propertyType: data.propertyType || undefined,
+            mapImage: data.mapImage || undefined,
           } as Property;
+          
+          // 디버깅: contact.photo 확인
+          if (property.contact?.photo) {
+            const isFirebaseStorage = property.contact.photo.includes('firebasestorage.googleapis.com');
+            const isBase64 = property.contact.photo.startsWith('data:');
+            const isHttp = property.contact.photo.startsWith('http://') || property.contact.photo.startsWith('https://');
+            console.log(`📷 실시간 동기화 - 매물 ${property.id} 프로필 사진 확인:`, {
+              hasPhoto: true,
+              photoType: isBase64 ? 'Base64' : (isFirebaseStorage ? 'Firebase Storage' : (isHttp ? 'HTTP/HTTPS URL' : '기타')),
+              photoLength: property.contact.photo.length,
+              photoPreview: property.contact.photo.substring(0, 100) + '...'
+            });
+          } else {
+            const rawPhoto = data.contact?.photo;
+            console.warn(`⚠️ 실시간 동기화 - 매물 ${property.id} 프로필 사진 없음`, {
+              rawPhotoExists: !!rawPhoto,
+              rawPhotoType: rawPhoto ? (typeof rawPhoto) : '없음',
+              rawPhotoPreview: rawPhoto && typeof rawPhoto === 'string' ? rawPhoto.substring(0, 100) + '...' : '없음'
+            });
+          }
 
           if (change.type === 'added' || change.type === 'modified') {
             console.log(`📝 매물 ${change.type}: ${property.id} - ${property.title}`);
@@ -234,31 +563,105 @@ class FirebaseSync {
         }
       }
 
-      // UI 업데이트 콜백 호출 (중복 방지)
+      // UI 업데이트 콜백 호출 (Firebase 스냅샷 데이터 직접 사용)
       if (onPropertyUpdate) {
-        const allProperties = await IndexedDB.getAllProperties();
-        // ID 기준으로 중복 제거
-        const uniqueProperties = allProperties.filter((property, index, self) => 
-          index === self.findIndex(p => p.id === property.id)
-        );
-        
-        console.log('🔄 Firebase 실시간 업데이트 (중복 제거):', {
-          원본: allProperties.length,
-          중복제거후: uniqueProperties.length,
-          제거된중복: allProperties.length - uniqueProperties.length,
-          변경된매물수: updatedProperties.length
+        // Firebase 스냅샷에서 직접 매물 데이터 추출 (IndexedDB가 아닌 Firebase를 신뢰)
+        const firebaseProperties: Property[] = [];
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          // contact 객체를 명시적으로 복사하여 photo 필드가 누락되지 않도록 함
+          const property: Property = {
+            ...data,
+            id: doc.id,
+            createdAt: this.safeConvertTimestamp(data.createdAt),
+            // contact 객체를 명시적으로 복사 (모든 필드 보존)
+            contact: data.contact ? {
+              ...data.contact,
+              // companyName 명시적으로 보존
+              companyName: data.contact.companyName || undefined,
+              // name 명시적으로 보존
+              name: data.contact.name || undefined,
+              // phone 명시적으로 보존
+              phone: data.contact.phone || undefined,
+              // phone2 명시적으로 보존
+              phone2: data.contact.phone2 || undefined,
+              // email 명시적으로 보존
+              email: data.contact.email || undefined,
+              // photo 필드 처리: Firebase Storage URL, Base64, HTTP/HTTPS URL은 유지, 상대 경로는 절대 URL로 변환
+              photo: (() => {
+                const photo = data.contact.photo;
+                if (!photo || typeof photo !== 'string') return undefined;
+                // 상대 경로인 경우 절대 URL로 변환 (PC 사이트의 정적 파일 경로)
+                if (photo.startsWith('/') && !photo.startsWith('//')) {
+                  // PC 사이트의 base URL과 결합
+                  const pcSiteUrl = process.env.REACT_APP_PC_SITE_URL || 
+                                   'https://pa-realestate-pc.vercel.app';
+                  const absoluteUrl = `${pcSiteUrl}${photo}`;
+                  console.log(`📷 매물 ${doc.id}: 실시간 동기화 UI 업데이트 - 상대 경로 프로필 사진을 절대 URL로 변환:`, {
+                    relative: photo,
+                    absolute: absoluteUrl,
+                    pcSiteUrl: pcSiteUrl
+                  });
+                  return absoluteUrl;
+                }
+                // Firebase Storage URL, Base64, HTTP/HTTPS URL은 유지
+                return photo;
+              })(),
+              // phones 배열도 명시적으로 복사
+              phones: data.contact.phones || (data.contact.phone ? [data.contact.phone] : []),
+            } : data.contact,
+            // 매물정보 필드 명시적으로 보존
+            maintenanceIncluded: data.maintenanceIncluded || undefined,
+            propertyStatus: data.propertyStatus || undefined,
+            parkingCount: data.parkingCount || undefined,
+            recommendedBusiness: data.recommendedBusiness || undefined,
+            keyMoney: data.keyMoney || undefined,
+            loanAmount: data.loanAmount || undefined,
+            keyDepositMonthly: data.keyDepositMonthly || undefined,
+            bedrooms: data.bedrooms || undefined,
+            bathrooms: data.bathrooms || undefined,
+            maintenanceFee: data.maintenanceFee || undefined,
+            propertyType: data.propertyType || undefined,
+            mapImage: data.mapImage || undefined,
+          } as Property;
+          
+          // 디버깅: 실시간 동기화 시 모든 필드 확인
+          if (snapshot.docChanges().length > 0) {
+            console.log(`📋 실시간 동기화 - 매물 ${doc.id}:`, {
+              title: property.title,
+              // 매물정보 필드
+              maintenanceIncluded: property.maintenanceIncluded || '없음',
+              propertyStatus: property.propertyStatus || '없음',
+              parkingCount: property.parkingCount || '없음',
+              recommendedBusiness: property.recommendedBusiness || '없음',
+              propertyType: property.propertyType || '없음',
+              // 연락처 필드
+              hasContact: !!property.contact,
+              contact: property.contact ? {
+                companyName: property.contact.companyName || '없음',
+                name: property.contact.name || '없음',
+                phone: property.contact.phone || '없음',
+                phones: property.contact.phones || '없음',
+                email: property.contact.email || '없음',
+                photo: property.contact.photo ? property.contact.photo.substring(0, 50) + '...' : '없음'
+              } : '없음',
+              // 위치정보
+              hasMapImage: !!property.mapImage,
+              mapImage: property.mapImage ? property.mapImage.substring(0, 50) + '...' : '없음'
+            });
+          }
+          
+          firebaseProperties.push(property);
         });
         
-        // P001 특별 디버깅
-        const p001InIndexedDB = uniqueProperties.find(p => p.id === 'P001');
-        if (p001InIndexedDB) {
-          console.log('🔍 P001 IndexedDB에서 발견됨:', p001InIndexedDB.title);
-        } else {
-          console.log('⚠️ P001 IndexedDB에서 발견되지 않음');
-        }
+        console.log('🔄 Firebase 실시간 업데이트 (Firebase 스냅샷 직접 사용):', {
+          Firebase매물수: snapshot.docs.length,
+          변경된매물수: updatedProperties.length,
+          UI업데이트매물수: firebaseProperties.length
+        });
         
-        console.log('📊 UI 업데이트할 매물들:', uniqueProperties.map(p => ({ id: p.id, title: p.title })));
-        onPropertyUpdate(uniqueProperties);
+        console.log('📊 UI 업데이트할 매물들:', firebaseProperties.map(p => ({ id: p.id, title: p.title })));
+        onPropertyUpdate(firebaseProperties);
       }
     }, (error) => {
       console.error('❌ Firebase 실시간 동기화 오류:', error);
@@ -370,6 +773,15 @@ class FirebaseSync {
 
       // 1. IndexedDB에 즉시 저장 (빠른 응답)
       console.log(`📱 IndexedDB 저장 시작: ${property.id}`);
+      console.log('📋 저장할 필드 확인:', {
+        maintenanceIncluded: property.maintenanceIncluded,
+        propertyStatus: property.propertyStatus,
+        parkingCount: property.parkingCount,
+        recommendedBusiness: property.recommendedBusiness,
+        propertyType: property.propertyType,
+        contact: property.contact,
+        mapImage: property.mapImage
+      });
       await IndexedDB.updateProperty(property);
       console.log(`✅ IndexedDB 저장 완료: ${property.id}`);
       
@@ -406,30 +818,34 @@ class FirebaseSync {
   // 매물 삭제 (Firebase + IndexedDB)
   async deleteProperty(propertyId: string): Promise<void> {
     try {
-      // 모바일 서버에서는 삭제 불가
-      const isMainServer = window.location.hostname === 'localhost' || 
-                          window.location.hostname === '192.168.219.105' ||
-                          window.location.hostname.includes('vercel.app');
+      console.log('🗑️ 매물 삭제 시작:', propertyId);
       
-      if (!isMainServer) {
-        console.warn('📱 모바일 서버에서는 매물 삭제가 불가능합니다.');
-        throw new Error('모바일 서버에서는 매물 삭제가 불가능합니다.');
-      }
-
       // 1. IndexedDB에서 즉시 삭제 (빠른 응답)
-      await IndexedDB.deleteProperty(propertyId);
-      
-      if (this.isOnline && db) {
-        // 2. Firebase에서 삭제 (Firebase가 초기화된 경우에만)
-        await deleteDoc(doc(db, COLLECTION_NAME, propertyId));
-        console.log('🔥 Firebase에서 매물 삭제 완료:', propertyId);
-      } else {
-        // 3. 오프라인 시 대기열에 추가 (null로 표시하여 삭제 대기)
-        this.pendingUpdates.set(propertyId, null as any);
-        console.log('📴 오프라인: 삭제 대기열에 추가됨', propertyId);
+      try {
+        await IndexedDB.deleteProperty(propertyId);
+        console.log('✅ IndexedDB에서 매물 삭제 완료:', propertyId);
+      } catch (indexedDBError) {
+        console.error('❌ IndexedDB 삭제 실패:', indexedDBError);
+        // IndexedDB 삭제 실패해도 계속 진행
       }
+      
+      // 2. Firebase에서 삭제 (Firebase가 초기화된 경우에만)
+      if (this.isOnline && db) {
+        try {
+          await deleteDoc(doc(db, COLLECTION_NAME, propertyId));
+          console.log('🔥 Firebase에서 매물 삭제 완료:', propertyId);
+        } catch (firebaseError) {
+          console.error('❌ Firebase 삭제 실패:', firebaseError);
+          // Firebase 삭제 실패해도 IndexedDB는 삭제되었으므로 계속 진행
+          // 오프라인 시 대기열에 추가하지 않음 (이미 IndexedDB에서 삭제되었으므로)
+        }
+      } else {
+        console.log('📴 오프라인 상태 - IndexedDB에서만 삭제됨:', propertyId);
+      }
+      
+      console.log('✅ 매물 삭제 프로세스 완료:', propertyId);
     } catch (error) {
-      console.error('매물 삭제 실패:', error);
+      console.error('❌ 매물 삭제 실패:', error);
       throw error;
     }
   }
@@ -643,18 +1059,49 @@ class FirebaseSync {
       while (retryCount < maxRetries) {
         try {
           console.log(`🔥 Firebase setDoc 시도 ${retryCount + 1}/${maxRetries}:`, property.id);
-          console.log('📊 저장할 데이터 요약:', {
+          console.log('📊 저장할 데이터 전체 확인:', {
             id: property.id,
             title: property.title,
             address: property.address,
             location: property.location,
-            createdAt: property.createdAt
+            createdAt: property.createdAt,
+            // 매물정보 필드
+            maintenanceIncluded: property.maintenanceIncluded || '없음',
+            propertyStatus: property.propertyStatus || '없음',
+            parkingCount: property.parkingCount || '없음',
+            recommendedBusiness: property.recommendedBusiness || '없음',
+            propertyType: property.propertyType || '없음',
+            // 연락처 필드
+            contact: property.contact ? {
+              companyName: property.contact.companyName || '없음',
+              name: property.contact.name || '없음',
+              phone: property.contact.phone || '없음',
+              phones: property.contact.phones || '없음',
+              email: property.contact.email || '없음',
+              photo: property.contact.photo ? property.contact.photo.substring(0, 50) + '...' : '없음'
+            } : '없음',
+            // 위치정보
+            mapImage: property.mapImage ? property.mapImage.substring(0, 50) + '...' : '없음'
           });
+          console.log('📊 원본 property 객체의 모든 키:', Object.keys(property));
           console.log('📄 문서 경로:', docRef.path);
           console.log('🔧 merge 옵션: true');
           
       // undefined 값 제거 (Firebase 호환성)
       const cleanPropertyData = this.removeUndefinedValues(propertyData);
+      
+      // 디버깅: 정리 전후 비교
+      console.log('🔍 데이터 정리 전후 비교:', {
+        원본키수: Object.keys(propertyData).length,
+        정리후키수: Object.keys(cleanPropertyData).length,
+        제거된키: Object.keys(propertyData).filter(key => !(key in cleanPropertyData)),
+        contact포함: 'contact' in cleanPropertyData,
+        mapImage포함: 'mapImage' in cleanPropertyData,
+        maintenanceIncluded포함: 'maintenanceIncluded' in cleanPropertyData,
+        propertyStatus포함: 'propertyStatus' in cleanPropertyData,
+        parkingCount포함: 'parkingCount' in cleanPropertyData,
+        recommendedBusiness포함: 'recommendedBusiness' in cleanPropertyData
+      });
       
       // P001 특별 디버깅 - setDoc 전
       if (property.id === 'P001') {

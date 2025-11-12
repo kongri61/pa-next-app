@@ -30,14 +30,20 @@ try {
   throw error;
 }
 
-// Firebase 인증 초기화
+// Firebase 인증 초기화 (오류 발생 시에도 계속 진행)
 let auth: Auth;
 try {
   auth = getAuth(app);
   console.log('Firebase Auth 초기화 성공');
 } catch (error) {
-  console.error('Firebase Auth 초기화 실패:', error);
-  throw error;
+  console.warn('Firebase Auth 초기화 실패 (인증 기능 사용 불가):', error);
+  // 인증 오류는 앱 실행을 막지 않음 (Firestore는 정상 작동)
+  // 빈 Auth 객체 생성 시도
+  try {
+    auth = getAuth(app);
+  } catch (retryError) {
+    console.warn('Firebase Auth 재시도 실패 - 인증 기능 비활성화');
+  }
 }
 
 // Firebase Storage 초기화

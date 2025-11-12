@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-map-v3';
+const CACHE_NAME = 'real-estate-map-v4'; // 버전 업데이트: 모든 필드 보존 개선
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -33,7 +33,10 @@ self.addEventListener('activate', (event) => {
             return caches.delete(cacheName);
           }
         })
-      );
+      ).then(() => {
+        // 모든 클라이언트에게 즉시 제어권 부여
+        return self.clients.claim();
+      });
     })
   );
 });
