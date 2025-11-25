@@ -641,7 +641,6 @@ class FirebaseSync {
           const property: Property = {
             ...data,
             id: change.doc.id,
-<<<<<<< HEAD
             createdAt: this.safeConvertTimestamp(data.createdAt),
             // contact 객체를 명시적으로 복사 (모든 필드 보존)
             contact: data.contact ? {

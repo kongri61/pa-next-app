@@ -196,7 +196,6 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     // 1단계: 대형 클러스터 (넓은 범위) - 더 좁게 축소
     const getLargeClusterDistance = () => {
       if (isMobile) {
-<<<<<<< HEAD
         if (zoom < 6) return 0.15;   // 매우 넓은 범위 (0.25 -> 0.15)
         if (zoom < 8) return 0.09;   // 넓은 범위 (0.15 -> 0.09)
         if (zoom < 10) return 0.05; // 중간 범위 (0.08 -> 0.05)
