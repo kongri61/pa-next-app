@@ -650,7 +650,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           images: [],
           contact: {
             name: contactName,
-            companyName: contactCompanyName || undefined,
             phone: contactPhone,
             email: contactEmail,
             photo: contactPhoto // 엑셀에서 읽은 프로필 사진 URL 또는 기본값
