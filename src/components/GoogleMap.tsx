@@ -335,7 +335,21 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
 
   // 2단계 클러스터링 함수
   const updateClusters = () => {
-    if (!mapInstance.current || !window.google) return;
+    if (!mapInstance.current || !window.google) {
+      console.warn('⚠️ updateClusters: 지도가 준비되지 않음');
+      // 지도가 준비되지 않았어도 마커는 표시되도록 보장
+      markersRef.current.forEach(marker => {
+        if (marker.getMap() === null) {
+          marker.setMap(mapInstance.current);
+        }
+      });
+      return;
+    }
+
+    if (markersRef.current.length === 0) {
+      console.warn('⚠️ updateClusters: 마커가 없음');
+      return;
+    }
 
     // 기존 클러스터 제거
     clustersRef.current.forEach(cluster => {
@@ -674,7 +688,22 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     // 클러스터에 포함되지 않은 마커가 있는지 확인 (디버깅용)
     const unclusteredMarkers = markersRef.current.filter(m => !clusteredMarkers.has(m) && m.getMap() === null);
     if (unclusteredMarkers.length > 0) {
-      console.warn(`⚠️ 클러스터에 포함되지 않은 숨겨진 마커 ${unclusteredMarkers.length}개 발견`);
+      console.warn(`⚠️ 클러스터에 포함되지 않은 숨겨진 마커 ${unclusteredMarkers.length}개 발견 - 자동 표시`);
+      // 숨겨진 마커를 자동으로 표시
+      unclusteredMarkers.forEach(marker => {
+        try {
+          marker.setMap(mapInstance.current);
+          // 클릭 이벤트 추가
+          google.maps.event.clearListeners(marker, 'click');
+          marker.addListener('click', () => {
+            if (onMarkerClick) {
+              onMarkerClick(marker.property);
+            }
+          });
+        } catch (err) {
+          console.error('마커 표시 오류:', err);
+        }
+      });
     }
     
     console.log(`✅ 클러스터링 완료 - 클러스터: ${clustersRef.current.length}개, 개별 마커: ${markersRef.current.length - clusteredMarkers.size}개, 클러스터된 마커: ${clusteredMarkers.size}개`);
