@@ -1895,7 +1895,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   console.log('지도에 표시될 매물들:', displayProperties.map(p => ({ id: p.id, title: p.title })));
   console.log('목록에 표시될 매물들:', listProperties.map(p => ({ id: p.id, title: p.title })));
 
-<<<<<<< HEAD
   // 로딩 화면 (사용하지 않음 - 스켈레톤 UI 사용)
   if (false) {
     return (

@@ -377,36 +377,6 @@ class FirebaseSync {
           // Firebase에 실제로 저장된 모든 필드
           allFields: Object.keys(data)
         });
-          description: data.description || '',
-          price: data.price || 0,
-          type: data.type || 'sale',
-          propertyType: data.propertyType || 'other',
-          address: data.address || '',
-          area: data.area || 0,
-          images: data.images || [],
-          features: data.features || [],
-          isActive: data.isActive !== undefined ? data.isActive : true,
-          bedrooms: data.bedrooms || undefined,
-          bathrooms: data.bathrooms || undefined,
-          roomBathInfo: data.roomBathInfo || undefined,
-          approvalDate: data.approvalDate || undefined,
-          propertyStatus: data.propertyStatus || undefined,
-          createdAt: this.safeConvertTimestamp(data.createdAt),
-          // 필수 필드들이 제대로 읽혀지는지 확인
-          maintenanceFeeItems: data.maintenanceFeeItems || undefined,
-          buildingUse: data.buildingUse || undefined,
-          parkingSpaces: data.parkingSpaces !== undefined && data.parkingSpaces !== null 
-            ? (typeof data.parkingSpaces === 'number' ? String(data.parkingSpaces) : String(data.parkingSpaces))
-            : undefined,
-          recommendedBusinessType: data.recommendedBusinessType || undefined,
-          contact: data.contact ? {
-            ...data.contact,
-            name: data.contact.name || '피에이공인중개사사무소    대표 김동화',
-            phone: data.contact.phone || '',
-            email: data.contact.email || 'kongri61@naver.com',
-            photo: data.contact.photo || '/contact-photo.jpg'
-          } : {
-            name: '피에이공인중개사사무소    대표 김동화',
             phone: '',
             email: 'kongri61@naver.com',
             photo: '/contact-photo.jpg'
