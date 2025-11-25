@@ -9,6 +9,27 @@ import { firebaseSync } from '../utils/firebaseSync';
 // Firebase 모듈을 전역에서 접근 가능하도록 설정 (디버깅용)
 (window as any).firebaseSync = firebaseSync;
 
+// 매물 삭제 유틸리티 함수 추가 (콘솔에서 사용 가능)
+(window as any).deleteProperties = async (ids: string | string[]) => {
+  const idsToDelete = Array.isArray(ids) ? ids : [ids];
+  console.log('🗑️ 매물 삭제 시작:', idsToDelete);
+  
+  const results = [];
+  for (const id of idsToDelete) {
+    try {
+      await firebaseSync.deleteProperty(id);
+      console.log(`✅ ${id} 삭제 완료`);
+      results.push({ id, status: 'success' });
+    } catch (error) {
+      console.error(`❌ ${id} 삭제 실패:`, error);
+      results.push({ id, status: 'error', error });
+    }
+  }
+  
+  console.log('📊 삭제 결과:', results);
+  return results;
+};
+
 // 강제 정리 함수 추가
 (window as any).forceCleanAll = async () => {
   console.log('🔥 강제 정리 시작...');
@@ -667,12 +688,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   const [defaultProperties, setDefaultProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(false); // 로딩 화면 비활성화
   const [error, setError] = useState<string | null>(null);
-<<<<<<< HEAD
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false); // Firebase 연결 상태
-=======
-  // 모바일 전용 사이트이므로 화면 크기 감지 제거
-  // 항상 모바일 레이아웃 사용
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
 
   // 기본 매물 데이터 (빈 배열로 초기화 - 서울 매물 제거됨)
   const initialProperties: Property[] = useMemo(() => [], []);
@@ -724,7 +740,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         
         await firebaseSync.initialize((properties) => {
           console.log('🔄 Firebase 실시간 업데이트 받음:', properties.length, '개 매물');
-<<<<<<< HEAD
           
           // Firebase 데이터로 업데이트 (IndexedDB 데이터보다 최신일 수 있음)
           setDefaultProperties(properties);
@@ -736,17 +751,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             연락처있는매물: properties.filter(p => p.contact && p.contact.name).length,
             이미지있는매물: properties.filter(p => p.images && p.images.length > 0).length
           });
-=======
-          console.log('📊 받은 매물들:', properties.map(p => ({ id: p.id, title: p.title, address: p.address })));
-          console.log('📋 받은 매물 ID 목록:', properties.map(p => p.id).join(', '));
-          
-          // Firebase 데이터로 즉시 업데이트
-          console.log('🔄 defaultProperties 업데이트 중...');
-          console.log(`  이전 개수: ${defaultProperties.length}`);
-          console.log(`  새 개수: ${properties.length}`);
-          setDefaultProperties(properties);
-          console.log('✅ defaultProperties 업데이트 완료');
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
         });
         
         console.log('✅ Firebase 실시간 동기화 설정 완료');
@@ -758,16 +762,11 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       }
     };
 
-<<<<<<< HEAD
     // 병렬 실행: IndexedDB 즉시 로드 + Firebase 백그라운드 초기화
     loadFromIndexedDB().then(() => {
       // IndexedDB 로드 완료 후 Firebase 초기화 시작 (지연 없이 즉시)
       initializeFirebase();
     });
-=======
-    // 즉시 초기화 (지연 제거)
-    initializeFirebase();
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
     
     return () => {
       try {
@@ -791,16 +790,12 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         // 2. 모바일 목록 숨기기
         // setShowMobileList(false); // 이 변수는 모바일 목록 컴포넌트에서 관리하므로 여기서는 제거
         
-<<<<<<< HEAD
-        // 4. 마커 재설정 (resetMarkers 내부에서 bounds 설정)
-=======
         // 4. 지도 중심을 구월동으로 설정 (초기화 버튼 클릭 시)
         const guwolDongCenter = { lat: 37.4563, lng: 126.7052 }; // 구월동 중심 좌표
         mapRef.current.setCenter(guwolDongCenter);
         mapRef.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
         
         // 5. 마커 재설정
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
         if (mapRef.current.resetMarkers) {
           mapRef.current.resetMarkers();
         } else {
@@ -1677,34 +1672,56 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             
             try {
               // 실제 삭제 로직 호출
+              console.log('🔄 firebaseSync.deleteProperty 호출 시작...');
               await firebaseSync.deleteProperty(propertyId);
+              console.log('✅ firebaseSync.deleteProperty 완료');
               
               // 로컬 상태에서 즉시 제거 (UI 즉시 반영)
+              // 대소문자 구분 없이 비교
+              const normalizedId = propertyId.toUpperCase();
               setDefaultProperties(prevProperties => {
-                const filtered = prevProperties.filter(property => property.id !== propertyId);
+                const filtered = prevProperties.filter(property => {
+                  const propId = property.id.toUpperCase();
+                  return propId !== normalizedId && property.id !== propertyId;
+                });
                 console.log('🔄 로컬 상태 업데이트:', {
                   이전개수: prevProperties.length,
                   삭제후개수: filtered.length,
-                  삭제된ID: propertyId
+                  삭제된ID: propertyId,
+                  필터링된매물ID: filtered.map(p => p.id)
                 });
                 return filtered;
               });
               
               // 선택된 매물이 삭제된 경우 모달 닫기
-              if (selectedPropertyForDetail?.id === propertyId) {
+              if (selectedPropertyForDetail?.id?.toLowerCase() === propertyId.toLowerCase()) {
                 setSelectedPropertyForDetail(null);
+                console.log('✅ 삭제된 매물 모달 닫기');
               }
               
               // 클러스터 선택된 매물 목록에서도 제거
               setSelectedClusterProperties(prev => 
-                prev.filter(property => property.id !== propertyId)
+                prev.filter(property => property.id.toLowerCase() !== propertyId.toLowerCase())
               );
+              
+              // IndexedDB에서도 확인하여 삭제
+              try {
+                await IndexedDB.deleteProperty(propertyId);
+                console.log('✅ IndexedDB에서도 삭제 확인 완료');
+              } catch (indexedDBError) {
+                console.warn('⚠️ IndexedDB 삭제 확인 실패 (무시 가능):', indexedDBError);
+              }
               
               console.log('✅ 매물 삭제 완료:', propertyId);
               alert('매물이 성공적으로 삭제되었습니다!');
               
             } catch (error) {
               console.error('❌ 매물 삭제 실패:', error);
+              console.error('❌ 삭제 실패 상세:', {
+                propertyId,
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined
+              });
               alert('매물 삭제 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : String(error)));
             }
           }}

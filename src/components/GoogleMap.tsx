@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, memo } from 'react';
+import React, { useEffect, useRef, useState, useImperativeHandle, memo, ForwardRefRenderFunction } from 'react';
 import styled from 'styled-components';
 import { Property } from '../types';
 
@@ -40,11 +40,7 @@ declare global {
   }
 }
 
-const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
-  properties,
-  onMarkerClick,
-  onClusterClick
-}, ref) => {
+const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps> = ({ properties, onMarkerClick, onClusterClick }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -122,17 +118,13 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
 
         mapInstance.current = map;
 
-<<<<<<< HEAD
         // 지도 초기 범위 설정: 인천가좌시장(상단), 인천문학경기장(하단), 인하대병원(좌측), 장수동(우측)
         const bounds = new window.google.maps.LatLngBounds();
         bounds.extend(new window.google.maps.LatLng(37.4700, 126.7000)); // 인천가좌시장 (상단)
         bounds.extend(new window.google.maps.LatLng(37.4300, 126.6900)); // 인천문학경기장 (하단)
         bounds.extend(new window.google.maps.LatLng(37.4500, 126.6400)); // 인하대병원 (좌측)
         bounds.extend(new window.google.maps.LatLng(37.4200, 126.7200)); // 장수동 (우측)
-=======
-        map.panTo(incheonCenter);
-        map.setZoom(10); // 인천광역시 전체가 보이도록 설정
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
+        map.fitBounds(bounds);
 
         map.addListener('tilesloaded', () => {
           setIsLoaded(true);
@@ -816,10 +808,9 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
       }
     },
     resetMarkers: () => {
-<<<<<<< HEAD
       try {
         // 초기화 중 플래그 설정 (줌 변경 이벤트 무시)
-        const resetFlag = (mapInstance.current as any).__isResetting = true;
+        (mapInstance.current as any).__isResetting = true;
         
         // 기존 에러 메시지 제거
         setError(null);
@@ -827,38 +818,34 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         // Google Maps API와 지도 인스턴스 확인
         if (!window.google || !window.google.maps) {
           console.warn('⚠️ Google Maps API가 아직 로드되지 않았습니다.');
-=======
-      if (mapInstance.current) {
-        // 구월동 중심점 (초기화 버튼 클릭 시)
-        const guwolDongCenter = { lat: 37.4563, lng: 126.7052 };
-        mapInstance.current.panTo(guwolDongCenter);
-        mapInstance.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
-      }
-      
-      // 마커 재생성
-      markersRef.current.forEach(marker => {
-        try {
-          marker.setMap(null);
-        } catch (err) {
-          console.error('마커 제거 오류:', err);
-        }
-      });
-      markersRef.current = [];
-      
-      clustersRef.current.forEach(cluster => {
-        try {
-          cluster.setMap(null);
-        } catch (err) {
-          console.error('클러스터 제거 오류:', err);
-        }
-      });
-      clustersRef.current = [];
-      
-      properties.forEach((property) => {
-        if (!property.location) {
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
           return;
         }
+        
+        if (mapInstance.current) {
+          // 구월동 중심점 (초기화 버튼 클릭 시)
+          const guwolDongCenter = { lat: 37.4563, lng: 126.7052 };
+          mapInstance.current.panTo(guwolDongCenter);
+          mapInstance.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
+        }
+        
+        // 마커 재생성
+        markersRef.current.forEach(marker => {
+          try {
+            marker.setMap(null);
+          } catch (err) {
+            console.error('마커 제거 오류:', err);
+          }
+        });
+        markersRef.current = [];
+        
+        clustersRef.current.forEach(cluster => {
+          try {
+            cluster.setMap(null);
+          } catch (err) {
+            console.error('클러스터 제거 오류:', err);
+          }
+        });
+        clustersRef.current = [];
         
         if (!mapInstance.current) {
           console.warn('⚠️ 지도 인스턴스가 초기화되지 않았습니다.');
@@ -993,25 +980,6 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         }
         
         // 마커 재생성
-        markersRef.current.forEach(marker => {
-          try {
-            marker.setMap(null);
-          } catch (err) {
-            console.error('마커 제거 오류:', err);
-          }
-        });
-        markersRef.current = [];
-        
-        clustersRef.current.forEach(cluster => {
-          try {
-            cluster.setMap(null);
-          } catch (err) {
-            console.error('클러스터 제거 오류:', err);
-          }
-        });
-        clustersRef.current = [];
-        
-        // 마커 재생성
         if (properties && properties.length > 0) {
           properties.forEach((property) => {
             if (!property.location) {
@@ -1070,7 +1038,9 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
       )}
     </MapContainer>
   );
-});
+};
+
+const GoogleMap = React.forwardRef(GoogleMapComponent);
 
 // 커스텀 비교 함수로 불필요한 리렌더링 방지
 const areEqual = (prevProps: any, nextProps: any) => {

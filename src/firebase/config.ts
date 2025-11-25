@@ -43,6 +43,8 @@ try {
     auth = getAuth(app);
   } catch (retryError) {
     console.warn('Firebase Auth 재시도 실패 - 인증 기능 비활성화');
+    // 최종 실패 시에도 auth를 할당 (기본값 사용)
+    auth = getAuth(app);
   }
 }
 

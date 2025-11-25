@@ -18,7 +18,6 @@ import { Property } from '../types';
 // 컬렉션 이름
 const PROPERTIES_COLLECTION = 'properties';
 
-<<<<<<< HEAD
 // 위치 정보 변환 함수 (GeoPoint 또는 일반 객체 모두 처리)
 const convertLocation = (location: any): { lat: number; lng: number } | null => {
   try {
@@ -44,7 +43,9 @@ const convertLocation = (location: any): { lat: number; lng: number } | null => 
   } catch (error) {
     console.error('위치 정보 변환 오류:', error);
     return null;
-=======
+  }
+};
+
 // 안전한 Timestamp 변환 함수
 const safeConvertTimestamp = (timestamp: any): Date => {
   try {
@@ -81,7 +82,6 @@ const safeConvertTimestamp = (timestamp: any): Date => {
   } catch (error) {
     console.warn('Timestamp 변환 실패, 기본값 사용:', error);
     return new Date();
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
   }
 };
 
@@ -158,18 +158,13 @@ export const getProperties = async (
         // 필드명 매핑 (Firebase에서 다른 필드명으로 저장된 경우)
         price: data.price || data.rentPrice || 0,
         deposit: data.deposit || 0,
-<<<<<<< HEAD
         bedrooms: data.bedrooms || undefined,
         bathrooms: data.bathrooms || undefined,
         roomBathInfo: data.roomBathInfo || undefined,
         approvalDate: data.approvalDate || undefined,
         propertyStatus: data.propertyStatus || undefined,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-=======
         createdAt: safeConvertTimestamp(data.createdAt),
         updatedAt: safeConvertTimestamp(data.updatedAt),
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
         isActive: data.isActive !== false // isActive가 없거나 true인 경우 true로 설정
       } as Property;
       
@@ -224,14 +219,13 @@ export const getProperty = async (id: string): Promise<Property | null> => {
       return {
         id: docSnap.id,
         ...data,
-<<<<<<< HEAD
         bedrooms: data.bedrooms || undefined,
         bathrooms: data.bathrooms || undefined,
         roomBathInfo: data.roomBathInfo || undefined,
         approvalDate: data.approvalDate || undefined,
         propertyStatus: data.propertyStatus || undefined,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        createdAt: safeConvertTimestamp(data.createdAt),
+        updatedAt: safeConvertTimestamp(data.updatedAt),
         // 필수 필드들이 제대로 읽혀지는지 확인
         maintenanceFeeItems: data.maintenanceFeeItems || undefined,
         buildingUse: data.buildingUse || undefined,
@@ -246,10 +240,6 @@ export const getProperty = async (id: string): Promise<Property | null> => {
           photo: data.contact?.photo || '/contact-photo.jpg'
         },
         location: convertLocation(data.location) || { lat: 0, lng: 0 }
-=======
-        createdAt: safeConvertTimestamp(data.createdAt),
-        updatedAt: safeConvertTimestamp(data.updatedAt)
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
       } as Property;
     } else {
       return null;
@@ -471,43 +461,32 @@ export const searchProperties = async (
     const querySnapshot = await getDocs(q);
     const properties: Property[] = [];
 
-<<<<<<< HEAD
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const property = {
-          id: doc.id,
-          ...data,
-          bedrooms: data.bedrooms || undefined,
-          bathrooms: data.bathrooms || undefined,
-          roomBathInfo: data.roomBathInfo || undefined,
-          approvalDate: data.approvalDate || undefined,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
-          // 필수 필드들이 제대로 읽혀지는지 확인
-          maintenanceFeeItems: data.maintenanceFeeItems || undefined,
-          buildingUse: data.buildingUse || undefined,
-          parkingSpaces: data.parkingSpaces !== undefined && data.parkingSpaces !== null
-          ? (typeof data.parkingSpaces === 'number' ? String(data.parkingSpaces) : String(data.parkingSpaces))
-          : undefined,
-          recommendedBusinessType: data.recommendedBusinessType || undefined,
-          contact: {
-            name: data.contact?.name || '피에이공인중개사사무소    대표 김동화',
-            phone: data.contact?.phone || '',
-            email: data.contact?.email || 'kongri61@naver.com',
-            photo: data.contact?.photo || '/contact-photo.jpg'
-          },
-          location: convertLocation(data.location) || { lat: 0, lng: 0 }
-        } as Property;
-=======
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       const property = {
         id: doc.id,
         ...data,
+        bedrooms: data.bedrooms || undefined,
+        bathrooms: data.bathrooms || undefined,
+        roomBathInfo: data.roomBathInfo || undefined,
+        approvalDate: data.approvalDate || undefined,
         createdAt: safeConvertTimestamp(data.createdAt),
-        updatedAt: safeConvertTimestamp(data.updatedAt)
+        updatedAt: safeConvertTimestamp(data.updatedAt),
+        // 필수 필드들이 제대로 읽혀지는지 확인
+        maintenanceFeeItems: data.maintenanceFeeItems || undefined,
+        buildingUse: data.buildingUse || undefined,
+        parkingSpaces: data.parkingSpaces !== undefined && data.parkingSpaces !== null
+          ? (typeof data.parkingSpaces === 'number' ? String(data.parkingSpaces) : String(data.parkingSpaces))
+          : undefined,
+        recommendedBusinessType: data.recommendedBusinessType || undefined,
+        contact: {
+          name: data.contact?.name || '피에이공인중개사사무소    대표 김동화',
+          phone: data.contact?.phone || '',
+          email: data.contact?.email || 'kongri61@naver.com',
+          photo: data.contact?.photo || '/contact-photo.jpg'
+        },
+        location: convertLocation(data.location) || { lat: 0, lng: 0 }
       } as Property;
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
 
       // 검색어 필터링 (제목, 설명, 주소, 추가 필드에서 검색)
       if (!searchTerm) {

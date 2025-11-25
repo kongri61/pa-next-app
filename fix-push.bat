@@ -1,6 +1,19 @@
 @echo off
-chcp 65001 >nul
+REM 한글 경로 문제 해결을 위한 UTF-8 인코딩 설정
+chcp 65001 >nul 2>&1
+setlocal enabledelayedexpansion
+
+REM 스크립트가 있는 디렉토리로 이동 (한글 경로 지원)
 cd /d "%~dp0"
+
+REM Git 저장소 확인
+git rev-parse --git-dir >nul 2>&1
+if errorlevel 1 (
+    echo [오류] Git 저장소를 찾을 수 없습니다.
+    echo 현재 디렉토리: %CD%
+    pause
+    exit /b 1
+)
 echo ========================================
 echo Git Push 문제 해결
 echo ========================================

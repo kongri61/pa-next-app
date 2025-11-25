@@ -1494,13 +1494,8 @@ const Header: React.FC<HeaderProps> = ({
                 // 검색 실행 로직 (필요시 추가)
               }
             }}
-<<<<<<< HEAD
             title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 0021→P0021, 상가, 강남구"
           />
-=======
-            title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 상가, 강남구"
-          /> */}
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
           
           <FilterButtonContainer className="filter-dropdown" style={{ overflow: 'visible', zIndex: 99999 }}>
             <FilterButtonDefault
