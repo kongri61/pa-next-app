@@ -234,13 +234,13 @@ const EditSelect = styled.select`
 `;
 
 const ImageSection = styled.div`
-  margin-bottom: 0.5rem;
+  margin-bottom: 3rem; /* 화살표가 사진 아래로 이동하므로 여백 증가 (0.5rem -> 3rem) */
   position: relative;
 `;
 
 const MainImage = styled.img`
   width: 100%;
-  height: 280px;
+  height: 500px; /* 전체 화면에 보이도록 높이 증가 (280px -> 500px) */
   object-fit: contain; /* 화질 개선을 위해 cover에서 contain으로 변경 */
   background: #f3f4f6; /* 배경색 추가 */
   border-radius: 8px;
@@ -250,8 +250,8 @@ const MainImage = styled.img`
 const ImageContainer = styled.div`
   position: relative;
   width: 100%;
-  max-width: 600px; /* 가로 화면만 페이지 넘김 도구 안으로 좁힘 */
-  height: 280px;
+  /* max-width 제거하여 전체 화면에 보이도록 복원 */
+  height: 500px; /* MainImage 높이와 동일하게 설정 */
   border-radius: 8px;
   overflow: hidden;
   margin: 0 auto; /* 중앙 정렬 */
@@ -274,7 +274,7 @@ const ImageCounter = styled.div`
 
 const ImageNavigationButton = styled.button`
   position: absolute;
-  bottom: 0.3rem;
+  bottom: -50px; /* 사진 아래로 이동하여 겹치지 않도록 (0.3rem -> -50px) */
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.6);
   color: white;
@@ -1742,8 +1742,8 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               ) : (
                 <div style={{
                   width: '100%',
-                  maxWidth: '600px', /* 가로 화면만 페이지 넘김 도구 안으로 좁힘 */
-                  height: '280px',
+                  /* maxWidth 제거하여 전체 화면에 보이도록 복원 */
+                  height: '500px', /* MainImage 높이와 동일하게 설정 (280px -> 500px) */
                   background: '#f3f4f6',
                   border: '2px dashed #d1d5db',
                   borderRadius: '8px',
