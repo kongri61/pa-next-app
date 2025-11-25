@@ -74,7 +74,8 @@ class FirebaseSync {
         console.log('📱 모바일 서버 감지 - Firebase에서 데이터 로드 (백그라운드)');
         // 모바일 서버: Firebase에서 데이터 로드 (백그라운드)
         // 실시간 동기화가 이미 설정되었으므로 초기 로드는 선택적
-        this.loadFromFirebase().catch(error => {
+        // onPropertyUpdate 콜백을 전달하여 UI 업데이트 보장
+        this.loadFromFirebase(onPropertyUpdate).catch(error => {
           console.error('❌ 백그라운드 데이터 로드 실패:', error);
         });
       }
