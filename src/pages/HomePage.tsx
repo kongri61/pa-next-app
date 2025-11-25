@@ -2002,15 +2002,12 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           <button 
             onClick={async () => {
               try {
-                setIsLoading(true);
                 setError(null);
                 const IndexedDB = await import('../utils/indexedDB');
                 const localProperties = await IndexedDB.getAllProperties();
                 setDefaultProperties(localProperties);
-                setIsLoading(false);
               } catch (err) {
                 setError('로컬 데이터를 불러올 수 없습니다.');
-                setIsLoading(false);
               }
             }}
             style={{
