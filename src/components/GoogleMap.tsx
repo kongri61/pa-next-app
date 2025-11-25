@@ -768,7 +768,8 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
         
       } else if (group.markers.length >= 2) {
         // 3단계 클러스터 (대형, 중형, 소형) - 최소 2개 마커만 클러스터로 표시
-        let iconFunction, selectedIconFunction;
+        let iconFunction: (count: number) => any;
+        let selectedIconFunction: (count: number) => any;
         let zIndex = 10;
         
         if (group.type === 'large') {
