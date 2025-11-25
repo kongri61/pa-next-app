@@ -6,7 +6,7 @@ export interface Property {
   deposit?: number; // 보증금 (원)
   rentPrice?: number; // 임대료 (원)
   type: 'sale' | 'rent';
-  propertyType: 'commercial' | 'office' | 'building' | 'other';
+  propertyType: 'land' | 'building' | 'commercial' | 'office' | 'apartment' | 'officetel' | 'villa' | 'house' | 'other';
   address: string;
   location: {
     lat: number;
@@ -14,8 +14,13 @@ export interface Property {
   };
   bedrooms?: number;
   bathrooms?: number;
+<<<<<<< HEAD
   roomBathInfo?: string; // 방/화장실 정보 (텍스트, 예: 내부남녀혼용, 외부남녀구분)
   area: number; // 평방미터 (기본 면적, 전용면적로 사용 가능)
+=======
+  roomBathInfo?: string; // 방/화장실 텍스트 정보 (예: "외부 남녀구분")
+  area: number; // 전용면적 (평방미터)
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   supplyArea?: number; // 공급면적 (평방미터)
   dedicatedArea?: number; // 전용면적 (평방미터)
   images: string[];
@@ -36,24 +41,30 @@ export interface Property {
   floor?: string; // 층수 (예: "2/5층")
   parking?: boolean; // 주차 가능 여부
   elevator?: boolean; // 엘리베이터 유무
+  // 상세 정보 필드들
+  maintenanceFee?: number; // 관리비 (만원)
+  premium?: number; // 권리금 (만원)
+  buildingUse?: string; // 건축물용도
+  coolingHeating?: string; // 냉/난방
+  approvalDate?: string; // 사용승인일
+  maintenanceFeeItems?: string; // 관리비포함항목
+  maintenanceIncluded?: string; // 관리비포함항목 (별칭)
+  mainStructure?: string; // 주요구조부
+  currentBusinessType?: string; // 현업종
+  direction?: string; // 방향
+  interior?: string; // 인테리어
+  parkingSpaces?: number | string; // 주차대수 (숫자 또는 문자열, 예: "4(옥외)/22(옥내)")
+  parkingCount?: number; // 주차대수 (숫자)
+  moveInDate?: string; // 입주가능일
+  recommendedBusinessType?: string; // 추천업종
+  recommendedBusiness?: string; // 추천업종 (별칭)
+  propertyStatus?: string; // 매물현황 (예: "매매중", "임대중")
   // 매매용 필드들
   loanAmount?: number; // 융자금 (억 단위)
   keyDeposit?: number; // 기보증금 (만원 단위)
   keyDepositMonthly?: number; // 기보증금/월세 (만원 단위)
   // 임대용 필드들
   keyMoney?: number; // 권리금 (만원 단위)
-  // 공통 추가 필드들
-  maintenanceFee?: number; // 관리비
-  maintenanceIncluded?: string; // 관리비포함항목
-  propertyStatus?: string; // 매물현황
-  mainStructure?: string; // 주요구조부
-  direction?: string; // 방향
-  coolingHeating?: string; // 냉/난방
-  interior?: string; // 인테리어
-  parkingCount?: number; // 주차대수
-  moveInDate?: string; // 입주가능일
-  approvalDate?: string; // 사용승인일
-  recommendedBusiness?: string; // 추천업종
   mapImage?: string; // 위치정보 지도 이미지 URL
   buildingUse?: string; // 건축물용도 (예: 제2종 일반주거지역, 제1종 근린생활시설)
   // Firebase 관련 필드들
@@ -73,7 +84,7 @@ export interface MapMarker {
 
 export interface SearchFilters {
   type?: 'sale' | 'rent';
-  propertyType?: 'commercial' | 'office' | 'building' | 'other';
+  propertyType?: 'land' | 'building' | 'commercial' | 'office' | 'apartment' | 'officetel' | 'villa' | 'house' | 'other';
   minPrice?: number;
   maxPrice?: number;
   minArea?: number;

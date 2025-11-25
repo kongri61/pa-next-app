@@ -118,11 +118,46 @@ class IndexedDBDataManager {
       const properties = await getIndexedDBProperties();
       const searchTerm = query.toLowerCase();
       
-      return properties.filter(property => 
-        property.title.toLowerCase().includes(searchTerm) ||
-        property.description.toLowerCase().includes(searchTerm) ||
-        property.address.toLowerCase().includes(searchTerm)
-      );
+      return properties.filter(property => {
+        const titleMatch = property.title.toLowerCase().includes(searchTerm);
+        const descriptionMatch = property.description?.toLowerCase().includes(searchTerm) || false;
+        const addressMatch = property.address.toLowerCase().includes(searchTerm);
+        
+        // 추가 필드 검색: 관리비포함항목, 건축물용도, 주차대수, 추천업종, 매물현황
+        const maintenanceFeeItemsMatch = property.maintenanceFeeItems?.toLowerCase().includes(searchTerm) || false;
+        const buildingUseMatch = property.buildingUse?.toLowerCase().includes(searchTerm) || false;
+        const parkingSpacesMatch = property.parkingSpaces?.toString().includes(query) || false;
+        const recommendedBusinessTypeMatch = property.recommendedBusinessType?.toLowerCase().includes(searchTerm) || false;
+        // 매물현황: type이 'sale'이면 '매매', 'rent'이면 '임대중'으로 검색
+        const propertyStatusMatch = (property.type === 'sale' && searchTerm.includes('매매')) || 
+                                    (property.type === 'rent' && searchTerm.includes('임대중')) ||
+                                    (property.type === 'rent' && searchTerm.includes('임대'));
+        
+        // 연락처 정보 검색: 상호명, 이름, 전화번호, 이메일
+        const contactNameMatch = property.contact?.name?.toLowerCase().includes(searchTerm) || false;
+        // 전화번호 검색: 여러 번호가 쉼표로 구분되어 있을 수 있으므로 각각 검색
+        const phoneNumbers = property.contact?.phone?.split(',').map((p: string) => p.trim()) || [];
+        const contactPhoneMatch = phoneNumbers.some((phone: string) => phone.includes(query)) || false;
+        const contactEmailMatch = property.contact?.email?.toLowerCase().includes(searchTerm) || false;
+        // 상호명과 대표 이름 분리 검색
+        const parseContactName = (name: string) => {
+          if (!name) return { companyName: '', representativeName: '' };
+          const parts = name.split(/\s+대표\s+/);
+          if (parts.length === 2) {
+            return { companyName: parts[0].trim(), representativeName: parts[1].trim() };
+          }
+          return { companyName: name.trim(), representativeName: '' };
+        };
+        const { companyName, representativeName } = parseContactName(property.contact?.name || '');
+        const companyNameMatch = companyName.toLowerCase().includes(searchTerm) || false;
+        const representativeNameMatch = representativeName.toLowerCase().includes(searchTerm) || false;
+        
+        return titleMatch || descriptionMatch || addressMatch ||
+               maintenanceFeeItemsMatch || buildingUseMatch || parkingSpacesMatch ||
+               recommendedBusinessTypeMatch || propertyStatusMatch ||
+               contactNameMatch || contactPhoneMatch || contactEmailMatch ||
+               companyNameMatch || representativeNameMatch;
+      });
     } catch (error) {
       console.error('매물 검색 실패:', error);
       throw error;

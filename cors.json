@@ -1,9 +1,20 @@
 [
   {
-    "origin": ["https://pa-realestate-3hobxzyzz-paproperty.vercel.app", "https://pa-realestate-5897hcj77-paproperty.vercel.app", "https://pa-realestate-pgm8d2m85-paproperty.vercel.app", "http://localhost:3000", "http://192.168.219.105:3000"],
-    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "origin": [
+      "https://pa-realestate-3hobxzyzz-paproperty.vercel.app",
+      "https://pa-realestate-5897hcj77-paproperty.vercel.app",
+      "https://pa-realestate-pgm8d2m85-paproperty.vercel.app",
+      "https://pa-realestate-4g8rxcpbr-paproperty.vercel.app",
+      "https://pa-realestate-hjs23aj0s-paproperty.vercel.app",
+      "https://pa-realestate-6om81cerd-paproperty.vercel.app",
+      "https://pa-realestate-*.vercel.app",
+      "https://pa-realestate-pc.vercel.app",
+      "http://localhost:3000",
+      "http://192.168.219.105:3000"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+    "responseHeader": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers", "*"]
   }
 ]
 

@@ -43,6 +43,8 @@ try {
     auth = getAuth(app);
   } catch (retryError) {
     console.warn('Firebase Auth 재시도 실패 - 인증 기능 비활성화');
+    // 최종 실패 시에도 auth를 할당 (기본값 사용)
+    auth = getAuth(app);
   }
 }
 
@@ -57,4 +59,11 @@ try {
 }
 
 export { db, auth, storage };
-export default app; 
+export default app;
+
+// 브라우저 콘솔에서 접근 가능하도록 전역에 노출 (디버깅용)
+if (typeof window !== 'undefined') {
+  (window as any).__firebaseDb = db;
+  (window as any).__firebaseAuth = auth;
+  (window as any).__firebaseStorage = storage;
+} 

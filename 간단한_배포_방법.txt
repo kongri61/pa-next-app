@@ -1,0 +1,76 @@
+========================================
+PowerShell에서 배포하는 방법
+========================================
+
+⚠️ 주의: PowerShell과 명령 프롬프트(cmd)는 다른 명령어를 사용합니다!
+
+
+방법 1: PowerShell 스크립트 사용 (권장)
+----------------------------------------
+1. 파일 탐색기에서 프로젝트 폴더 열기
+2. fix-git-and-deploy.ps1 파일을 우클릭
+3. "PowerShell로 실행" 선택
+
+
+방법 2: PowerShell에서 직접 실행
+----------------------------------------
+PowerShell을 열고 다음 명령어를 순서대로 실행:
+
+# 1. 프로젝트 폴더로 이동
+Set-Location "D:\1-2. CURSOR_지도기반사이트만들기"
+
+# 2. Git lock 파일 제거 (있는 경우)
+Remove-Item .git\index.lock -ErrorAction SilentlyContinue
+
+# 3. Git 상태 확인
+git status
+
+# 4. rebase 중단 (진행 중인 경우)
+git rebase --abort
+
+# 5. 원격 변경사항 가져오기
+git pull origin main
+
+# 6. 변경사항 커밋
+git add .
+git commit -m "페이지 넘김 표시 위치 변경"
+
+# 7. 푸시
+git push origin main
+
+
+방법 3: 명령 프롬프트(cmd) 사용 (가장 간단)
+----------------------------------------
+1. Windows 키 + R
+2. cmd 입력 후 Enter
+3. 다음 명령어 실행:
+
+cd /d "D:\1-2. CURSOR_지도기반사이트만들기"
+git rebase --abort
+git pull origin main
+git add .
+git commit -m "페이지 넘김 표시 위치 변경"
+git push origin main
+
+
+방법 4: 배치 파일 사용
+----------------------------------------
+1. 파일 탐색기에서 프로젝트 폴더 열기
+2. deploy-all.bat 파일 더블클릭
+
+
+========================================
+현재 문제 해결
+========================================
+
+1. Git lock 파일 제거:
+   PowerShell: Remove-Item .git\index.lock -ErrorAction SilentlyContinue
+   CMD: del .git\index.lock
+
+2. rebase 중단:
+   git rebase --abort
+
+3. 올바른 디렉토리로 이동:
+   PowerShell: Set-Location "D:\1-2. CURSOR_지도기반사이트만들기"
+   CMD: cd /d "D:\1-2. CURSOR_지도기반사이트만들기"
+

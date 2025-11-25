@@ -210,15 +210,25 @@ const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean; isPrice?: bo
   border-radius: 8px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   z-index: 999999;
+<<<<<<< HEAD
   padding: ${props => props.isPrice ? '0.15rem 0.15rem 0.3rem 0.15rem' : '1rem'};
+=======
+  padding: ${props => props.isPrice ? '1rem 1rem 1.5rem 1rem' : '1rem'}; /* 금액 모달은 하단 패딩 추가 */
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   margin-top: 0.5rem;
   display: ${props => props.isOpen ? 'block' : 'none'};
   min-width: 200px;
   max-width: ${props => props.isWide ? '1200px' : '500px'};
+<<<<<<< HEAD
   /* 금액 모달은 화면 높이에 맞게 조정하여 전체 내용이 보이도록 */
   max-height: ${props => props.isPrice ? 'calc(100vh - 70px)' : 'calc(100vh - 200px)'};
   overflow-y: auto;
   overflow-x: hidden;
+=======
+  max-height: ${props => props.isPrice ? 'calc(100vh - 140px)' : 'calc(100vh - 200px)'}; /* 금액 모달은 더 큰 높이 */
+  height: ${props => props.isPrice ? 'auto' : 'auto'}; /* 금액 모달은 내용에 맞게 자동 높이 */
+  overflow-y: ${props => props.isPrice ? 'visible' : 'auto'}; /* 금액 모달은 스크롤 없음 */
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   white-space: nowrap;
   opacity: ${props => props.isOpen ? '1' : '0'};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
@@ -263,7 +273,11 @@ const ConfirmButton = styled.button`
 const FilterPopupContent = styled.div<{ isPriceModal?: boolean }>`
   display: flex;
   flex-direction: column;
+<<<<<<< HEAD
   gap: ${props => props.isPriceModal ? '0.1rem' : '0.5rem'};
+=======
+  gap: 0.25rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
 `;
 
 const FilterPopupButton = styled.button<{ isSelected?: boolean }>`
@@ -295,7 +309,12 @@ const ResetFilterButton = styled.button<{ isPriceModal?: boolean }>`
   transition: all 0.2s;
   text-align: center;
   width: 100%;
+<<<<<<< HEAD
   margin-top: ${props => props.isPriceModal ? '0.2rem' : '0.5rem'};
+=======
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
 
   &:hover {
     background: #fee2e2;
@@ -365,14 +384,23 @@ const AreaButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isI
   }
 `;
 
+<<<<<<< HEAD
 const PriceSection = styled.div<{ isPriceModal?: boolean }>`
   padding: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
+=======
+const PriceSection = styled.div`
+  padding: 0.5rem 1rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   border-bottom: 1px solid #e5e7eb;
 `;
 
 const PriceTitle = styled.div<{ isPriceModal?: boolean }>`
   font-weight: bold;
+<<<<<<< HEAD
   margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
+=======
+  margin-bottom: 0.5rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   color: #374151;
   font-size: ${props => props.isPriceModal ? '0.85rem' : '1rem'};
 `;
@@ -380,8 +408,13 @@ const PriceTitle = styled.div<{ isPriceModal?: boolean }>`
 const PriceGrid = styled.div<{ isPriceModal?: boolean }>`
   display: grid;
   grid-template-columns: repeat(6, 1fr);
+<<<<<<< HEAD
   gap: ${props => props.isPriceModal ? '0.08rem' : '0.4rem'};
   margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '0.75rem'};
+=======
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   width: 100%;
 `;
 
@@ -420,8 +453,13 @@ const PriceButton = styled.button<{ isSelected?: boolean; isActive?: boolean; is
 const CustomRangeContainer = styled.div<{ isPriceModal?: boolean }>`
   display: flex;
   align-items: center;
+<<<<<<< HEAD
   gap: ${props => props.isPriceModal ? '0.2rem' : '0.5rem'};
   margin-bottom: ${props => props.isPriceModal ? '0.1rem' : '0.75rem'};
+=======
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   position: relative;
 `;
 
@@ -445,13 +483,22 @@ const RangeSeparator = styled.span`
   color: #6b7280;
 `;
 
+<<<<<<< HEAD
 const DepositSection = styled.div<{ isPriceModal?: boolean }>`
   padding: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
+=======
+const DepositSection = styled.div`
+  padding: 0.5rem 1rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
 `;
 
 const DepositTitle = styled.div<{ isPriceModal?: boolean }>`
   font-weight: bold;
+<<<<<<< HEAD
   margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
+=======
+  margin-bottom: 0.5rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   color: #374151;
   font-size: ${props => props.isPriceModal ? '0.85rem' : '1rem'};
 `;
@@ -459,8 +506,13 @@ const DepositTitle = styled.div<{ isPriceModal?: boolean }>`
 const DepositSlider = styled.div<{ isPriceModal?: boolean }>`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+<<<<<<< HEAD
   gap: ${props => props.isPriceModal ? '0.08rem' : '0.4rem'};
   margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '0.75rem'};
+=======
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   width: 100%;
   max-width: 100%;
 `;
@@ -1489,8 +1541,8 @@ const Header: React.FC<HeaderProps> = ({
                 // 검색 실행 로직 (필요시 추가)
               }
             }}
-            title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 상가, 강남구"
-          /> */}
+            title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 0021→P0021, 상가, 강남구"
+          />
           
           <FilterButtonContainer className="filter-dropdown" style={{ overflow: 'visible', zIndex: 99999 }}>
             <FilterButtonDefault
@@ -1724,7 +1776,11 @@ const Header: React.FC<HeaderProps> = ({
               })()}▼
             </FilterButtonDefault>
             <FilterPopup isOpen={openDropdown === 'price'} isWide={true} isPrice={true}>
+<<<<<<< HEAD
               <FilterPopupHeader isPriceModal={true}>
+=======
+              <FilterPopupHeader>
+>>>>>>> f85309789388d81d24ee5d938e63dd690806b864
                 <FilterPopupTitle>금액</FilterPopupTitle>
                 <ConfirmButton onClick={() => setOpenDropdown(null)}>확인</ConfirmButton>
               </FilterPopupHeader>

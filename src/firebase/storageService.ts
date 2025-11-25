@@ -8,7 +8,8 @@ import {
 } from 'firebase/storage';
 import { storage } from './config';
 
-// 이미지 업로드 (Base64 우선, Firebase Storage 백업)
+// 이미지 업로드 (Firebase Storage 우선, 실패 시 Base64 fallback)
+// Firebase Storage에 업로드하여 다운로드 URL만 Firestore에 저장 (문서 크기 제한 없음)
 export const uploadImage = async (
   file: File, 
   folder: string = 'properties',
@@ -22,17 +23,119 @@ export const uploadImage = async (
       folder: folder
     });
 
-    // CORS 문제로 인해 Firebase Storage를 우회하고 바로 Base64 사용
-    console.log('🔄 Base64 변환 시작 (Firebase Storage 우회)...');
-    const base64Url = await convertToBase64(file);
-    console.log('✅ Base64 변환 완료, 길이:', base64Url.length);
-    
-    return base64Url;
+    // Firebase Storage에 업로드 시도 (다운로드 URL만 Firestore에 저장)
+    try {
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const fileExtension = file.name.split('.').pop() || 'jpg';
+      const fileName = `${timestamp}_${randomString}.${fileExtension}`;
+      const filePath = `${folder}/${fileName}`;
+      
+      console.log('📤 Firebase Storage 업로드 시도:', filePath);
+      
+      // 이미지 압축 (Storage는 크기 제한이 크지만 네트워크 효율을 위해 압축)
+      let fileToUpload = file;
+      if (file.size > 2 * 1024 * 1024) { // 2MB 이상이면 압축
+        try {
+          fileToUpload = await compressImage(file, 1920, 0.85); // 최대 너비 1920px, 품질 85%
+          const compressedSizeMB = (fileToUpload.size / 1024 / 1024).toFixed(2);
+          const originalSizeMB = (file.size / 1024 / 1024).toFixed(2);
+          console.log(`✅ 압축 완료: ${originalSizeMB}MB → ${compressedSizeMB}MB`);
+        } catch (compressError) {
+          console.warn('⚠️ 압축 실패, 원본 파일 사용:', compressError);
+          fileToUpload = file;
+        }
+      }
+      
+      const storageRef = ref(storage, filePath);
+      
+      // 타임아웃 설정 (5초)
+      const uploadPromise = uploadBytes(storageRef, fileToUpload, {
+        contentType: file.type,
+        ...metadata
+      });
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('업로드 타임아웃')), 5000);
+      });
+      
+      const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as any;
+      
+      console.log('✅ Firebase Storage 업로드 완료:', snapshot.metadata.fullPath);
+      
+      // 다운로드 URL 가져오기
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('✅ 다운로드 URL 획득:', downloadURL);
+      console.log('✅ Firestore에 URL만 저장 (크기: 약 ' + downloadURL.length + ' bytes)');
+      
+      return downloadURL;
+    } catch (storageError: any) {
+      // CORS 오류 또는 네트워크 오류 감지
+      const errorMessage = storageError?.message || String(storageError || '');
+      const isCorsError = errorMessage.includes('CORS') || 
+                         errorMessage.includes('ERR_FAILED') || 
+                         errorMessage.includes('network') ||
+                         errorMessage.includes('타임아웃');
+      
+      console.warn('⚠️ Firebase Storage 업로드 실패:', errorMessage);
+      if (isCorsError) {
+        console.warn('⚠️ CORS 오류 감지 - Base64로 자동 전환');
+      } else {
+        console.warn('⚠️ 업로드 실패 - Base64로 자동 전환');
+      }
+      
+      // Storage 업로드 실패 시 Base64로 fallback
+      console.log('📝 Base64 변환 시작 (Fallback)...');
+      
+      try {
+        // Base64 변환 전에 이미지 압축 (Firestore 문서 크기 제한 준수)
+        let fileToConvert = file;
+        
+        // Firestore 문서 크기 제한(1MB)을 고려하여 각 이미지를 약 80KB 이하로 압축
+        if (file.size > 100 * 1024) { // 100KB 이상이면 압축
+          try {
+            // 더 강한 압축 적용 (최대 너비 1000px, 품질 70%)
+            fileToConvert = await compressImage(file, 1000, 0.7);
+            const compressedSizeKB = (fileToConvert.size / 1024).toFixed(2);
+            const originalSizeKB = (file.size / 1024).toFixed(2);
+            console.log(`✅ Base64용 압축 완료: ${originalSizeKB}KB → ${compressedSizeKB}KB`);
+            
+            // 압축 후에도 여전히 크면 추가 압축
+            if (fileToConvert.size > 150 * 1024) { // 150KB 이상이면 추가 압축
+              console.log(`🗜️ 추가 압축 중: ${file.name}`);
+              fileToConvert = await compressImage(file, 800, 0.65); // 최대 너비 800px, 품질 65%
+              const finalSizeKB = (fileToConvert.size / 1024).toFixed(2);
+              console.log(`✅ 추가 압축 완료: ${compressedSizeKB}KB → ${finalSizeKB}KB`);
+            }
+          } catch (compressError) {
+            console.warn('⚠️ 압축 실패, 원본 파일 사용:', compressError);
+            fileToConvert = file;
+          }
+        }
+        
+        const base64Url = await convertToBase64(fileToConvert);
+        const base64SizeKB = (base64Url.length / 1024).toFixed(2);
+        const base64SizeMB = (base64Url.length / 1024 / 1024).toFixed(2);
+        console.log('✅ Base64 변환 완료, 길이:', base64Url.length, `(${base64SizeKB}KB / ${base64SizeMB}MB)`);
+        console.warn('⚠️ Base64 사용 중 - Firestore 문서 크기 제한(1MB) 주의');
+        
+        // Base64 크기가 너무 크면 경고
+        if (base64Url.length > 80 * 1024) { // 80KB 이상이면 경고
+          console.warn(`⚠️ Base64 이미지 크기가 큽니다 (${base64SizeKB}KB). 여러 이미지 업로드 시 Firestore 제한에 걸릴 수 있습니다.`);
+        }
+        
+        return base64Url;
+      } catch (base64Error) {
+        console.error('❌ Base64 변환도 실패:', base64Error);
+        throw new Error('이미지 업로드에 실패했습니다. (Storage 및 Base64 변환 모두 실패)');
+      }
+    }
   } catch (error) {
-    console.error('❌ Base64 변환 실패:', error);
-    throw new Error('이미지 변환에 실패했습니다.');
+    console.error('❌ 이미지 업로드 실패:', error);
+    throw new Error('이미지 업로드에 실패했습니다.');
   }
 };
+
 
 // 파일을 Base64로 변환하는 함수
 const convertToBase64 = (file: File): Promise<string> => {
