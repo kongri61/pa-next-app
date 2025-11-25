@@ -1,26 +1,37 @@
 @echo off
+chcp 65001 >nul
 title 개별등록 문제 해결 및 배포
 color 0A
+cd /d "%~dp0"
+
 echo.
 echo ========================================
 echo    개별등록 문제 해결 및 배포 도구
 echo ========================================
 echo.
-echo 해결된 문제:
-echo - 개별등록 시 기존 매물 덮어쓰기 문제
-echo - Firebase에서 실제 매물 ID 조회
-echo - 연속된 ID 생성 보장
-echo.
-echo ========================================
-echo.
+
+REM Git 저장소 확인
+if not exist ".git" (
+    echo [경고] Git 저장소가 없습니다.
+    echo.
+    set /p init_git="Git 저장소를 초기화하시겠습니까? (Y/N): "
+    if /i "%init_git%"=="Y" (
+        call git init
+        echo Git 저장소가 초기화되었습니다.
+        echo 원격 저장소를 설정해주세요: git remote add origin YOUR_REPO_URL
+        echo.
+    )
+)
+
 echo 배포 방법을 선택하세요:
 echo.
-echo 1. 자동 배포 (권장) - 모든 과정 자동 실행
+echo 1. 자동 배포 (권장) - 빌드 + Git 푸시 + Vercel 배포
 echo 2. 수동 배포 - 단계별 실행
-echo 3. 빌드만 실행
-echo 4. 종료
+echo 3. 빌드만 실행 (자동 배포 포함)
+echo 4. Git 설정 확인 및 수정
+echo 5. 종료
 echo.
-set /p choice="선택 (1-4): "
+set /p choice="선택 (1-5): "
 
 if "%choice%"=="1" (
     echo.
@@ -39,9 +50,18 @@ if "%choice%"=="1" (
     call deploy.bat
 ) else if "%choice%"=="3" (
     echo.
-    echo 빌드만 실행합니다...
-    call build.bat
+    echo 빌드 및 자동 배포를 시작합니다...
+    call npm run auto-deploy
 ) else if "%choice%"=="4" (
+    echo.
+    echo Git 설정 확인 중...
+    call git status
+    echo.
+    call git remote -v
+    echo.
+    pause
+    goto :eof
+) else if "%choice%"=="5" (
     echo.
     echo 종료합니다.
     exit

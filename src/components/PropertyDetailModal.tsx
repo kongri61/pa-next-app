@@ -249,14 +249,18 @@ const ImageContainer = styled.div`
 `;
 
 const ImageCounter = styled.div`
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
   background: rgba(0, 0, 0, 0.7);
   color: white;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 4px;
   font-size: 0.75rem;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 `;
 
 const ImageNavigationButton = styled.button`
