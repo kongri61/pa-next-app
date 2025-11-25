@@ -449,12 +449,19 @@ class FirebaseSync {
         }
       }
 
-      // Base64 이미지가 있는 매물들을 Firebase Storage로 마이그레이션
+      // 모바일 서버 감지
+      const isMainServer = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '192.168.219.105' ||
+                          window.location.hostname === 'pa-realestate-pc.vercel.app' ||
+                          (window.location.hostname.includes('vercel.app') && 
+                           window.location.hostname.includes('pa-realestate'));
+      
+      // Base64 이미지가 있는 매물들을 Firebase Storage로 마이그레이션 (PC 서버에서만)
       const propertiesWithBase64Images = firebaseProperties.filter(property => 
         property.images && property.images.some(img => img.startsWith('data:image/'))
       );
       
-      if (propertiesWithBase64Images.length > 0) {
+      if (propertiesWithBase64Images.length > 0 && isMainServer) {
         console.log(`🔄 ${propertiesWithBase64Images.length}개 매물의 Base64 이미지 마이그레이션 시작...`);
         
         try {
@@ -485,6 +492,13 @@ class FirebaseSync {
           for (const property of firebaseProperties) {
             await IndexedDB.updateProperty(property);
           }
+        }
+      } else if (propertiesWithBase64Images.length > 0 && !isMainServer) {
+        // 모바일 서버에서는 이미지 마이그레이션 건너뛰기
+        console.log('📱 모바일 서버 - 이미지 마이그레이션 건너뛰기 (읽기 전용)');
+        // 원본 데이터 그대로 저장
+        for (const property of firebaseProperties) {
+          await IndexedDB.updateProperty(property);
         }
       } else {
         // Base64 이미지가 없으면 그대로 저장 (Firebase에 있는 것만)
