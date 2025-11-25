@@ -1966,7 +1966,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   //     </div>
   //   );
   // }
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
 
   // 오류 화면 (개선된 버전)
   if (error && allProperties.length === 0) {

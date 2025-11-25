@@ -377,13 +377,6 @@ class FirebaseSync {
           // Firebase에 실제로 저장된 모든 필드
           allFields: Object.keys(data)
         });
-            phone: '',
-            email: 'kongri61@naver.com',
-            photo: '/contact-photo.jpg'
-          },
-          location: this.convertLocation(data.location) || { lat: 0, lng: 0 }
-        };
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
         
         firebaseProperties.push(property);
       });
