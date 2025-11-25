@@ -1167,7 +1167,6 @@ class FirebaseSync {
           .filter((property, index, self) => 
             index === self.findIndex(p => p.id === property.id)
           );
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
         
         console.log('🔄 Firebase 실시간 업데이트 (중복 제거 및 삭제된 매물 제외):', {
           원본: allProperties.length,
