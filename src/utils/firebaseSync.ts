@@ -25,11 +25,60 @@ class FirebaseSync {
   private pendingUpdates: Map<string, Property> = new Map();
   private isInitialized: boolean = false;
   private deletedProperties: Set<string> = new Set(); // 삭제된 매물 ID 추적
+  private readonly DELETED_PROPERTIES_KEY = 'deletedProperties'; // localStorage 키
 
   constructor() {
     // 온라인/오프라인 상태 감지
     window.addEventListener('online', this.handleOnline.bind(this));
     window.addEventListener('offline', this.handleOffline.bind(this));
+    
+    // localStorage에서 삭제된 매물 목록 로드
+    this.loadDeletedProperties();
+  }
+
+  // localStorage에서 삭제된 매물 목록 로드
+  private loadDeletedProperties(): void {
+    try {
+      const stored = localStorage.getItem(this.DELETED_PROPERTIES_KEY);
+      if (stored) {
+        const deletedIds = JSON.parse(stored) as string[];
+        deletedIds.forEach(id => {
+          this.deletedProperties.add(id);
+          this.deletedProperties.add(id.toUpperCase()); // 대소문자 모두 추가
+          this.deletedProperties.add(id.toLowerCase()); // 소문자도 추가
+        });
+        console.log(`📋 삭제된 매물 목록 로드: ${deletedIds.length}개`, deletedIds);
+      }
+    } catch (error) {
+      console.warn('⚠️ 삭제된 매물 목록 로드 실패:', error);
+    }
+  }
+
+  // localStorage에 삭제된 매물 목록 저장
+  private saveDeletedProperties(): void {
+    try {
+      const deletedIds = Array.from(this.deletedProperties);
+      localStorage.setItem(this.DELETED_PROPERTIES_KEY, JSON.stringify(deletedIds));
+      console.log(`💾 삭제된 매물 목록 저장: ${deletedIds.length}개`);
+    } catch (error) {
+      console.warn('⚠️ 삭제된 매물 목록 저장 실패:', error);
+    }
+  }
+
+  // 삭제된 매물 ID 추가 (대소문자 정규화 포함)
+  private addDeletedProperty(id: string): void {
+    const normalizedId = id.toUpperCase();
+    this.deletedProperties.add(normalizedId);
+    this.deletedProperties.add(id); // 원본 ID도 추가
+    this.deletedProperties.add(id.toLowerCase()); // 소문자도 추가
+    this.saveDeletedProperties(); // localStorage에 저장
+  }
+
+  // 삭제된 매물인지 확인 (대소문자 구분 없이)
+  private isDeletedProperty(id: string): boolean {
+    return this.deletedProperties.has(id) || 
+           this.deletedProperties.has(id.toUpperCase()) || 
+           this.deletedProperties.has(id.toLowerCase());
   }
 
   // Firebase 초기화 및 실시간 동기화 시작 (성능 최적화: 실시간 동기화 우선)
@@ -204,15 +253,19 @@ class FirebaseSync {
         } // 원본 데이터 저장
         
         // 삭제된 매물 필터링: deletedProperties Set에 있거나 isActive: false인 경우 제외
-        if (this.deletedProperties.has(doc.id)) {
+        if (this.isDeletedProperty(doc.id)) {
           console.log(`⏭️ 삭제된 매물 건너뛰기 (deletedProperties): ${doc.id}`);
+          // IndexedDB에서도 삭제
+          IndexedDB.deleteProperty(doc.id).catch(err => 
+            console.warn(`IndexedDB에서 ${doc.id} 삭제 실패:`, err)
+          );
           return;
         }
         
         if (data.isActive === false) {
           console.log(`⏭️ 삭제된 매물 건너뛰기 (isActive: false): ${doc.id}`);
           // 삭제된 매물 목록에 추가하여 재로드 방지
-          this.deletedProperties.add(doc.id);
+          this.addDeletedProperty(doc.id);
           // IndexedDB에서도 삭제
           IndexedDB.deleteProperty(doc.id).catch(err => 
             console.warn(`IndexedDB에서 ${doc.id} 삭제 실패:`, err)
@@ -636,7 +689,7 @@ class FirebaseSync {
           const data = change.doc.data();
           
           // 삭제된 매물 필터링: deletedProperties Set에 있거나 isActive: false인 경우 제외
-          if (this.deletedProperties.has(change.doc.id)) {
+          if (this.isDeletedProperty(change.doc.id)) {
             console.log(`⏭️ 삭제된 매물 건너뛰기 (deletedProperties): ${change.doc.id}`);
             // IndexedDB에서도 삭제
             await IndexedDB.deleteProperty(change.doc.id);
@@ -646,7 +699,7 @@ class FirebaseSync {
           if (data.isActive === false) {
             console.log(`⏭️ 삭제된 매물 건너뛰기 (isActive: false): ${change.doc.id}`);
             // 삭제된 매물 목록에 추가하여 재로드 방지
-            this.deletedProperties.add(change.doc.id);
+            this.addDeletedProperty(change.doc.id);
             // IndexedDB에서도 삭제
             await IndexedDB.deleteProperty(change.doc.id);
             return;
@@ -870,9 +923,9 @@ class FirebaseSync {
 
           if (change.type === 'added' || change.type === 'modified') {
             // 이미 위에서 필터링했지만, 추가 확인
-            if (this.deletedProperties.has(property.id) || property.isActive === false) {
+            if (this.isDeletedProperty(property.id) || property.isActive === false) {
               console.log(`⏭️ 삭제된 매물 건너뛰기 (이중 확인): ${property.id}`);
-              this.deletedProperties.add(property.id);
+              this.addDeletedProperty(property.id);
               await IndexedDB.deleteProperty(property.id);
               return;
             }
@@ -1144,21 +1197,15 @@ class FirebaseSync {
         const uniqueProperties = allProperties
           .filter(property => {
             // deletedProperties Set에 있거나 isActive: false인 경우 제외
-            const propId = property.id;
-            const normalizedPropId = propId.toUpperCase();
-            
-            // 대소문자 구분 없이 삭제된 매물 확인
-            if (this.deletedProperties.has(propId) || this.deletedProperties.has(normalizedPropId)) {
+            if (this.isDeletedProperty(property.id)) {
               return false;
             }
             
             if (property.isActive === false) {
-              // 삭제된 매물 목록에 추가 (대소문자 모두)
-              this.deletedProperties.add(propId);
-              this.deletedProperties.add(normalizedPropId);
+              // 삭제된 매물 목록에 추가
+              this.addDeletedProperty(property.id);
               // IndexedDB에서도 삭제
-              IndexedDB.deleteProperty(propId).catch(() => null);
-              IndexedDB.deleteProperty(normalizedPropId).catch(() => null);
+              IndexedDB.deleteProperty(property.id).catch(() => null);
               return false;
             }
             return true;
@@ -1343,8 +1390,7 @@ class FirebaseSync {
       console.log('🗑️ 매물 삭제 시작:', normalizedId, '(원본:', propertyId, ')');
       
       // 1. 삭제된 매물 목록에 추가 (재업로드 방지) - 대소문자 구분 없이
-      this.deletedProperties.add(normalizedId);
-      this.deletedProperties.add(propertyId); // 원본 ID도 추가
+      this.addDeletedProperty(propertyId);
       console.log('📝 삭제된 매물 목록에 추가:', normalizedId, propertyId);
       
       // 2. IndexedDB에서 즉시 삭제 (빠른 응답) - 대소문자 구분 없이 시도
@@ -1361,12 +1407,30 @@ class FirebaseSync {
           // 대소문자 구분 없이 시도
           await deleteDoc(doc(db, COLLECTION_NAME, normalizedId));
           console.log('🔥 Firebase에서 매물 완전 삭제 완료:', normalizedId);
+          
+          // 삭제 확인: 실제로 삭제되었는지 확인
+          await new Promise(resolve => setTimeout(resolve, 500)); // 잠시 대기
+          const verifyDoc = await getDoc(doc(db, COLLECTION_NAME, normalizedId));
+          if (verifyDoc.exists()) {
+            console.warn(`⚠️ ${normalizedId}가 여전히 Firebase에 존재 - 재삭제 시도`);
+            await deleteDoc(doc(db, COLLECTION_NAME, normalizedId));
+            console.log('🔥 Firebase 재삭제 완료:', normalizedId);
+          }
         } catch (firebaseError: any) {
           // normalizedId로 실패하면 원본 ID로 시도
           if (normalizedId !== propertyId) {
             try {
               await deleteDoc(doc(db, COLLECTION_NAME, propertyId));
               console.log('🔥 Firebase에서 매물 완전 삭제 완료 (원본 ID):', propertyId);
+              
+              // 삭제 확인
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const verifyDoc = await getDoc(doc(db, COLLECTION_NAME, propertyId));
+              if (verifyDoc.exists()) {
+                console.warn(`⚠️ ${propertyId}가 여전히 Firebase에 존재 - 재삭제 시도`);
+                await deleteDoc(doc(db, COLLECTION_NAME, propertyId));
+                console.log('🔥 Firebase 재삭제 완료:', propertyId);
+              }
             } catch (secondError) {
               console.error('❌ Firebase 삭제 실패 (모든 시도 실패):', firebaseError, secondError);
             }
@@ -2216,7 +2280,7 @@ class FirebaseSync {
         const data = doc.data();
         
         // 삭제된 매물 필터링: deletedProperties Set에 있거나 isActive: false인 경우 제외
-        if (this.deletedProperties.has(doc.id)) {
+        if (this.isDeletedProperty(doc.id)) {
           console.log(`⏭️ 삭제된 매물 건너뛰기 (deletedProperties): ${doc.id}`);
           return;
         }
@@ -2224,7 +2288,7 @@ class FirebaseSync {
         if (data.isActive === false) {
           console.log(`⏭️ 삭제된 매물 건너뛰기 (isActive: false): ${doc.id}`);
           // 삭제된 매물 목록에 추가하여 재로드 방지
-          this.deletedProperties.add(doc.id);
+          this.addDeletedProperty(doc.id);
           // IndexedDB에서도 삭제
           IndexedDB.deleteProperty(doc.id).catch(err => 
             console.warn(`IndexedDB에서 ${doc.id} 삭제 실패:`, err)

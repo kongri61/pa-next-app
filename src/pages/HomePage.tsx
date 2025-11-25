@@ -1226,8 +1226,36 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       try {
         console.log('📦 IndexedDB에서 즉시 로드 시작...');
         const IndexedDB = await import('../utils/indexedDB');
-        const localProperties = await IndexedDB.getAllProperties();
-        console.log('✅ IndexedDB 로드 완료:', localProperties.length, '개 매물');
+        const allLocalProperties = await IndexedDB.getAllProperties();
+        
+        // 추가 필터링: 삭제된 매물 제외
+        const localProperties = allLocalProperties.filter((property: Property) => {
+          // isActive: false인 매물 제외
+          if (property.isActive === false) {
+            return false;
+          }
+          
+          // localStorage에서 삭제된 매물 목록 확인
+          try {
+            const deletedProperties = localStorage.getItem('deletedProperties');
+            if (deletedProperties) {
+              const deletedIds = JSON.parse(deletedProperties) as string[];
+              const normalizedId = property.id?.toUpperCase();
+              if (deletedIds.includes(property.id) || 
+                  deletedIds.includes(normalizedId) || 
+                  deletedIds.includes(property.id?.toLowerCase())) {
+                console.log(`⏭️ IndexedDB에서 삭제된 매물 제외: ${property.id}`);
+                return false;
+              }
+            }
+          } catch (error) {
+            // localStorage 읽기 실패 시 무시하고 계속 진행
+          }
+          
+          return true;
+        });
+        
+        console.log('✅ IndexedDB 로드 완료:', localProperties.length, '개 매물 (전체:', allLocalProperties.length, '개)');
         
         if (!cancelled) {
           if (localProperties.length > 0) {

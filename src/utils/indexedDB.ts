@@ -198,8 +198,33 @@ class IndexedDBManager {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        // 결과를 즉시 반환 (추가 처리 없음)
-        resolve(request.result || []);
+        // 삭제된 매물(isActive: false) 필터링
+        const allProperties = request.result || [];
+        const activeProperties = allProperties.filter((property: any) => {
+          // isActive가 false인 매물 제외
+          if (property.isActive === false) {
+            return false;
+          }
+          // localStorage에서 삭제된 매물 목록 확인
+          try {
+            const deletedProperties = localStorage.getItem('deletedProperties');
+            if (deletedProperties) {
+              const deletedIds = JSON.parse(deletedProperties) as string[];
+              const normalizedId = property.id?.toUpperCase();
+              if (deletedIds.includes(property.id) || 
+                  deletedIds.includes(normalizedId) || 
+                  deletedIds.includes(property.id?.toLowerCase())) {
+                return false;
+              }
+            }
+          } catch (error) {
+            // localStorage 읽기 실패 시 무시하고 계속 진행
+          }
+          return true;
+        });
+        
+        console.log(`📦 IndexedDB: 전체 ${allProperties.length}개 중 활성 ${activeProperties.length}개 반환`);
+        resolve(activeProperties);
       };
 
       request.onerror = () => {

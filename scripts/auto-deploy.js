@@ -77,12 +77,44 @@ console.log('');
 
 console.log('4. 원격 변경사항 병합...');
 try {
+  // 먼저 로컬 변경사항을 stash
+  try {
+    execSync('git stash', { stdio: 'ignore', cwd: projectRoot });
+    console.log('로컬 변경사항 임시 저장 완료');
+  } catch (stashError) {
+    // stash할 변경사항이 없으면 무시
+  }
+  
+  // 원격 변경사항 가져오기
   execSync('git pull origin main --no-edit --no-rebase', { stdio: 'ignore', cwd: projectRoot });
   console.log('병합 완료');
+  
+  // stash한 변경사항 복원
+  try {
+    execSync('git stash pop', { stdio: 'ignore', cwd: projectRoot });
+    console.log('로컬 변경사항 복원 완료');
+  } catch (stashPopError) {
+    // 복원할 변경사항이 없으면 무시
+  }
 } catch (error) {
-  console.log('[경고] git pull 실패. 충돌이 있을 수 있습니다.');
-  console.log('Vercel 빌드 환경에서는 이 작업을 건너뜁니다.');
-  // Vercel 환경에서는 이미 최신 코드이므로 계속 진행
+  console.log('[경고] git pull 실패. 로컬 변경사항을 우선합니다.');
+  
+  // stash 복원 시도
+  try {
+    execSync('git stash pop', { stdio: 'ignore', cwd: projectRoot });
+  } catch (stashError) {
+    // 무시
+  }
+  
+  // Vercel 빌드 환경 체크
+  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+  if (isVercel) {
+    console.log('[정보] Vercel 빌드 환경입니다. Git 작업을 건너뜁니다.');
+    // Vercel 환경에서는 이미 최신 코드이므로 계속 진행
+  } else {
+    console.log('[정보] 원격 저장소와 충돌이 있습니다.');
+    console.log('[정보] 로컬 변경사항을 우선하여 계속 진행합니다.');
+  }
 }
 console.log('');
 
