@@ -973,7 +973,6 @@ class FirebaseSync {
 
       // UI 업데이트 콜백 호출 (중복 방지 및 삭제된 매물 제외)
       if (onPropertyUpdate) {
-<<<<<<< HEAD
         // Firebase 스냅샷에서 직접 매물 데이터 추출 (IndexedDB가 아닌 Firebase를 신뢰)
         const firebaseProperties: Property[] = [];
         snapshot.docs.forEach((doc) => {
