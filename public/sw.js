@@ -1,4 +1,4 @@
-const CACHE_NAME = 'real-estate-map-v4'; // 버전 업데이트: 모든 필드 보존 개선
+const CACHE_NAME = 'real-estate-map-v6'; // 버전 업데이트: 초기 로딩 최적화 - index.tsx에서 데이터 사전 로드
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -34,8 +34,15 @@ self.addEventListener('activate', (event) => {
           }
         })
       ).then(() => {
-        // 모든 클라이언트에게 즉시 제어권 부여
-        return self.clients.claim();
+        // 모든 클라이언트에게 즉시 제어권 부여 및 강제 새로고침
+        return self.clients.claim().then(() => {
+          // 모든 클라이언트에게 새 버전 알림
+          return self.clients.matchAll().then((clients) => {
+            clients.forEach((client) => {
+              client.postMessage({ type: 'SW_UPDATED', cacheName: CACHE_NAME });
+            });
+          });
+        });
       });
     })
   );
@@ -43,9 +50,24 @@ self.addEventListener('activate', (event) => {
 
 // 네트워크 요청 가로채기
 self.addEventListener('fetch', (event) => {
-  // 정적 파일만 캐시
-  if (event.request.url.includes('/static/') || 
-      event.request.url.includes('/manifest.json') ||
+  const url = new URL(event.request.url);
+  
+  // HTML과 메인 JS 파일은 항상 네트워크에서 가져오기 (캐시 무시)
+  if (url.pathname === '/' || 
+      url.pathname === '/index.html' ||
+      url.pathname.includes('/static/js/main.') ||
+      url.pathname.includes('/static/js/') && url.pathname.endsWith('.js')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // 네트워크 실패 시에만 캐시 확인
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+  
+  // 정적 파일만 캐시 (로고, 아이콘 등)
+  if (event.request.url.includes('/manifest.json') ||
       event.request.url.includes('/favicon.ico') ||
       event.request.url.includes('/logo')) {
     

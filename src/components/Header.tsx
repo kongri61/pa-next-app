@@ -199,9 +199,10 @@ const ActionButton = styled.button`
   }
 `;
 
-const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean }>`
+const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean; isPrice?: boolean }>`
   position: fixed;
-  top: 120px;
+  /* 모든 모달을 필터링 버튼들 아래에 배치 */
+  top: 94px;
   left: ${props => props.isWide ? '50%' : '50%'};
   transform: ${props => props.isWide ? 'translateX(-50%)' : 'translateX(-50%)'};
   background: white;
@@ -209,38 +210,32 @@ const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean }>`
   border-radius: 8px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   z-index: 999999;
-  padding: 1rem;
+  padding: ${props => props.isPrice ? '0.15rem 0.15rem 0.3rem 0.15rem' : '1rem'};
   margin-top: 0.5rem;
   display: ${props => props.isOpen ? 'block' : 'none'};
   min-width: 200px;
   max-width: ${props => props.isWide ? '1200px' : '500px'};
-  max-height: calc(100vh - 200px); /* 화면 높이에서 헤더 높이와 여백을 뺀 값 */
-  overflow-y: auto; /* 스크롤 활성화 */
+  /* 금액 모달은 화면 높이에 맞게 조정하여 전체 내용이 보이도록 */
+  max-height: ${props => props.isPrice ? 'calc(100vh - 70px)' : 'calc(100vh - 200px)'};
+  overflow-y: auto;
+  overflow-x: hidden;
   white-space: nowrap;
   opacity: ${props => props.isOpen ? '1' : '0'};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
   transition: all 0.2s ease;
   
+  /* 방향 지시 표시 제거 */
   &::before {
-    content: '';
-    position: absolute;
-    top: -6px;
-    left: ${props => props.isWide ? '50%' : '50%'};
-    transform: translateX(-50%) rotate(45deg);
-    width: 12px;
-    height: 12px;
-    background: white;
-    border-left: 1px solid #d1d5db;
-    border-top: 1px solid #d1d5db;
+    display: none;
   }
 `;
 
-const FilterPopupHeader = styled.div`
+const FilterPopupHeader = styled.div<{ isPriceModal?: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
+  padding-bottom: ${props => props.isPriceModal ? '0.15rem' : '0.5rem'};
   border-bottom: 1px solid #e5e7eb;
 `;
 
@@ -265,10 +260,10 @@ const ConfirmButton = styled.button`
   }
 `;
 
-const FilterPopupContent = styled.div`
+const FilterPopupContent = styled.div<{ isPriceModal?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: ${props => props.isPriceModal ? '0.1rem' : '0.5rem'};
 `;
 
 const FilterPopupButton = styled.button<{ isSelected?: boolean }>`
@@ -289,18 +284,18 @@ const FilterPopupButton = styled.button<{ isSelected?: boolean }>`
   }
 `;
 
-const ResetFilterButton = styled.button`
-  padding: 0.5rem 0.75rem;
+const ResetFilterButton = styled.button<{ isPriceModal?: boolean }>`
+  padding: ${props => props.isPriceModal ? '0.4rem 0.6rem' : '0.5rem 0.75rem'};
   border: 1px solid #dc2626;
   border-radius: 6px;
   background: #fef2f2;
   color: #dc2626;
-  font-size: 0.8rem;
+  font-size: ${props => props.isPriceModal ? '0.75rem' : '0.8rem'};
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: ${props => props.isPriceModal ? '0.2rem' : '0.5rem'};
 
   &:hover {
     background: #fee2e2;
@@ -370,27 +365,28 @@ const AreaButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isI
   }
 `;
 
-const PriceSection = styled.div`
-  padding: 1rem;
+const PriceSection = styled.div<{ isPriceModal?: boolean }>`
+  padding: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
   border-bottom: 1px solid #e5e7eb;
 `;
 
-const PriceTitle = styled.div`
+const PriceTitle = styled.div<{ isPriceModal?: boolean }>`
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
   color: #374151;
+  font-size: ${props => props.isPriceModal ? '0.85rem' : '1rem'};
 `;
 
-const PriceGrid = styled.div`
+const PriceGrid = styled.div<{ isPriceModal?: boolean }>`
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
+  gap: ${props => props.isPriceModal ? '0.08rem' : '0.4rem'};
+  margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '0.75rem'};
   width: 100%;
 `;
 
-const PriceButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isInRange?: boolean }>`
-  padding: 0.4rem 0.3rem;
+const PriceButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isInRange?: boolean; isPriceModal?: boolean }>`
+  padding: ${props => props.isPriceModal ? '0.15rem 0.1rem' : '0.4rem 0.3rem'};
   border: 1px solid #d1d5db;
   border-radius: 4px;
   background: ${props => {
@@ -405,7 +401,7 @@ const PriceButton = styled.button<{ isSelected?: boolean; isActive?: boolean; is
     if (props.isSelected) return '#1e40af';
     return '#374151';
   }};
-  font-size: 11px;
+  font-size: ${props => props.isPriceModal ? '9px' : '11px'};
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: ${props => props.isActive ? 'bold' : 'normal'};
@@ -421,20 +417,20 @@ const PriceButton = styled.button<{ isSelected?: boolean; isActive?: boolean; is
   }
 `;
 
-const CustomRangeContainer = styled.div`
+const CustomRangeContainer = styled.div<{ isPriceModal?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: ${props => props.isPriceModal ? '0.2rem' : '0.5rem'};
+  margin-bottom: ${props => props.isPriceModal ? '0.1rem' : '0.75rem'};
   position: relative;
 `;
 
-const RangeInput = styled.input`
+const RangeInput = styled.input<{ isPriceModal?: boolean }>`
   flex: 1;
-  padding: 0.5rem;
+  padding: ${props => props.isPriceModal ? '0.3rem' : '0.5rem'};
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: ${props => props.isPriceModal ? '0.75rem' : '12px'};
   text-align: center;
   max-width: 120px;
 
@@ -449,27 +445,28 @@ const RangeSeparator = styled.span`
   color: #6b7280;
 `;
 
-const DepositSection = styled.div`
-  padding: 1rem;
+const DepositSection = styled.div<{ isPriceModal?: boolean }>`
+  padding: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
 `;
 
-const DepositTitle = styled.div`
+const DepositTitle = styled.div<{ isPriceModal?: boolean }>`
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
   color: #374151;
+  font-size: ${props => props.isPriceModal ? '0.85rem' : '1rem'};
 `;
 
-const DepositSlider = styled.div`
+const DepositSlider = styled.div<{ isPriceModal?: boolean }>`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
+  gap: ${props => props.isPriceModal ? '0.08rem' : '0.4rem'};
+  margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '0.75rem'};
   width: 100%;
   max-width: 100%;
 `;
 
-const DepositButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isInRange?: boolean }>`
-  padding: 0.4rem 0.3rem;
+const DepositButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isInRange?: boolean; isPriceModal?: boolean }>`
+  padding: ${props => props.isPriceModal ? '0.15rem 0.1rem' : '0.4rem 0.3rem'};
   border: 1px solid #d1d5db;
   border-radius: 4px;
   background: ${props => {
@@ -484,7 +481,7 @@ const DepositButton = styled.button<{ isSelected?: boolean; isActive?: boolean; 
     if (props.isSelected) return '#1e40af';
     return '#374151';
   }};
-  font-size: 11px;
+  font-size: ${props => props.isPriceModal ? '9px' : '11px'};
   cursor: pointer !important;
   pointer-events: auto !important;
   transition: all 0.2s ease;
@@ -704,9 +701,14 @@ const Header: React.FC<HeaderProps> = ({
     ],
     propertyType: [
       { value: '', label: '전체' },
+      { value: 'land', label: '토지' },
+      { value: 'building', label: '건물' },
       { value: 'commercial', label: '상가' },
       { value: 'office', label: '사무실' },
-      { value: 'building', label: '건물' },
+      { value: 'apartment', label: '아파트' },
+      { value: 'officetel', label: '오피스텔' },
+      { value: 'villa', label: '빌라' },
+      { value: 'house', label: '단독주택' },
       { value: 'other', label: '기타' }
     ]
   };
@@ -1721,18 +1723,19 @@ const Header: React.FC<HeaderProps> = ({
                 return text;
               })()}▼
             </FilterButtonDefault>
-            <FilterPopup isOpen={openDropdown === 'price'} isWide={true}>
-              <FilterPopupHeader>
+            <FilterPopup isOpen={openDropdown === 'price'} isWide={true} isPrice={true}>
+              <FilterPopupHeader isPriceModal={true}>
                 <FilterPopupTitle>금액</FilterPopupTitle>
                 <ConfirmButton onClick={() => setOpenDropdown(null)}>확인</ConfirmButton>
               </FilterPopupHeader>
-              <FilterPopupContent>
-                <PriceSection>
-                  <PriceTitle>매매가</PriceTitle>
-                  <PriceGrid>
+              <FilterPopupContent isPriceModal={true}>
+                <PriceSection isPriceModal={true}>
+                  <PriceTitle isPriceModal={true}>매매가</PriceTitle>
+                  <PriceGrid isPriceModal={true}>
                     {priceOptions.map((price) => (
                       <PriceButton
                         key={price}
+                        isPriceModal={true}
                         isActive={(() => {
                           // 선택된 버튼들 중에서 정확히 일치하는 것만 파란색으로 표시
                           return cleanSelectedPrices.includes(price);
@@ -1786,8 +1789,9 @@ const Header: React.FC<HeaderProps> = ({
                     ))}
                   </PriceGrid>
 
-                  <CustomRangeContainer>
+                  <CustomRangeContainer isPriceModal={true}>
                     <RangeInput
+                      isPriceModal={true}
                       type="text"
                       placeholder="최소"
                       value={priceRange.min}
@@ -1814,6 +1818,7 @@ const Header: React.FC<HeaderProps> = ({
                     />
                     <RangeSeparator>~</RangeSeparator>
                     <RangeInput
+                      isPriceModal={true}
                       type="text"
                       placeholder="최대"
                       value={priceRange.max}
@@ -1838,16 +1843,17 @@ const Header: React.FC<HeaderProps> = ({
                         onFilterChange?.(newFilters);
                       }}
                     />
-                    <RangeSeparator>억원</RangeSeparator>
+                    <RangeSeparator>원</RangeSeparator>
                   </CustomRangeContainer>
                 </PriceSection>
 
-                <DepositSection>
-                  <DepositTitle>보증금</DepositTitle>
-                  <DepositSlider>
+                <DepositSection isPriceModal={true}>
+                  <DepositTitle isPriceModal={true}>보증금</DepositTitle>
+                  <DepositSlider isPriceModal={true}>
                     {depositOptions.map((deposit) => (
                       <DepositButton
                         key={deposit}
+                        isPriceModal={true}
                         isSelected={selectedDeposits.includes(deposit)}
                         isActive={(() => {
                           // selectedDeposits 배열을 기준으로 활성화 상태 결정
@@ -1896,8 +1902,9 @@ const Header: React.FC<HeaderProps> = ({
                     ))}
                   </DepositSlider>
 
-                  <CustomRangeContainer>
+                  <CustomRangeContainer isPriceModal={true}>
                     <RangeInput
+                      isPriceModal={true}
                       type="text"
                       placeholder="최소"
                       value={(() => {
@@ -1931,6 +1938,7 @@ const Header: React.FC<HeaderProps> = ({
                     />
                     <RangeSeparator>~</RangeSeparator>
                     <RangeInput
+                      isPriceModal={true}
                       type="text"
                       placeholder="최대"
                       value={(() => {
@@ -1966,7 +1974,7 @@ const Header: React.FC<HeaderProps> = ({
                   </CustomRangeContainer>
                 </DepositSection>
                 
-                <ResetFilterButton onClick={resetPriceAndDepositFilter}>
+                <ResetFilterButton isPriceModal={true} onClick={resetPriceAndDepositFilter}>
                   초기화
                 </ResetFilterButton>
               </FilterPopupContent>

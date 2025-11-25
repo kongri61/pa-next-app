@@ -96,5 +96,51 @@
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
+  <script>
+    // Service Worker 등록 및 업데이트 처리
+    if ('serviceWorker' in navigator) {
+      // Service Worker 등록
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker 등록 성공:', registration.scope);
+          
+          // 업데이트 확인 (즉시)
+          registration.update();
+          
+          // 업데이트 감지
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // 새 버전이 설치되었고, 현재 페이지가 제어되고 있으면
+                  console.log('새 Service Worker 버전 감지 - 페이지 새로고침');
+                  // 강제 새로고침
+                  window.location.reload();
+                }
+              });
+            }
+          });
+        })
+        .catch((error) => {
+          console.log('Service Worker 등록 실패:', error);
+        });
+      
+      // Service Worker 메시지 수신
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SW_UPDATED') {
+          console.log('Service Worker 업데이트 알림:', event.data.cacheName);
+          // 강제 새로고침
+          window.location.reload();
+        }
+      });
+      
+      // Service Worker 컨트롤러 변경 감지
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('Service Worker 컨트롤러 변경 - 페이지 새로고침');
+        window.location.reload();
+      });
+    }
+  </script>
 </body>
 </html>

@@ -41,12 +41,6 @@ class FirebaseSync {
         return;
       }
       
-      // Firebase 연결 테스트
-      console.log('🔍 Firebase 연결 테스트 중...');
-      const testQuery = query(collection(db, COLLECTION_NAME));
-      const testSnapshot = await getDocs(testQuery);
-      console.log('✅ Firebase 연결 성공! 기존 매물 수:', testSnapshot.docs.length);
-      
       // 모바일 서버 감지 (GitHub Pages 도메인)
       const isMainServer = window.location.hostname === 'localhost' || 
                           window.location.hostname === '192.168.219.105' ||
@@ -60,9 +54,14 @@ class FirebaseSync {
         // PC 메인 서버: Firebase에 초기 데이터 업로드
         await this.setupMainServer();
       } else {
-        console.log('📱 모바일 서버 감지 - Firebase에서 데이터 로드');
-        // 모바일 서버: Firebase에서 데이터 로드
-        await this.loadFromFirebase(onPropertyUpdate);
+        console.log('📱 모바일 서버 감지 - Firebase에서 최신 데이터 로드 (비동기)');
+        // 모바일 서버: Firebase에서 최신 데이터 로드 (완전 비동기 - UI 블로킹 없음)
+        // setTimeout을 사용하여 다음 이벤트 루프에서 실행 (UI 블로킹 방지)
+        setTimeout(() => {
+          this.loadFromFirebase(onPropertyUpdate).catch(error => {
+            console.error('❌ Firebase 로드 실패:', error);
+          });
+        }, 0);
       }
       
       // 실시간 동기화 설정
@@ -115,14 +114,103 @@ class FirebaseSync {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        rawDataMap.set(doc.id, data); // 원본 데이터 저장
+        rawDataMap.set(doc.id, data);
+        
+        // 디버깅: 원본 Firebase 데이터의 모든 필드 확인 (매매용 필드)
+        if (data.type === 'sale') {
+          console.log(`🔍 Firebase 원본 데이터 - 매매용 매물 ${doc.id}:`, {
+            title: data.title,
+            type: data.type,
+            // 원본 Firebase 필드명 확인 (PC 사이트 필드명 포함)
+            keyDepositMonthly: data.keyDepositMonthly,
+            keyDepositMonthlyType: typeof data.keyDepositMonthly,
+            keyDeposit: data.keyDeposit,
+            keyDepositType: typeof data.keyDeposit,
+            monthlyRent: data.monthlyRent,
+            monthlyRentType: typeof data.monthlyRent,
+            loanAmount: data.loanAmount,
+            loanAmountType: typeof data.loanAmount,
+            loan: data.loan,
+            loanType: typeof data.loan,
+            // 모든 필드명 확인
+            allFields: Object.keys(data),
+            // 숫자 필드들 확인 (상세 정보) - 모든 필드 출력
+            numericFields: Object.keys(data).filter(key => typeof data[key] === 'number').map(key => ({
+              field: key,
+              value: data[key],
+              type: typeof data[key]
+            })),
+            // 모든 필드와 값 확인 (문자열, 숫자, 객체 등)
+            allFieldValues: Object.keys(data).reduce((acc, key) => {
+              const value = data[key];
+              if (value !== null && value !== undefined) {
+                acc[key] = {
+                  value: value,
+                  type: typeof value,
+                  isNumber: typeof value === 'number',
+                  isString: typeof value === 'string',
+                  isObject: typeof value === 'object' && !Array.isArray(value)
+                };
+              }
+              return acc;
+            }, {} as Record<string, any>),
+            // 기보증금/월세 관련 가능한 필드명 확인
+            possibleKeyDepositFields: {
+              keyDepositMonthly: data.keyDepositMonthly,
+              keyDeposit: data.keyDeposit,
+              monthlyRent: data.monthlyRent,
+              keyDepositMonthlyRent: data.keyDepositMonthlyRent,
+              depositMonthly: data.depositMonthly,
+              // 숫자 필드 중에서 기보증금/월세로 보이는 필드 찾기
+              allNumericFieldsWithValues: Object.keys(data)
+                .filter(key => typeof data[key] === 'number')
+                .map(key => ({ field: key, value: data[key] }))
+            },
+            // 융자금 관련 가능한 필드명 확인
+            possibleLoanFields: {
+              loanAmount: data.loanAmount,
+              loan: data.loan,
+              loanMoney: data.loanMoney,
+              financingAmount: data.financingAmount,
+              // 숫자 필드 중에서 융자금으로 보이는 필드 찾기
+              allNumericFieldsWithValues: Object.keys(data)
+                .filter(key => typeof data[key] === 'number')
+                .map(key => ({ field: key, value: data[key] }))
+            },
+            // 모든 숫자 필드 값 확인
+            allNumericValues: Object.keys(data).reduce((acc, key) => {
+              if (typeof data[key] === 'number') {
+                acc[key] = data[key];
+              }
+              return acc;
+            }, {} as Record<string, number>)
+          });
+        } // 원본 데이터 저장
         
         // Timestamp를 Date로 변환
         // contact 객체를 명시적으로 복사하여 photo 필드가 누락되지 않도록 함
+        // images 배열 명시적으로 보존 (P001 디버깅)
+        const images = Array.isArray(data.images) ? data.images : (data.images ? [data.images] : []);
+        
+        // P001 특별 디버깅 - images 배열 확인
+        if (doc.id === 'P001') {
+          console.log('🔍 P001 images 배열 디버깅:', {
+            rawImages: data.images,
+            rawImagesType: typeof data.images,
+            rawImagesIsArray: Array.isArray(data.images),
+            rawImagesLength: Array.isArray(data.images) ? data.images.length : (data.images ? 1 : 0),
+            processedImages: images,
+            processedImagesLength: images.length,
+            allDataKeys: Object.keys(data)
+          });
+        }
+        
         const property: Property = {
           ...data,
           id: doc.id,
           createdAt: this.safeConvertTimestamp(data.createdAt),
+          // images 배열 명시적으로 보존
+          images: images,
           // contact 객체를 명시적으로 복사 (모든 필드 보존)
           contact: data.contact ? {
             ...data.contact,
@@ -160,18 +248,21 @@ class FirebaseSync {
             // phones 배열도 명시적으로 복사
             phones: data.contact.phones || (data.contact.phone ? [data.contact.phone] : []),
           } : data.contact,
-          // 매물정보 필드 명시적으로 보존
-          maintenanceIncluded: data.maintenanceIncluded || undefined,
+          // 매물정보 필드 명시적으로 보존 (PC 사이트 필드명 매핑 포함)
+          maintenanceIncluded: data.maintenanceIncluded || data.maintenanceFeeItems || undefined,
           propertyStatus: data.propertyStatus || undefined,
-          parkingCount: data.parkingCount || undefined,
-          recommendedBusiness: data.recommendedBusiness || undefined,
-          keyMoney: data.keyMoney || undefined,
-          loanAmount: data.loanAmount || undefined,
-          keyDepositMonthly: data.keyDepositMonthly || undefined,
+          parkingCount: data.parkingCount !== undefined ? data.parkingCount : (data.parkingSpaces !== undefined ? data.parkingSpaces : undefined),
+          recommendedBusiness: data.recommendedBusiness || data.recommendedBusinessType || undefined,
+          keyMoney: data.keyMoney !== undefined ? data.keyMoney : undefined,
+          // 매매용 필드 (PC 사이트 필드명 매핑 포함)
+          loanAmount: data.loanAmount !== undefined ? data.loanAmount : undefined,
+          keyDepositMonthly: data.keyDepositMonthly !== undefined ? data.keyDepositMonthly : undefined,
           bedrooms: data.bedrooms || undefined,
           bathrooms: data.bathrooms || undefined,
+          roomBathInfo: data.roomBathInfo || undefined,
           maintenanceFee: data.maintenanceFee || undefined,
           propertyType: data.propertyType || undefined,
+          buildingUse: data.buildingUse || undefined,
           mapImage: data.mapImage || undefined,
         } as Property;
         
@@ -180,14 +271,35 @@ class FirebaseSync {
         const hasPhoto = rawContact && rawContact.photo;
         const rawPhoto = rawContact?.photo;
         
+        // P001 특별 디버깅 - images 배열 확인
+        if (doc.id === 'P001') {
+          console.log('🔍 P001 images 배열 최종 확인:', {
+            propertyImages: property.images,
+            propertyImagesLength: property.images?.length || 0,
+            propertyImagesIsArray: Array.isArray(property.images),
+            rawDataImages: data.images,
+            rawDataImagesLength: Array.isArray(data.images) ? data.images.length : (data.images ? 1 : 0),
+            rawDataImagesIsArray: Array.isArray(data.images)
+          });
+        }
+        
         console.log(`📋 Firebase에서 로드된 매물 ${doc.id}:`, {
           title: property.title,
+          type: property.type,
+          // images 배열 정보 추가
+          imagesCount: property.images?.length || 0,
+          imagesIsArray: Array.isArray(property.images),
           // 매물정보 필드
           maintenanceIncluded: property.maintenanceIncluded || '없음',
           propertyStatus: property.propertyStatus || '없음',
           parkingCount: property.parkingCount || '없음',
           recommendedBusiness: property.recommendedBusiness || '없음',
           propertyType: property.propertyType || '없음',
+          // 매매용 필드
+          loanAmount: property.loanAmount !== undefined ? property.loanAmount : '없음',
+          keyDepositMonthly: property.keyDepositMonthly !== undefined ? property.keyDepositMonthly : '없음',
+          // 임대용 필드
+          keyMoney: property.keyMoney !== undefined ? property.keyMoney : '없음',
           // 연락처 필드 (상세 디버깅)
           hasContact: !!property.contact,
           hasRawContact: !!rawContact,
@@ -373,15 +485,27 @@ class FirebaseSync {
             property.contact.photo = undefined;
           }
           
+          // IndexedDB 초기화 확인 및 보장
+          try {
+            await IndexedDB.initDatabase();
+          } catch (initError) {
+            // 이미 초기화되어 있으면 무시
+            console.log('IndexedDB 이미 초기화됨');
+          }
+          
           await IndexedDB.updateProperty(property);
           
-          // 저장 후 확인
-          const savedProperty = await IndexedDB.getProperty(property.id);
-          console.log(`✅ IndexedDB 저장 후 매물 ${property.id} 확인:`, {
-            hasContact: !!savedProperty?.contact,
-            hasContactPhoto: !!savedProperty?.contact?.photo,
-            contactPhotoLength: savedProperty?.contact?.photo?.length || 0
-          });
+          // 저장 후 확인 (에러 처리 추가)
+          try {
+            const savedProperty = await IndexedDB.getProperty(property.id);
+            console.log(`✅ IndexedDB 저장 후 매물 ${property.id} 확인:`, {
+              hasContact: !!savedProperty?.contact,
+              hasContactPhoto: !!savedProperty?.contact?.photo,
+              contactPhotoLength: savedProperty?.contact?.photo?.length || 0
+            });
+          } catch (getError) {
+            console.warn(`⚠️ IndexedDB 저장 후 확인 실패 (무시):`, getError);
+          }
         }
       }
 
@@ -503,18 +627,150 @@ class FirebaseSync {
               // phones 배열도 명시적으로 복사
               phones: data.contact.phones || (data.contact.phone ? [data.contact.phone] : []),
             } : data.contact,
-            // 매물정보 필드 명시적으로 보존
-            maintenanceIncluded: data.maintenanceIncluded || undefined,
-            propertyStatus: data.propertyStatus || undefined,
-            parkingCount: data.parkingCount || undefined,
-            recommendedBusiness: data.recommendedBusiness || undefined,
-            keyMoney: data.keyMoney || undefined,
-            loanAmount: data.loanAmount || undefined,
-            keyDepositMonthly: data.keyDepositMonthly || undefined,
+            // 매물정보 필드 명시적으로 보존 (PC 사이트 필드명 매핑 포함)
+            maintenanceIncluded: data.maintenanceIncluded || data.maintenanceFeeItems || undefined,
+            propertyStatus: (() => {
+              // 여러 가능한 필드명 체크 (PC 사이트와의 호환성)
+              // propertyStatus, currentBusinessType, status, 매물현황 등
+              const checkStringValue = (val: any): string | undefined => {
+                if (val && typeof val === 'string' && val.trim() !== '') {
+                  return val.trim();
+                }
+                return undefined;
+              };
+              
+              // 우선순위대로 체크
+              return checkStringValue(data.propertyStatus) ||
+                     checkStringValue(data.currentBusinessType) ||
+                     checkStringValue(data.status) ||
+                     checkStringValue(data['매물현황']) ||
+                     checkStringValue(data.propertyState) ||
+                     checkStringValue(data.rentalStatus) ||
+                     checkStringValue(data.saleStatus);
+            })(),
+            parkingCount: data.parkingCount !== undefined ? data.parkingCount : (data.parkingSpaces !== undefined ? data.parkingSpaces : undefined),
+            recommendedBusiness: data.recommendedBusiness || data.recommendedBusinessType || undefined,
+            keyMoney: (() => {
+              // 여러 가능한 필드명 체크 (PC 사이트와의 호환성)
+              const checkValue = (val: any): number | undefined => {
+                if (val === undefined || val === null || val === '') return undefined;
+                const numValue = typeof val === 'number' ? val : parseFloat(val);
+                if (!isNaN(numValue) && numValue > 0) return numValue;
+                return undefined;
+              };
+              
+              // 임대용 매물인 경우 특별 처리
+              if (data.type === 'rent') {
+                // 임대용 매물에서: premium이 권리금으로 사용됨
+                // 우선순위: keyMoney > premium (임대용에서 권리금) > 권리금
+                return checkValue(data.keyMoney) ||
+                       checkValue(data.premium) ||  // 임대용에서 premium이 권리금
+                       checkValue(data['권리금']);
+              } else {
+                // 매매용 매물은 premium이 융자금이므로 제외
+                return checkValue(data.keyMoney) ||
+                       checkValue(data['권리금']);
+              }
+            })(),
+            // 매매용 필드 (PC 사이트 필드명 매핑 포함)
+            // PC 사이트에서 다른 필드명을 사용할 수 있으므로 여러 가능성 확인
+            loanAmount: (() => {
+              // 여러 가능한 필드명 체크 (PC 사이트와의 호환성)
+              const checkValue = (val: any): number | undefined => {
+                if (val === undefined || val === null || val === '') return undefined;
+                const numValue = typeof val === 'number' ? val : parseFloat(val);
+                if (!isNaN(numValue) && numValue > 0) return numValue;
+                return undefined;
+              };
+              
+              // 매매용 매물인 경우 특별 처리
+              if (data.type === 'sale') {
+                // 매매용 매물에서: premium이 융자금으로 사용됨
+                // 우선순위: loanAmount > premium (매매용에서 융자금) > loan > loanMoney > financingAmount > 융자금
+                const value = checkValue(data.loanAmount) ||
+                             checkValue(data.premium) ||  // 매매용에서 premium이 융자금
+                             checkValue(data.loan) ||
+                             checkValue(data.loanMoney) ||
+                             checkValue(data.financingAmount) ||
+                             checkValue(data['융자금']);
+                
+                // 디버깅: 값이 없을 때 로그 출력
+                if (!value) {
+                  console.log(`⚠️ 매물 ${change.doc.id}: 융자금 필드를 찾을 수 없음`, {
+                    loanAmount: data.loanAmount,
+                    loan: data.loan,
+                    premium: data.premium,
+                    allNumericFields: Object.keys(data).filter(k => typeof data[k] === 'number' && data[k] > 0).map(k => ({ key: k, value: data[k] }))
+                  });
+                }
+                
+                return value;
+              } else {
+                // 임대용 매물은 기존 로직 유지
+                return checkValue(data.loanAmount) ||
+                       checkValue(data.loan) ||
+                       checkValue(data.loanMoney) ||
+                       checkValue(data.financingAmount) ||
+                       checkValue(data['융자금']);
+              }
+            })(),
+            keyDepositMonthly: (() => {
+              // 여러 가능한 필드명 체크 (PC 사이트와의 호환성)
+              // 필드가 존재하고 값이 유효한 경우에만 반환
+              const checkValue = (val: any): number | undefined => {
+                if (val === undefined || val === null || val === '') return undefined;
+                const numValue = typeof val === 'number' ? val : parseFloat(val);
+                if (!isNaN(numValue) && numValue > 0) return numValue;
+                return undefined;
+              };
+              
+              // 매매용 매물인 경우 특별 처리
+              if (data.type === 'sale') {
+                // 매매용 매물에서: deposit(기보증금)과 rentPrice(기월세)를 조합
+                // keyDepositMonthly가 있으면 우선 사용
+                // 없으면 deposit과 rentPrice를 조합해서 사용하지 않고, 각각 별도로 표시
+                // (이 함수는 단일 값을 반환하므로, 실제 표시는 PropertyDetailModal에서 처리)
+                // 우선순위: keyDepositMonthly > deposit > rentPrice > 기타
+                const value = checkValue(data.keyDepositMonthly) ||
+                             checkValue(data.deposit) ||  // 매매용에서 deposit이 기보증금
+                             checkValue(data.rentPrice) ||  // 매매용에서 rentPrice가 기월세
+                             checkValue(data.keyDeposit) ||
+                             checkValue(data.monthlyRent) ||
+                             checkValue(data.keyDepositMonthlyRent) ||
+                             checkValue(data.depositMonthly) ||
+                             checkValue(data['기보증금/월세']) ||
+                             checkValue(data['기보증금']);
+                
+                // 디버깅: 값이 없을 때 로그 출력
+                if (!value) {
+                  console.log(`⚠️ 매물 ${change.doc.id}: 기보증금/월세 필드를 찾을 수 없음`, {
+                    keyDepositMonthly: data.keyDepositMonthly,
+                    premium: data.premium,
+                    rentPrice: data.rentPrice,
+                    keyDeposit: data.keyDeposit,
+                    monthlyRent: data.monthlyRent,
+                    allNumericFields: Object.keys(data).filter(k => typeof data[k] === 'number' && data[k] > 0).map(k => ({ key: k, value: data[k] }))
+                  });
+                }
+                
+                return value;
+              } else {
+                // 임대용 매물은 기존 로직 유지
+                return checkValue(data.keyDepositMonthly) ||
+                       checkValue(data.keyDeposit) ||
+                       checkValue(data.monthlyRent) ||
+                       checkValue(data.keyDepositMonthlyRent) ||
+                       checkValue(data.depositMonthly) ||
+                       checkValue(data['기보증금/월세']) ||
+                       checkValue(data['기보증금']);
+              }
+            })(),
             bedrooms: data.bedrooms || undefined,
             bathrooms: data.bathrooms || undefined,
+            roomBathInfo: data.roomBathInfo || undefined,
             maintenanceFee: data.maintenanceFee || undefined,
             propertyType: data.propertyType || undefined,
+            buildingUse: data.buildingUse || undefined,
             mapImage: data.mapImage || undefined,
           } as Property;
           
@@ -542,21 +798,88 @@ class FirebaseSync {
             console.log(`📝 매물 ${change.type}: ${property.id} - ${property.title}`);
             console.log(`📍 위치: ${property.location?.lat}, ${property.location?.lng}`);
             
-            // 중복 처리 방지: 이미 처리된 매물인지 확인
-            const existingProperty = await IndexedDB.getProperty(property.id);
-            if (existingProperty && change.type === 'added') {
-              console.log(`⚠️ 매물 ${property.id}이 이미 로컬에 존재 - 수정으로 처리`);
+            // IndexedDB 초기화 확인 및 보장
+            let initSuccess = false;
+            try {
+              await IndexedDB.initDatabase();
+              initSuccess = true;
+            } catch (initError: any) {
+              // 버전 에러인 경우 재시도
+              if (initError?.name === 'VersionError') {
+                console.warn('⚠️ IndexedDB 버전 충돌, 재시도 중...');
+                try {
+                  // 잠시 대기 후 재시도
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  await IndexedDB.initDatabase();
+                  initSuccess = true;
+                } catch (retryError) {
+                  console.error('❌ IndexedDB 초기화 재시도 실패:', retryError);
+                }
+              } else {
+                console.warn('⚠️ IndexedDB 초기화 실패 (계속 진행):', initError);
+              }
             }
             
-            // IndexedDB에 업데이트
-            await IndexedDB.updateProperty(property);
+            // IndexedDB가 초기화된 경우에만 처리
+            if (initSuccess) {
+              // 중복 처리 방지: 이미 처리된 매물인지 확인
+              try {
+                const existingProperty = await IndexedDB.getProperty(property.id);
+                if (existingProperty && change.type === 'added') {
+                  console.log(`⚠️ 매물 ${property.id}이 이미 로컬에 존재 - 수정으로 처리`);
+                }
+              } catch (getError) {
+                // getProperty 실패해도 계속 진행 (새 매물일 수 있음)
+                console.log(`ℹ️ 매물 ${property.id} 조회 실패 (새 매물로 처리):`, getError);
+              }
+              
+              // IndexedDB에 업데이트
+              try {
+                await IndexedDB.updateProperty(property);
+                console.log(`✅ IndexedDB 업데이트 완료: ${property.id}`);
+              } catch (updateError) {
+                console.error(`❌ IndexedDB 업데이트 실패: ${property.id}`, updateError);
+              }
+            } else {
+              console.warn(`⚠️ IndexedDB 초기화 실패로 인해 ${property.id} 저장 건너뜀`);
+            }
+            
             updatedProperties.push(property);
-            console.log(`✅ IndexedDB 업데이트 완료: ${property.id}`);
           } else if (change.type === 'removed') {
             console.log(`🗑️ 매물 삭제: ${property.id} - ${property.title}`);
-            // IndexedDB에서 삭제
-            await IndexedDB.deleteProperty(property.id);
-            console.log(`✅ IndexedDB 삭제 완료: ${property.id}`);
+            
+            // IndexedDB 초기화 확인 및 보장
+            let initSuccess = false;
+            try {
+              await IndexedDB.initDatabase();
+              initSuccess = true;
+            } catch (initError: any) {
+              // 버전 에러인 경우 재시도
+              if (initError?.name === 'VersionError') {
+                console.warn('⚠️ IndexedDB 버전 충돌, 재시도 중...');
+                try {
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  await IndexedDB.initDatabase();
+                  initSuccess = true;
+                } catch (retryError) {
+                  console.error('❌ IndexedDB 초기화 재시도 실패:', retryError);
+                }
+              } else {
+                console.warn('⚠️ IndexedDB 초기화 실패 (계속 진행):', initError);
+              }
+            }
+            
+            // IndexedDB가 초기화된 경우에만 삭제
+            if (initSuccess) {
+              try {
+                await IndexedDB.deleteProperty(property.id);
+                console.log(`✅ IndexedDB 삭제 완료: ${property.id}`);
+              } catch (deleteError) {
+                console.error(`❌ IndexedDB 삭제 실패: ${property.id}`, deleteError);
+              }
+            } else {
+              console.warn(`⚠️ IndexedDB 초기화 실패로 인해 ${property.id} 삭제 건너뜀`);
+            }
           }
         } catch (changeError) {
           console.error(`❌ 매물 ${change.type} 처리 실패:`, changeError);
@@ -570,6 +893,71 @@ class FirebaseSync {
         snapshot.docs.forEach((doc) => {
           const data = doc.data();
           // contact 객체를 명시적으로 복사하여 photo 필드가 누락되지 않도록 함
+          // 디버깅: 실시간 동기화 시 원본 Firebase 데이터 확인 (매매용 필드)
+          if (data.type === 'sale') {
+            console.log(`🔍 실시간 동기화 - Firebase 원본 데이터 - 매매용 매물 ${doc.id}:`, {
+              title: data.title,
+              type: data.type,
+              // 원본 Firebase 필드명 확인
+              keyDepositMonthly: data.keyDepositMonthly,
+              keyDepositMonthlyType: typeof data.keyDepositMonthly,
+              loanAmount: data.loanAmount,
+              loanAmountType: typeof data.loanAmount,
+              // 모든 필드명 확인
+              allFields: Object.keys(data),
+              // 숫자 필드들 확인 (상세 정보) - 모든 필드 출력
+              numericFields: Object.keys(data).filter(key => typeof data[key] === 'number').map(key => ({
+                field: key,
+                value: data[key],
+                type: typeof data[key]
+              })),
+              // 모든 필드와 값 확인 (문자열, 숫자, 객체 등)
+              allFieldValues: Object.keys(data).reduce((acc, key) => {
+                const value = data[key];
+                if (value !== null && value !== undefined) {
+                  acc[key] = {
+                    value: value,
+                    type: typeof value,
+                    isNumber: typeof value === 'number',
+                    isString: typeof value === 'string',
+                    isObject: typeof value === 'object' && !Array.isArray(value)
+                  };
+                }
+                return acc;
+              }, {} as Record<string, any>),
+              // 기보증금/월세 관련 가능한 필드명 확인
+              possibleKeyDepositFields: {
+                keyDepositMonthly: data.keyDepositMonthly,
+                keyDeposit: data.keyDeposit,
+                monthlyRent: data.monthlyRent,
+                keyDepositMonthlyRent: data.keyDepositMonthlyRent,
+                depositMonthly: data.depositMonthly,
+                // 숫자 필드 중에서 기보증금/월세로 보이는 필드 찾기
+                allNumericFieldsWithValues: Object.keys(data)
+                  .filter(key => typeof data[key] === 'number')
+                  .map(key => ({ field: key, value: data[key] }))
+              },
+              // 융자금 관련 가능한 필드명 확인
+              possibleLoanFields: {
+                loanAmount: data.loanAmount,
+                loan: data.loan,
+                loanMoney: data.loanMoney,
+                financingAmount: data.financingAmount,
+                // 숫자 필드 중에서 융자금으로 보이는 필드 찾기
+                allNumericFieldsWithValues: Object.keys(data)
+                  .filter(key => typeof data[key] === 'number')
+                  .map(key => ({ field: key, value: data[key] }))
+              },
+              // 모든 숫자 필드 값 확인
+              allNumericValues: Object.keys(data).reduce((acc, key) => {
+                if (typeof data[key] === 'number') {
+                  acc[key] = data[key];
+                }
+                return acc;
+              }, {} as Record<string, number>)
+            });
+          }
+          
           const property: Property = {
             ...data,
             id: doc.id,
@@ -610,18 +998,25 @@ class FirebaseSync {
               // phones 배열도 명시적으로 복사
               phones: data.contact.phones || (data.contact.phone ? [data.contact.phone] : []),
             } : data.contact,
-            // 매물정보 필드 명시적으로 보존
-            maintenanceIncluded: data.maintenanceIncluded || undefined,
+            // 매물정보 필드 명시적으로 보존 (PC 사이트 필드명 매핑 포함)
+            maintenanceIncluded: data.maintenanceIncluded || data.maintenanceFeeItems || undefined,
             propertyStatus: data.propertyStatus || undefined,
-            parkingCount: data.parkingCount || undefined,
-            recommendedBusiness: data.recommendedBusiness || undefined,
-            keyMoney: data.keyMoney || undefined,
-            loanAmount: data.loanAmount || undefined,
-            keyDepositMonthly: data.keyDepositMonthly || undefined,
+            parkingCount: data.parkingCount !== undefined ? data.parkingCount : (data.parkingSpaces !== undefined ? data.parkingSpaces : undefined),
+            recommendedBusiness: data.recommendedBusiness || data.recommendedBusinessType || undefined,
+            keyMoney: data.keyMoney !== undefined ? data.keyMoney : undefined,
+            // 매매용 필드 (PC 사이트 필드명 매핑 포함)
+            // PC 사이트에서 다른 필드명을 사용할 수 있으므로 여러 가능성 확인
+            loanAmount: data.loanAmount !== undefined ? data.loanAmount : 
+                       (data.loan !== undefined ? data.loan : undefined),
+            keyDepositMonthly: data.keyDepositMonthly !== undefined ? data.keyDepositMonthly : 
+                              (data.keyDeposit !== undefined ? data.keyDeposit : 
+                              (data.monthlyRent !== undefined ? data.monthlyRent : undefined)),
             bedrooms: data.bedrooms || undefined,
             bathrooms: data.bathrooms || undefined,
+            roomBathInfo: data.roomBathInfo || undefined,
             maintenanceFee: data.maintenanceFee || undefined,
             propertyType: data.propertyType || undefined,
+            buildingUse: data.buildingUse || undefined,
             mapImage: data.mapImage || undefined,
           } as Property;
           
@@ -629,12 +1024,18 @@ class FirebaseSync {
           if (snapshot.docChanges().length > 0) {
             console.log(`📋 실시간 동기화 - 매물 ${doc.id}:`, {
               title: property.title,
+              type: property.type,
               // 매물정보 필드
               maintenanceIncluded: property.maintenanceIncluded || '없음',
               propertyStatus: property.propertyStatus || '없음',
               parkingCount: property.parkingCount || '없음',
               recommendedBusiness: property.recommendedBusiness || '없음',
               propertyType: property.propertyType || '없음',
+              // 매매용 필드
+              loanAmount: property.loanAmount !== undefined ? property.loanAmount : '없음',
+              keyDepositMonthly: property.keyDepositMonthly !== undefined ? property.keyDepositMonthly : '없음',
+              // 임대용 필드
+              keyMoney: property.keyMoney !== undefined ? property.keyMoney : '없음',
               // 연락처 필드
               hasContact: !!property.contact,
               contact: property.contact ? {
@@ -1003,6 +1404,16 @@ class FirebaseSync {
       if (property.id === 'P001') {
         console.log('🔍 P001 syncToFirebase 디버깅 시작');
         console.log('P001 Firebase db 객체:', !!db);
+        console.log('P001 images 배열:', {
+          images: property.images,
+          imagesLength: property.images?.length || 0,
+          imagesIsArray: Array.isArray(property.images),
+          imagesPreview: property.images?.slice(0, 3).map((img: any, idx: number) => ({
+            index: idx,
+            url: typeof img === 'string' ? img.substring(0, 100) + '...' : img,
+            type: typeof img
+          })) || []
+        });
         console.log('P001 매물 전체 데이터:', JSON.stringify(property, null, 2));
       }
       
@@ -1100,13 +1511,26 @@ class FirebaseSync {
         maintenanceIncluded포함: 'maintenanceIncluded' in cleanPropertyData,
         propertyStatus포함: 'propertyStatus' in cleanPropertyData,
         parkingCount포함: 'parkingCount' in cleanPropertyData,
-        recommendedBusiness포함: 'recommendedBusiness' in cleanPropertyData
+        recommendedBusiness포함: 'recommendedBusiness' in cleanPropertyData,
+        images포함: 'images' in cleanPropertyData,
+        images원본개수: propertyData.images?.length || 0,
+        images정리후개수: cleanPropertyData.images?.length || 0
       });
       
       // P001 특별 디버깅 - setDoc 전
       if (property.id === 'P001') {
         console.log('🔍 P001 setDoc 실행 전 디버깅');
         console.log('P001 docRef.path:', docRef.path);
+        console.log('P001 images 배열 정보:', {
+          propertyImages: property.images,
+          propertyImagesLength: property.images?.length || 0,
+          propertyImagesIsArray: Array.isArray(property.images),
+          propertyDataImages: propertyData.images,
+          propertyDataImagesLength: propertyData.images?.length || 0,
+          cleanPropertyDataImages: cleanPropertyData.images,
+          cleanPropertyDataImagesLength: cleanPropertyData.images?.length || 0,
+          imagesInCleanData: 'images' in cleanPropertyData
+        });
         console.log('P001 원본 propertyData:', JSON.stringify(propertyData, null, 2));
         console.log('P001 정리된 propertyData:', JSON.stringify(cleanPropertyData, null, 2));
       }
@@ -1145,9 +1569,29 @@ class FirebaseSync {
           }
           
           if (directProperty) {
-            console.log(`✅ 매물 ${property.id} Firebase 저장 확인됨:`, directProperty.data().title);
-            console.log(`📅 생성일: ${directProperty.data().createdAt?.toDate?.()}`);
-            console.log(`🔄 업데이트일: ${directProperty.data().updatedAt?.toDate?.()}`);
+            const savedData = directProperty.data();
+            console.log(`✅ 매물 ${property.id} Firebase 저장 확인됨:`, savedData.title);
+            console.log(`📅 생성일: ${savedData.createdAt?.toDate?.()}`);
+            console.log(`🔄 업데이트일: ${savedData.updatedAt?.toDate?.()}`);
+            
+            // P001 특별 디버깅 - 저장 후 images 배열 확인
+            if (property.id === 'P001') {
+              console.log('🔍 P001 저장 후 images 배열 확인:', {
+                저장전images개수: property.images?.length || 0,
+                저장후images개수: savedData.images?.length || 0,
+                저장후imagesIsArray: Array.isArray(savedData.images),
+                저장후images: savedData.images,
+                images일치여부: (property.images?.length || 0) === (savedData.images?.length || 0)
+              });
+              
+              if ((property.images?.length || 0) !== (savedData.images?.length || 0)) {
+                console.error('❌ P001 images 배열 개수 불일치!');
+                console.error('저장 전:', property.images?.length || 0, '개');
+                console.error('저장 후:', savedData.images?.length || 0, '개');
+                console.error('저장 전 images:', property.images);
+                console.error('저장 후 images:', savedData.images);
+              }
+            }
           } else {
             console.error(`❌ 매물 ${property.id} Firebase 저장 확인 실패!`);
             console.log('🔍 현재 Firebase에 있는 모든 매물:');

@@ -8,6 +8,7 @@ import { Property } from './types';
 import { initHybridDataManager } from './utils/hybridDataManager';
 import { FirebaseProvider } from './contexts/FirebaseContext';
 import FirebaseDebugger from './components/FirebaseDebugger';
+import { getAllProperties } from './utils/indexedDB'; // 정적 import로 변경
 import './utils/addSampleData'; // 샘플 데이터 추가 함수 로드
 
 const AppContainer = styled.div`
@@ -24,7 +25,11 @@ const MainContent = styled.main`
   overflow-x: hidden; /* 가로 스크롤 방지 */
 `;
 
-function App() {
+interface AppProps {
+  initialProperties?: Property[];
+}
+
+function App({ initialProperties = [] }: AppProps) {
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
   const [isBulkPropertyModalOpen, setIsBulkPropertyModalOpen] = useState(false); // 대량매물등록 모달 상태 추가
   const [isAdmin] = useState(true); // 로그인 기능 제거, 항상 관리자 권한
@@ -39,28 +44,50 @@ function App() {
     deposit: ''
   });
   const [newProperties, setNewProperties] = useState<Property[]>([]);
-  const [isDataManagerInitialized, setIsDataManagerInitialized] = useState(false);
+  const [isDataManagerInitialized, setIsDataManagerInitialized] = useState(true); // 즉시 true로 설정
   const [showDebugger, setShowDebugger] = useState(false);
+  const [preloadedProperties, setPreloadedProperties] = useState<Property[]>(initialProperties); // 초기 데이터로 즉시 설정
   const homePageRef = useRef<HomePageRef>(null);
 
   // 로그인 기능 제거됨 - 항상 관리자 권한
 
-  // 하이브리드 데이터 관리자 초기화
+  // ⚡ 초기 데이터가 있으면 즉시 사용, 없으면 백그라운드에서 로드
   useEffect(() => {
-    const initializeDataManager = async () => {
+    // 초기 데이터가 이미 있으면 즉시 사용 (index.tsx에서 로드됨)
+    if (initialProperties.length > 0) {
+      console.log(`⚡ 초기 데이터 즉시 사용: ${initialProperties.length}개 매물`);
+      // 즉시 상태 업데이트 (동기적으로)
+      setPreloadedProperties(initialProperties);
+      setIsDataManagerInitialized(true);
+    } else if (preloadedProperties.length === 0) {
+      // 초기 데이터가 없고 preloadedProperties도 비어있으면 백그라운드에서 로드
+      console.log('⏳ 초기 데이터 없음 - 백그라운드에서 로드 시작...');
+      const loadDataAsync = async () => {
+        try {
+          const loadStartTime = performance.now();
+          const properties = await getAllProperties();
+          const loadTime = performance.now() - loadStartTime;
+          console.log(`✅ IndexedDB에서 ${properties.length}개 매물 로드 완료 (${loadTime.toFixed(2)}ms)`);
+          setPreloadedProperties(properties);
+        } catch (error) {
+          console.error('❌ 데이터 로드 실패:', error);
+        }
+      };
+      loadDataAsync();
+    }
+    
+    // 하이브리드 데이터 관리자 초기화는 백그라운드에서 처리 (블로킹 없음)
+    setTimeout(async () => {
       try {
+        const hybridStartTime = performance.now();
         await initHybridDataManager();
-        setIsDataManagerInitialized(true);
-        console.log('하이브리드 데이터 관리자 초기화 완료');
+        const hybridTime = performance.now() - hybridStartTime;
+        console.log(`✅ 하이브리드 데이터 관리자 초기화 완료 (${hybridTime.toFixed(2)}ms)`);
       } catch (error) {
-        console.error('하이브리드 데이터 관리자 초기화 실패:', error);
-        // 초기화 실패해도 앱은 계속 실행
-        setIsDataManagerInitialized(true);
+        console.warn('⚠️ 하이브리드 데이터 관리자 초기화 실패 (무시):', error);
       }
-    };
-
-    initializeDataManager();
-  }, []);
+    }, 0);
+  }, [initialProperties, preloadedProperties.length]);
 
   // 매물 추가 처리 함수
   const handlePropertyAdded = async (newProperties: Property[]) => {
@@ -209,6 +236,7 @@ function App() {
           isAdmin={isAdmin}
         />
         <MainContent>
+          {/* 데이터 로딩 완료 후 렌더링 (빠른 표시 보장) */}
           {isDataManagerInitialized ? (
             <HomePage 
               ref={homePageRef}
@@ -221,6 +249,7 @@ function App() {
               onPropertyAdded={handlePropertyAdded}
               isAdmin={isAdmin}
               newProperties={newProperties}
+              preloadedProperties={preloadedProperties} // 미리 로드된 데이터 전달
             />
           ) : (
             <div style={{ 
@@ -228,10 +257,10 @@ function App() {
               justifyContent: 'center', 
               alignItems: 'center', 
               height: '100vh',
-              fontSize: '1.2rem',
+              fontSize: '1rem',
               color: '#666'
             }}>
-              데이터베이스 초기화 중...
+              로딩 중...
             </div>
           )}
         </MainContent>

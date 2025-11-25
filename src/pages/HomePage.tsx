@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect, useMemo } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect, useLayoutEffect, useMemo, memo } from 'react';
 import styled from 'styled-components';
 import GoogleMap, { GoogleMapRef } from '../components/GoogleMap';
 import PropertyDetailModal from '../components/PropertyDetailModal';
@@ -147,6 +147,285 @@ import { firebaseSync } from '../utils/firebaseSync';
   } catch (error) {
     console.error('❌ 매물 상태 확인 실패:', error);
     return 0;
+  }
+};
+
+// 임대용 매물 찾기 함수
+(window as any).findRentProperties = async () => {
+  console.log('🔍 임대용 매물 찾기');
+  try {
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+    const db = getFirestore();
+    
+    const querySnapshot = await getDocs(collection(db, 'properties'));
+    const rentProperties = querySnapshot.docs
+      .filter(doc => doc.data().type === 'rent')
+      .map(doc => ({ id: doc.id, title: doc.data().title }));
+    
+    console.log(`📊 임대용 매물 ${rentProperties.length}개:`);
+    rentProperties.forEach((p, i) => {
+      console.log(`${i + 1}. ${p.id} - ${p.title}`);
+    });
+    
+    if (rentProperties.length > 0) {
+      console.log(`\n💡 첫 번째 임대용 매물 확인: checkProperty('${rentProperties[0].id}')`);
+    }
+    
+    return rentProperties;
+  } catch (error) {
+    console.error('❌ 임대용 매물 찾기 실패:', error);
+    return [];
+  }
+};
+
+// 매매용 매물 찾기 함수
+(window as any).findSaleProperties = async () => {
+  console.log('🔍 매매용 매물 찾기');
+  try {
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+    const db = getFirestore();
+    
+    const querySnapshot = await getDocs(collection(db, 'properties'));
+    const saleProperties = querySnapshot.docs
+      .filter(doc => doc.data().type === 'sale')
+      .map(doc => ({ id: doc.id, title: doc.data().title }));
+    
+    console.log(`📊 매매용 매물 ${saleProperties.length}개:`);
+    saleProperties.forEach((p, i) => {
+      console.log(`${i + 1}. ${p.id} - ${p.title}`);
+    });
+    
+    if (saleProperties.length > 0) {
+      console.log(`\n💡 첫 번째 매매용 매물 확인: checkProperty('${saleProperties[0].id}')`);
+    }
+    
+    return saleProperties;
+  } catch (error) {
+    console.error('❌ 매매용 매물 찾기 실패:', error);
+    return [];
+  }
+};
+
+// 특정 매물의 상세 데이터 확인 함수
+(window as any).checkProperty = async (propertyId: string) => {
+  console.log(`🔍 매물 ${propertyId} 상세 데이터 확인`);
+  try {
+    const { getFirestore, collection, doc, getDoc } = await import('firebase/firestore');
+    const db = getFirestore();
+    
+    const docRef = doc(db, 'properties', propertyId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      
+      // 기보증금/월세 관련 필드 확인
+      const keyDepositFields = {
+        keyDepositMonthly: data.keyDepositMonthly,
+        keyDepositMonthlyType: typeof data.keyDepositMonthly,
+        keyDeposit: data.keyDeposit,
+        monthlyRent: data.monthlyRent,
+        keyDepositMonthlyRent: data.keyDepositMonthlyRent,
+        depositMonthly: data.depositMonthly
+      };
+      
+      // 모든 숫자 필드 확인
+      const numericFields = Object.keys(data)
+        .filter(key => typeof data[key] === 'number')
+        .map(key => ({ key, value: data[key] }));
+      
+      // 매매용 매물인 경우 상세 정보 출력
+      if (data.type === 'sale') {
+        console.log(`\n✅ 매물 ${propertyId} (매매용) 상세 데이터:`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`제목: ${data.title}`);
+        console.log(`거래유형: ${data.type}`);
+        console.log(`매매가: ${data.price}억원`);
+        console.log('\n📋 기보증금/월세 관련 필드:');
+        console.table(keyDepositFields);
+        
+        // 융자금 관련 필드 확인
+        const loanFields = {
+          loanAmount: data.loanAmount,
+          loanAmountType: typeof data.loanAmount,
+          loan: data.loan,
+          loanType: typeof data.loan,
+          loanMoney: data.loanMoney,
+          financingAmount: data.financingAmount
+        };
+        console.log('\n💰 융자금 관련 필드:');
+        console.table(loanFields);
+        
+        // 매물현황 관련 필드 확인
+        const statusFields = {
+          propertyStatus: data.propertyStatus,
+          propertyStatusType: typeof data.propertyStatus,
+          currentBusinessType: data.currentBusinessType,
+          currentBusinessTypeType: typeof data.currentBusinessType,
+          status: data.status,
+          statusType: typeof data.status,
+          propertyState: data.propertyState,
+          rentalStatus: data.rentalStatus,
+          saleStatus: data.saleStatus
+        };
+        console.log('\n📋 매물현황 관련 필드:');
+        console.table(statusFields);
+        
+        // 매물현황 관련 가능한 필드 값
+        const possibleStatusFields = Object.keys(data)
+          .filter(key => 
+            key.toLowerCase().includes('status') || 
+            key.toLowerCase().includes('state') ||
+            key.includes('매물현황') ||
+            key.includes('현황')
+          )
+          .map(key => ({ 
+            필드명: key, 
+            값: data[key], 
+            타입: typeof data[key]
+          }));
+        console.log('\n📋 매물현황 관련 가능한 필드 값:');
+        console.table(possibleStatusFields);
+        
+        console.log('\n🔢 모든 숫자 필드:');
+        console.table(numericFields);
+        console.log('\n📊 기보증금/월세 관련 가능한 필드 값:');
+        const possibleFields = Object.keys(data)
+          .filter(key => 
+            key.toLowerCase().includes('deposit') || 
+            key.toLowerCase().includes('monthly') || 
+            key.toLowerCase().includes('rent') ||
+            key.includes('기보증금') ||
+            key.includes('월세')
+          )
+          .map(key => ({ 
+            필드명: key, 
+            값: data[key], 
+            타입: typeof data[key],
+            숫자인가: typeof data[key] === 'number'
+          }));
+        console.table(possibleFields);
+        
+        // 융자금 관련 가능한 필드 값
+        const possibleLoanFields = Object.keys(data)
+          .filter(key => 
+            key.toLowerCase().includes('loan') || 
+            key.toLowerCase().includes('financing') ||
+            key.includes('융자')
+          )
+          .map(key => ({ 
+            필드명: key, 
+            값: data[key], 
+            타입: typeof data[key],
+            숫자인가: typeof data[key] === 'number'
+          }));
+        console.log('\n💰 융자금 관련 가능한 필드 값:');
+        console.table(possibleLoanFields);
+        
+        // images 배열 확인
+        const imagesInfo = {
+          images: data.images,
+          imagesType: typeof data.images,
+          imagesIsArray: Array.isArray(data.images),
+          imagesLength: Array.isArray(data.images) ? data.images.length : (data.images ? 1 : 0),
+          imagesPreview: Array.isArray(data.images) ? data.images.slice(0, 3).map((img: any, idx: number) => ({
+            index: idx,
+            url: typeof img === 'string' ? img.substring(0, 100) + '...' : img,
+            type: typeof img
+          })) : []
+        };
+        console.log('\n📷 images 배열 정보:');
+        console.table(imagesInfo);
+        if (Array.isArray(data.images)) {
+          console.log(`📷 총 ${data.images.length}개 이미지:`);
+          data.images.forEach((img: any, idx: number) => {
+            console.log(`  ${idx + 1}. ${typeof img === 'string' ? img.substring(0, 150) + '...' : img}`);
+          });
+        }
+        
+        console.log('\n📝 전체 필드 목록:', Object.keys(data));
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      } else if (data.type === 'rent') {
+        // 임대용 매물 상세 정보 출력
+        console.log(`\n✅ 매물 ${propertyId} (임대용) 상세 데이터:`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`제목: ${data.title}`);
+        console.log(`거래유형: ${data.type}`);
+        
+        // 보증금, 월세, 권리금 관련 필드 확인
+        const rentFields = {
+          deposit: data.deposit,
+          depositType: typeof data.deposit,
+          rentPrice: data.rentPrice,
+          rentPriceType: typeof data.rentPrice,
+          keyMoney: data.keyMoney,
+          keyMoneyType: typeof data.keyMoney
+        };
+        console.log('\n💰 임대용 필드 (보증금/월세/권리금):');
+        console.table(rentFields);
+        
+        console.log('\n🔢 모든 숫자 필드:');
+        console.table(numericFields);
+        
+        // 권리금 관련 가능한 필드 값
+        const possibleKeyMoneyFields = Object.keys(data)
+          .filter(key => 
+            key.toLowerCase().includes('key') || 
+            key.toLowerCase().includes('money') ||
+            key.toLowerCase().includes('premium') ||
+            key.includes('권리금')
+          )
+          .map(key => ({ 
+            필드명: key, 
+            값: data[key], 
+            타입: typeof data[key],
+            숫자인가: typeof data[key] === 'number'
+          }));
+        console.log('\n💰 권리금 관련 가능한 필드 값:');
+        console.table(possibleKeyMoneyFields);
+        
+        // images 배열 확인
+        const imagesInfo = {
+          images: data.images,
+          imagesType: typeof data.images,
+          imagesIsArray: Array.isArray(data.images),
+          imagesLength: Array.isArray(data.images) ? data.images.length : (data.images ? 1 : 0),
+          imagesPreview: Array.isArray(data.images) ? data.images.slice(0, 3).map((img: any, idx: number) => ({
+            index: idx,
+            url: typeof img === 'string' ? img.substring(0, 100) + '...' : img,
+            type: typeof img
+          })) : []
+        };
+        console.log('\n📷 images 배열 정보:');
+        console.table(imagesInfo);
+        if (Array.isArray(data.images)) {
+          console.log(`📷 총 ${data.images.length}개 이미지:`);
+          data.images.forEach((img: any, idx: number) => {
+            console.log(`  ${idx + 1}. ${typeof img === 'string' ? img.substring(0, 150) + '...' : img}`);
+          });
+        }
+        
+        console.log('\n📝 전체 필드 목록:', Object.keys(data));
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      } else {
+        console.log(`✅ 매물 ${propertyId} 데이터:`, {
+          id: docSnap.id,
+          title: data.title,
+          type: data.type,
+          keyDepositFields,
+          numericFields,
+          allFields: Object.keys(data)
+        });
+      }
+      
+      return data;
+    } else {
+      console.log(`❌ 매물 ${propertyId}를 찾을 수 없습니다.`);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ 매물 데이터 확인 실패:', error);
+    return null;
   }
 };
 
@@ -453,22 +732,30 @@ const PropertyInfoSection = styled.div`
 const PropertyHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 0.4rem;
+  font-size: 0.65rem;
   color: #374151;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 // 매물 번호
 const PropertyNumber = styled.span`
   color: #dc2626;
   font-weight: bold;
+  font-size: 0.65rem;
+  flex-shrink: 0;
 `;
 
 // 매물 주소
 const PropertyAddress = styled.span`
   color: #6b7280;
   font-weight: 500;
+  font-size: 0.65rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 // 매물 제목 (모바일 전용)
@@ -529,6 +816,174 @@ const EmptyState = styled.div`
   padding: 2rem;
 `;
 
+// 스켈레톤 카드 (로딩 중 표시) - 애니메이션 제거, 정적 표시
+const SkeletonCard = styled.div`
+  padding: 1rem;
+  margin: 0.5rem;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+`;
+
+const SkeletonImage = styled.div`
+  width: 100px;
+  height: 80px;
+  border-radius: 6px;
+  background: #f3f4f6;
+`;
+
+const SkeletonContent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const SkeletonLine = styled.div<{ width?: string }>`
+  height: 12px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  width: ${props => props.width || '100%'};
+`;
+
+// 유틸리티 함수들 (컴포넌트 외부로 이동)
+const cleanPropertyTitle = (title: string) => {
+  return title.replace(/[^\w\s가-힣]/g, '').trim();
+};
+
+const maskAddress = (address: string) => {
+  const parts = address.split(' ');
+  if (parts.length >= 3) {
+    return `${parts[0]} ${parts[1]} ${parts[2]}`;
+  }
+  return address;
+};
+
+// 매물 카드 컴포넌트 (메모이제이션으로 최적화)
+interface PropertyCardProps {
+  property: Property;
+  index: number;
+  searchTerm: string;
+  onCardClick: (property: Property) => void;
+}
+
+const PropertyCard = memo(({ property, index, searchTerm, onCardClick }: PropertyCardProps) => {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <PCPropertyCard
+      key={`${property.id}-${index}`}
+      onClick={() => onCardClick(property)}
+    >
+      <PropertyImageSection>
+        {property.images && property.images.length > 0 && !imageError ? (
+          <img 
+            src={property.images[0]} 
+            alt={`${property.title} 대표사진`}
+            loading="eager"
+            onError={() => {
+              console.error('❌ 이미지 로드 실패:', property.id, property.images[0]);
+              setImageError(true);
+            }}
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'cover',
+              borderRadius: '6px',
+              minHeight: '80px',
+              display: 'block',
+              backgroundColor: '#f3f4f6'
+            }}
+          />
+        ) : (
+          <div style={{
+            fontSize: '1.5rem',
+            color: '#9ca3af',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            minHeight: '80px'
+          }}>
+            🏠
+          </div>
+        )}
+      </PropertyImageSection>
+      <PropertyInfoSection>
+        <PropertyHeader>
+          <PropertyNumber 
+            style={{
+              color: '#dc2626',
+              fontWeight: 'bold',
+              backgroundColor: searchTerm && property.id.toLowerCase() === searchTerm.toLowerCase() 
+                ? '#fef2f2' 
+                : 'transparent',
+              padding: searchTerm && property.id.toLowerCase() === searchTerm.toLowerCase() 
+                ? '2px 6px' 
+                : '0',
+              borderRadius: searchTerm && property.id.toLowerCase() === searchTerm.toLowerCase() 
+                ? '4px' 
+                : '0'
+            }}
+          >
+            {property.id}
+          </PropertyNumber>
+          <PropertyAddress>{maskAddress(property.address)}</PropertyAddress>
+        </PropertyHeader>
+        <PCPropertyTitle>{cleanPropertyTitle(property.title)}</PCPropertyTitle>
+        <PCPropertyDetails>
+          <div style={{ marginBottom: '0.25rem' }}>
+            <span style={{ 
+              display: 'inline-block', 
+              padding: '2px 6px', 
+              backgroundColor: '#f8fafc', 
+              borderRadius: '3px',
+              border: 'none',
+              fontSize: '12px',
+              color: '#374151',
+              marginRight: '4px'
+            }}>
+              전용 {Math.round((property.dedicatedArea || property.area) / 3.3058)}평
+            </span>
+            {property.type === 'sale' ? '매매' : '임대'} {property.floor}
+          </div>
+          <div>
+            주차 {property.parking ? '가능' : '불가능'} 엘리베이터 {property.elevator ? '유' : '무'}
+          </div>
+        </PCPropertyDetails>
+        <PriceContainer>
+          {property.type === 'sale' ? (
+            <SalePriceButton>매매 {property.price}억원</SalePriceButton>
+          ) : (
+            <>
+              {property.deposit && property.deposit > 0 && (
+                <RentPriceButton>보증금 {property.deposit}만원</RentPriceButton>
+              )}
+              {property.deposit && property.deposit > 0 && (property.rentPrice || 0) > 0 && (
+                <RentPriceButton>임대료 {property.rentPrice}만원</RentPriceButton>
+              )}
+              {(!property.deposit || property.deposit === 0) && (!property.rentPrice || property.rentPrice === 0) && (
+                <RentPriceButton>가격 정보 없음</RentPriceButton>
+              )}
+            </>
+          )}
+        </PriceContainer>
+      </PropertyInfoSection>
+    </PCPropertyCard>
+  );
+}, (prevProps, nextProps) => {
+  // props 비교 함수: property.id와 searchTerm만 비교하여 불필요한 리렌더링 방지
+  return prevProps.property.id === nextProps.property.id && 
+         prevProps.searchTerm === nextProps.searchTerm;
+});
+
+PropertyCard.displayName = 'PropertyCard';
+const PropertyCardMemo = PropertyCard;
+
 interface HomePageProps {
   searchTerm?: string;
   addressSearch?: string;
@@ -546,6 +1001,7 @@ interface HomePageProps {
   isAdmin?: boolean;
   newProperties?: Property[];
   onMapReset?: () => void; // 지도 리셋 함수 추가
+  preloadedProperties?: Property[]; // 미리 로드된 매물 데이터
 }
 
 export interface HomePageRef {
@@ -562,7 +1018,8 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   onPropertyAdded,
   isAdmin = false,
   newProperties = [],
-  onMapReset
+  onMapReset,
+  preloadedProperties = [] // 미리 로드된 매물 데이터
 }, ref) => {
   console.log('HomePage 컴포넌트 렌더링됨');
   console.log('filters:', filters);
@@ -572,59 +1029,142 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
   const mapRef = useRef<GoogleMapRef>(null);
   const [selectedClusterProperties, setSelectedClusterProperties] = useState<Property[]>([]);
-  const [defaultProperties, setDefaultProperties] = useState<Property[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // 로딩 화면 비활성화
+  // 미리 로드된 데이터로 초기화 (매우 빠른 표시)
+  const [defaultProperties, setDefaultProperties] = useState<Property[]>(preloadedProperties);
+  // ⚡ 초기 로딩 상태를 false로 시작 (즉시 UI 표시)
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  // ⚡ 초기 데이터가 있으면 즉시 로드 완료로 표시
+  const [isDataLoaded, setIsDataLoaded] = useState(preloadedProperties.length > 0); // 데이터 로드 완료 여부
   const [error, setError] = useState<string | null>(null);
   // 모바일 전용 사이트이므로 화면 크기 감지 제거
   // 항상 모바일 레이아웃 사용
 
   // 기본 매물 데이터 (빈 배열로 초기화 - 서울 매물 제거됨)
   const initialProperties: Property[] = useMemo(() => [], []);
+  
+  // ⚡ preloadedProperties가 업데이트되면 즉시 상태 업데이트 (useLayoutEffect로 동기적 처리 - 렌더링 전 업데이트)
+  useLayoutEffect(() => {
+    if (preloadedProperties.length > 0) {
+      // 데이터가 있으면 즉시 업데이트 (렌더링 전에 처리하여 깜빡임 방지)
+      if (defaultProperties.length === 0 || JSON.stringify(preloadedProperties) !== JSON.stringify(defaultProperties)) {
+        console.log('⚡ useLayoutEffect: 미리 로드된 데이터 즉시 업데이트:', preloadedProperties.length, '개');
+        setDefaultProperties(preloadedProperties);
+        setIsDataLoaded(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preloadedProperties]);
+  
+  // ⚡ 추가: preloadedProperties 변경 시 즉시 반영 (useEffect로도 처리 - 이중 보장)
+  useEffect(() => {
+    if (preloadedProperties.length > 0) {
+      if (defaultProperties.length === 0) {
+        console.log('⚡ useEffect: 미리 로드된 데이터 즉시 반영:', preloadedProperties.length, '개');
+        setDefaultProperties(preloadedProperties);
+        setIsDataLoaded(true);
+      } else if (preloadedProperties.length !== defaultProperties.length) {
+        // 개수가 다르면 업데이트
+        console.log('⚡ useEffect: 데이터 개수 변경 감지, 업데이트:', {
+          preloaded: preloadedProperties.length,
+          default: defaultProperties.length
+        });
+        setDefaultProperties(preloadedProperties);
+        setIsDataLoaded(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preloadedProperties]);
 
   // 디버깅 코드 제거됨 - 안정성을 위해
 
-  // 데이터 초기화 및 Firebase 실시간 동기화
+  // ⚡ 데이터 초기화 - preloadedProperties가 없을 때만 IndexedDB에서 로드 (최적화)
   useEffect(() => {
-    console.log('🚀 데이터 초기화 및 Firebase 실시간 동기화 시작...');
+    // 이미 미리 로드된 데이터가 있으면 스킵 (즉시 반환)
+    if (preloadedProperties.length > 0 || defaultProperties.length > 0) {
+      console.log('⚡ 미리 로드된 데이터 사용 (로딩 스킵)', {
+        preloadedCount: preloadedProperties.length,
+        defaultCount: defaultProperties.length
+      });
+      if (preloadedProperties.length > 0 && defaultProperties.length === 0) {
+        // preloadedProperties가 있는데 defaultProperties가 비어있으면 즉시 업데이트
+        setDefaultProperties(preloadedProperties);
+      }
+      setIsDataLoaded(true);
+      return;
+    }
     
-    // 즉시 기본 데이터 설정 (빈 배열)
-    setDefaultProperties(initialProperties);
-    console.log('📊 기본 데이터 설정 완료 - 매물 수:', initialProperties.length);
+    // preloadedProperties가 없으면 IndexedDB에서 로드 시도 (백그라운드)
+    console.log('🚀 IndexedDB 데이터 로드 시작 (preloadedProperties 없음)...');
     
-    // Firebase 초기화 및 실시간 동기화 설정
-    const initializeFirebase = async () => {
+    let cancelled = false;
+    
+    const loadIndexedDBFirst = async () => {
       try {
-        await firebaseSync.initialize((properties) => {
-          console.log('🔄 Firebase 실시간 업데이트 받음:', properties.length, '개 매물');
-          console.log('📊 받은 매물들:', properties.map(p => ({ id: p.id, title: p.title, address: p.address })));
-          console.log('📋 받은 매물 ID 목록:', properties.map(p => p.id).join(', '));
-          
-          // Firebase 데이터로 즉시 업데이트
-          console.log('🔄 defaultProperties 업데이트 중...');
-          console.log(`  이전 개수: ${defaultProperties.length}`);
-          console.log(`  새 개수: ${properties.length}`);
-          setDefaultProperties(properties);
-          console.log('✅ defaultProperties 업데이트 완료');
-        });
+        const startTime = performance.now();
         
-        console.log('✅ Firebase 실시간 동기화 설정 완료');
+        // IndexedDB 초기화 확인 및 데이터 로드
+        try {
+          await IndexedDB.initDatabase();
+        } catch (initError) {
+          // 이미 초기화되어 있으면 무시
+          console.log('IndexedDB 이미 초기화됨');
+        }
+        
+        const indexedDBProperties = await IndexedDB.getAllProperties();
+        const loadTime = performance.now() - startTime;
+        console.log(`✅ IndexedDB에서 ${indexedDBProperties.length}개 매물 로드 완료 (${loadTime.toFixed(2)}ms)`);
+        
+        if (!cancelled) {
+          if (indexedDBProperties.length > 0) {
+            console.log('⚡ IndexedDB 데이터 즉시 표시');
+            setDefaultProperties(indexedDBProperties);
+          }
+          setIsDataLoaded(true); // 데이터 로드 완료 표시
+        }
       } catch (error) {
-        console.error('❌ Firebase 초기화 실패:', error);
+        console.warn('⚠️ IndexedDB 로드 실패:', error);
+        // 로드 실패해도 로딩 상태는 해제 (빈 상태 메시지 표시)
+        if (!cancelled) {
+          setIsDataLoaded(true);
+        }
       }
     };
-
-    // 즉시 초기화 (지연 제거)
-    initializeFirebase();
+    
+    // 즉시 실행 (비동기 - UI 블로킹 없음)
+    loadIndexedDBFirst();
     
     return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preloadedProperties]); // preloadedProperties 변경 시 재실행
+  
+  // Firebase 실시간 동기화 설정 (비동기 - 블로킹 없음)
+  useEffect(() => {
+    console.log('🔥 Firebase 실시간 동기화 설정 시작...');
+    
+    // Firebase 초기화는 완전 비동기로 처리
+    const timer = setTimeout(() => {
+      firebaseSync.initialize((properties) => {
+        console.log('🔄 Firebase 실시간 업데이트 받음:', properties.length, '개 매물');
+        setDefaultProperties(properties);
+        setIsDataLoaded(true); // Firebase 데이터 수신 시에도 로드 완료 표시
+      }).catch(error => {
+        console.error('❌ Firebase 초기화 실패:', error);
+        // Firebase 실패해도 데이터 로드 완료 표시 (IndexedDB 데이터는 이미 있음)
+        setIsDataLoaded(true);
+      });
+    }, 0);
+    
+    return () => {
+      clearTimeout(timer);
       try {
         firebaseSync.disconnect();
       } catch (error) {
         console.warn('Firebase 연결 해제 실패:', error);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialProperties]); // initialProperties는 상수이지만 ESLint 요구사항 충족
+  }, []); // 한 번만 실행
 
   // 지도 리셋 함수를 부모 컴포넌트에 노출
   useImperativeHandle(ref, () => ({
@@ -746,18 +1286,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       return man % 1 === 0 ? `${man}만원` : `${man}만원`; // 정수면 정수로, 소수면 소수로
     }
     return `${price.toLocaleString()}원`;
-  };
-
-  const cleanPropertyTitle = (title: string) => {
-    return title.replace(/[^\w\s가-힣]/g, '').trim();
-  };
-
-  const maskAddress = (address: string) => {
-    const parts = address.split(' ');
-    if (parts.length >= 3) {
-      return `${parts[0]} ${parts[1]} ${parts[2]}`;
-    }
-    return address;
   };
 
   const getFilteredProperties = () => {
@@ -1067,9 +1595,9 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     console.log('정렬 전 매물들:', properties.map(p => ({ id: p.id, title: p.title })));
     
     const sorted = [...properties].sort((a, b) => {
-      // 매물번호를 숫자로 변환하여 정렬
-      const aId = parseInt(a.id);
-      const bId = parseInt(b.id);
+      // 매물번호를 숫자로 변환하여 정렬 (P001 -> 1, P002 -> 2)
+      const aId = parseInt(a.id.replace(/[^0-9]/g, '')) || 0;
+      const bId = parseInt(b.id.replace(/[^0-9]/g, '')) || 0;
       const result = aId - bId;
       console.log(`정렬 비교: ${a.id}(${aId}) vs ${b.id}(${bId}) = ${result}`);
       return result;
@@ -1154,8 +1682,8 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   console.log('지도에 표시될 매물들:', displayProperties.map(p => ({ id: p.id, title: p.title })));
   console.log('목록에 표시될 매물들:', listProperties.map(p => ({ id: p.id, title: p.title })));
 
-  // 로딩 화면
-  if (isLoading) {
+  // 로딩 화면 (사용하지 않음 - 스켈레톤 UI 사용)
+  if (false) {
     return (
       <div style={{
         display: 'flex',
@@ -1239,151 +1767,24 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           </PropertyListHeader>
           
           <PropertyListContainer>
-            {listProperties.length === 0 ? (
+            {!isDataLoaded && defaultProperties.length === 0 ? (
+              // 데이터 로딩 중일 때는 빈 상태 메시지 표시하지 않음
+              <EmptyState>
+                <p style={{ color: '#9ca3af' }}>데이터를 불러오는 중...</p>
+              </EmptyState>
+            ) : listProperties.length === 0 ? (
               <EmptyState>
                 <p>검색 조건에 맞는 매물이 없습니다.</p>
               </EmptyState>
             ) : (
               listProperties.map((property, index) => (
-                <PCPropertyCard
-                  key={`${property.id}-${index}`}
-                  onClick={() => handlePropertyCardClick(property)}
-                >
-                  <PropertyImageSection>
-                    {property.images && property.images.length > 0 ? (
-                      <img 
-                        src={property.images[0]} 
-                        alt={`${property.title} 대표사진`}
-                        onLoadStart={() => {
-                          console.log('🔄 이미지 로드 시작:', {
-                            propertyId: property.id,
-                            src: property.images[0]?.substring(0, 50) + '...',
-                            isBase64: property.images[0]?.startsWith('data:'),
-                            base64Length: property.images[0]?.length
-                          });
-                        }}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          console.error('❌ 이미지 로드 실패:', {
-                            src: target.src,
-                            propertyId: property.id,
-                            propertyTitle: property.title,
-                            images: property.images
-                          });
-                          target.style.display = 'none';
-                          // 이미지 로드 실패 시 기본 아이콘 표시
-                          const parent = target.parentElement;
-                          if (parent) {
-                            parent.innerHTML = '🏠';
-                            parent.style.fontSize = '1.5rem';
-                            parent.style.color = '#9ca3af';
-                            parent.style.display = 'flex';
-                            parent.style.alignItems = 'center';
-                            parent.style.justifyContent = 'center';
-                          }
-                        }}
-                        onLoad={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          console.log('✅ 매물목록 이미지 로드 성공:', {
-                            src: target.src,
-                            propertyId: property.id,
-                            propertyTitle: property.title
-                          });
-                          target.style.display = 'block';
-                          target.style.opacity = '1';
-                        }}
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover',
-                          borderRadius: '6px',
-                          minHeight: '80px',
-                          display: 'block',
-                          backgroundColor: '#f3f4f6',
-                          opacity: '0',
-                          transition: 'opacity 0.3s ease'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        fontSize: '1.5rem',
-                        color: '#9ca3af',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100%',
-                        height: '100%',
-                        minHeight: '80px'
-                      }}>
-                        🏠
-                      </div>
-                    )}
-                  </PropertyImageSection>
-                  <PropertyInfoSection>
-                    <PropertyHeader>
-                      <PropertyNumber 
-                        style={{
-                          color: searchTerm && property.id.toLowerCase().includes(searchTerm.toLowerCase()) 
-                            ? '#dc2626' 
-                            : '#dc2626',
-                          fontWeight: searchTerm && property.id.toLowerCase() === searchTerm.toLowerCase() 
-                            ? 'bold' 
-                            : 'bold',
-                          backgroundColor: searchTerm && property.id.toLowerCase() === searchTerm.toLowerCase() 
-                            ? '#fef2f2' 
-                            : 'transparent',
-                          padding: searchTerm && property.id.toLowerCase() === searchTerm.toLowerCase() 
-                            ? '2px 6px' 
-                            : '0',
-                          borderRadius: searchTerm && property.id.toLowerCase() === searchTerm.toLowerCase() 
-                            ? '4px' 
-                            : '0'
-                        }}
-                      >
-                        {property.id}
-                      </PropertyNumber>
-                      <PropertyAddress>{maskAddress(property.address)}</PropertyAddress>
-                    </PropertyHeader>
-                    <PCPropertyTitle>{cleanPropertyTitle(property.title)}</PCPropertyTitle>
-                    <PCPropertyDetails>
-                       <div style={{ marginBottom: '0.25rem' }}>
-                         <span style={{ 
-                           display: 'inline-block', 
-                           padding: '2px 6px', 
-                           backgroundColor: '#f8fafc', 
-                           borderRadius: '3px',
-                           border: 'none',
-                           fontSize: '12px',
-                           color: '#374151',
-                           marginRight: '4px'
-                         }}>
-                           전용 {Math.round((property.dedicatedArea || property.area) / 3.3058)}평
-                         </span>
-                         {property.type === 'sale' ? '매매' : '임대'} {property.floor}
-                       </div>
-                       <div>
-                         주차 {property.parking ? '가능' : '불가능'} 엘리베이터 {property.elevator ? '유' : '무'}
-                       </div>
-                     </PCPropertyDetails>
-                     <PriceContainer>
-                       {property.type === 'sale' ? (
-                         <SalePriceButton>매매 {property.price}억원</SalePriceButton>
-                       ) : (
-                         <>
-                           {property.deposit && property.deposit > 0 && (
-                             <RentPriceButton>보증금 {property.deposit}만원</RentPriceButton>
-                           )}
-                           {property.deposit && property.deposit > 0 && (property.rentPrice || 0) > 0 && (
-                             <RentPriceButton>임대료 {property.rentPrice}만원</RentPriceButton>
-                           )}
-                           {(!property.deposit || property.deposit === 0) && (!property.rentPrice || property.rentPrice === 0) && (
-                             <RentPriceButton>가격 정보 없음</RentPriceButton>
-                           )}
-                         </>
-                       )}
-                     </PriceContainer>
-                  </PropertyInfoSection>
-                </PCPropertyCard>
+                <PropertyCardMemo
+                  key={property.id}
+                  property={property}
+                  index={index}
+                  searchTerm={searchTerm}
+                  onCardClick={handlePropertyCardClick}
+                />
               ))
             )}
           </PropertyListContainer>

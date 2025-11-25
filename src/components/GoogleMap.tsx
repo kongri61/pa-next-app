@@ -158,29 +158,29 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
     // 1단계: 대형 클러스터 (넓은 범위)
     const getLargeClusterDistance = () => {
       if (isMobile) {
-        if (zoom < 6) return 0.5;   // 매우 넓은 범위
-        if (zoom < 8) return 0.3;   // 넓은 범위
-        if (zoom < 10) return 0.15; // 중간 범위
-        return 0.05; // 좁은 범위
+        if (zoom < 6) return 0.25;   // 매우 넓은 범위
+        if (zoom < 8) return 0.15;   // 넓은 범위
+        if (zoom < 10) return 0.08; // 중간 범위
+        return 0.02; // 좁은 범위
       } else {
-        if (zoom < 6) return 0.6;   // 매우 넓은 범위
-        if (zoom < 8) return 0.4;   // 넓은 범위
-        if (zoom < 10) return 0.2;  // 중간 범위
-        return 0.08; // 좁은 범위
+        if (zoom < 6) return 0.3;   // 매우 넓은 범위
+        if (zoom < 8) return 0.2;   // 넓은 범위
+        if (zoom < 10) return 0.1;  // 중간 범위
+        return 0.04; // 좁은 범위
       }
     };
 
     // 2단계: 소형 클러스터 (좁은 범위)
     const getSmallClusterDistance = () => {
       if (isMobile) {
-        if (zoom < 10) return 0.08; // 중간 범위
-        if (zoom < 12) return 0.04; // 좁은 범위
-        if (zoom < 14) return 0.02; // 매우 좁은 범위
+        if (zoom < 10) return 0.04; // 중간 범위
+        if (zoom < 12) return 0.02; // 좁은 범위
+        if (zoom < 14) return 0.008; // 매우 좁은 범위
         return 0; // 개별 마커
       } else {
-        if (zoom < 10) return 0.1;  // 중간 범위
-        if (zoom < 12) return 0.05; // 좁은 범위
-        if (zoom < 14) return 0.025; // 매우 좁은 범위
+        if (zoom < 10) return 0.05;  // 중간 범위
+        if (zoom < 12) return 0.025; // 좁은 범위
+        if (zoom < 14) return 0.012; // 매우 좁은 범위
         return 0; // 개별 마커
       }
     };
@@ -196,7 +196,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
         <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="16" cy="16" r="14" fill="#3b82f6" stroke="white" stroke-width="2"/>
+          <circle cx="16" cy="16" r="14" fill="#1f2937" stroke="white" stroke-width="2"/>
           <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">1</text>
         </svg>
       `),
@@ -210,7 +210,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
         <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="18" cy="18" r="16" fill="#1e40af" stroke="white" stroke-width="3"/>
+          <circle cx="18" cy="18" r="16" fill="#111827" stroke="white" stroke-width="3"/>
           <text x="18" y="23" text-anchor="middle" fill="white" font-size="13" font-weight="bold">1</text>
         </svg>
       `),

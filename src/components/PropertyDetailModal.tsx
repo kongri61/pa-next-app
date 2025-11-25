@@ -659,6 +659,62 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     setCurrentImages(property.images || []);
     setCurrentImageIndex(0);
     setPhotoLoadError(false); // 프로필 사진 에러 상태 초기화
+    
+    // 디버깅: 매물 필드 값 확인
+    if (property.type === 'sale') {
+      const allKeys = Object.keys(property);
+      const numericFields = allKeys.filter(key => {
+        const value = (property as any)[key];
+        return typeof value === 'number' && !isNaN(value) && value > 0;
+      }).map(key => ({ key, value: (property as any)[key] }));
+      
+      // 기보증금/월세 관련 가능한 필드명 찾기
+      const possibleFields = allKeys.filter(key => 
+        key.toLowerCase().includes('deposit') || 
+        key.toLowerCase().includes('monthly') || 
+        key.toLowerCase().includes('rent') ||
+        key.includes('기보증금') ||
+        key.includes('월세')
+      ).map(key => ({ key, value: (property as any)[key], type: typeof (property as any)[key] }));
+      
+      console.log('🔍 매매용 매물 - 기보증금/월세 디버깅:', {
+        propertyId: property.id,
+        keyDepositMonthly: property.keyDepositMonthly,
+        keyDepositMonthlyType: typeof property.keyDepositMonthly,
+        keyDeposit: property.keyDeposit,
+        possibleFields: possibleFields,
+        numericFields: numericFields,
+        allPropertyKeys: allKeys
+      });
+      
+      // possibleFields와 numericFields 상세 출력
+      console.log('📋 possibleFields 상세:', possibleFields);
+      console.log('📊 numericFields 상세:', numericFields);
+      
+      // 모든 숫자 필드 출력 (0 포함)
+      const allNumericFields = allKeys.filter(key => {
+        const value = (property as any)[key];
+        return typeof value === 'number' && !isNaN(value);
+      }).map(key => ({ key, value: (property as any)[key], type: typeof (property as any)[key] }));
+      console.log('🔢 모든 숫자 필드 (0 포함):', allNumericFields);
+    } else if (property.type === 'rent') {
+      // 임대용 매물 디버깅
+      const allKeys = Object.keys(property);
+      const numericFields = allKeys.filter(key => {
+        const value = (property as any)[key];
+        return typeof value === 'number' && !isNaN(value) && value > 0;
+      }).map(key => ({ key, value: (property as any)[key] }));
+      
+      console.log('🔍 임대용 매물 - 필드 디버깅:', {
+        propertyId: property.id,
+        deposit: property.deposit,
+        rentPrice: property.rentPrice,
+        keyMoney: property.keyMoney,
+        keyMoneyType: typeof property.keyMoney,
+        numericFields: numericFields,
+        allPropertyKeys: allKeys
+      });
+    }
   }, [property]);
 
   // 수정 모드 토글 함수
@@ -1199,16 +1255,58 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       <PropertyInfoLabel>기보증금/월세</PropertyInfoLabel>
                       <PropertyInfoValue>
                         {isEditMode ? (
-                          <EditInput
-                            type="number"
-                            value={editData.keyDepositMonthly || 0}
-                            onChange={(e) => handleEditChange('keyDepositMonthly', parseInt(e.target.value) || 0)}
-                            placeholder="기보증금/월세 (만원)"
-                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>기보증금:</span>
+                              <EditInput
+                                type="number"
+                                value={editData.deposit || 0}
+                                onChange={(e) => handleEditChange('deposit', parseInt(e.target.value) || 0)}
+                                placeholder="기보증금 (만원)"
+                                style={{ flex: 1 }}
+                              />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>기월세:</span>
+                              <EditInput
+                                type="number"
+                                value={editData.rentPrice || 0}
+                                onChange={(e) => handleEditChange('rentPrice', parseInt(e.target.value) || 0)}
+                                placeholder="기월세 (만원)"
+                                style={{ flex: 1 }}
+                              />
+                            </div>
+                          </div>
                         ) : (
-                          editData.keyDepositMonthly && editData.keyDepositMonthly > 0 
-                            ? `${editData.keyDepositMonthly}만원` 
-                            : '-'
+                          (() => {
+                            // 매매용 매물에서: deposit(기보증금)과 rentPrice(기월세) 확인
+                            const deposit = editData.deposit;
+                            const rentPrice = editData.rentPrice;
+                            const depositValue = typeof deposit === 'number' ? deposit : (deposit ? parseFloat(deposit) : undefined);
+                            const rentPriceValue = typeof rentPrice === 'number' ? rentPrice : (rentPrice ? parseFloat(rentPrice) : undefined);
+                            
+                            // keyDepositMonthly가 있으면 우선 사용
+                            const keyDepositMonthly = editData.keyDepositMonthly;
+                            const keyDepositMonthlyValue = typeof keyDepositMonthly === 'number' ? keyDepositMonthly : (keyDepositMonthly ? parseFloat(keyDepositMonthly) : undefined);
+                            
+                            if (keyDepositMonthlyValue !== undefined && keyDepositMonthlyValue !== null && !isNaN(keyDepositMonthlyValue) && keyDepositMonthlyValue > 0) {
+                              return `${keyDepositMonthlyValue}만원`;
+                            }
+                            
+                            // deposit(기보증금)과 rentPrice(기월세) 조합
+                            const hasDeposit = depositValue !== undefined && depositValue !== null && !isNaN(depositValue) && depositValue > 0;
+                            const hasRentPrice = rentPriceValue !== undefined && rentPriceValue !== null && !isNaN(rentPriceValue) && rentPriceValue > 0;
+                            
+                            if (hasDeposit && hasRentPrice) {
+                              return `${depositValue}만원/${rentPriceValue}만원`;
+                            } else if (hasDeposit) {
+                              return `${depositValue}만원/-`;
+                            } else if (hasRentPrice) {
+                              return `-/${rentPriceValue}만원`;
+                            }
+                            
+                            return '-';
+                          })()
                         )}
                       </PropertyInfoValue>
                     </PropertyInfoItem>
@@ -1249,14 +1347,32 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                         {isEditMode ? (
                           <EditInput
                             type="number"
-                            value={editData.loanAmount || 0}
-                            onChange={(e) => handleEditChange('loanAmount', parseInt(e.target.value) || 0)}
-                            placeholder="융자금 (억 단위)"
+                            value={(editData as any).premium || editData.loanAmount || 0}
+                            onChange={(e) => {
+                              // premium 필드에 저장 (매매용에서 융자금은 premium으로 저장)
+                              handleEditChange('premium' as any, parseInt(e.target.value) || 0);
+                              // loanAmount도 함께 업데이트 (호환성)
+                              handleEditChange('loanAmount', parseInt(e.target.value) || 0);
+                            }}
+                            placeholder="융자금 (만원)"
                           />
                         ) : (
-                          editData.loanAmount && editData.loanAmount > 0
-                            ? formatPrice(editData.loanAmount)
-                            : '-'
+                          (() => {
+                            // 매매용 매물에서: premium이 융자금
+                            const premium = (editData as any).premium;
+                            const loanAmount = editData.loanAmount;
+                            
+                            const premiumValue = typeof premium === 'number' ? premium : (premium ? parseFloat(premium) : undefined);
+                            const loanAmountValue = typeof loanAmount === 'number' ? loanAmount : (loanAmount ? parseFloat(loanAmount) : undefined);
+                            
+                            // premium 우선, 없으면 loanAmount
+                            const value = premiumValue || loanAmountValue;
+                            
+                            if (value !== undefined && value !== null && !isNaN(value) && value > 0) {
+                              return `${value}만원`;
+                            }
+                            return '-';
+                          })()
                         )}
                       </PropertyInfoValue>
                     </PropertyInfoItem>
@@ -1274,9 +1390,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             placeholder="보증금 (만원)"
                           />
                         ) : (
-                          editData.deposit && editData.deposit > 0
-                            ? formatDeposit(editData.deposit)
-                            : '정보 없음'
+                          (() => {
+                            const deposit = editData.deposit;
+                            const depositValue = typeof deposit === 'number' ? deposit : (deposit ? parseFloat(deposit) : undefined);
+                            
+                            if (depositValue !== undefined && depositValue !== null && !isNaN(depositValue) && depositValue > 0) {
+                              return `${depositValue}만원`;
+                            }
+                            return '정보 없음';
+                          })()
                         )}
                     </PropertyInfoValue>
                   </PropertyInfoItem>
@@ -1291,9 +1413,15 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                             placeholder="월세 (만원)"
                           />
                         ) : (
-                          editData.rentPrice && editData.rentPrice > 0
-                            ? `${editData.rentPrice}만원`
-                            : '정보 없음'
+                          (() => {
+                            const rentPrice = editData.rentPrice;
+                            const rentPriceValue = typeof rentPrice === 'number' ? rentPrice : (rentPrice ? parseFloat(rentPrice) : undefined);
+                            
+                            if (rentPriceValue !== undefined && rentPriceValue !== null && !isNaN(rentPriceValue) && rentPriceValue > 0) {
+                              return `${rentPriceValue}만원`;
+                            }
+                            return '정보 없음';
+                          })()
                         )}
                     </PropertyInfoValue>
                   </PropertyInfoItem>
@@ -1334,30 +1462,60 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                         {isEditMode ? (
                           <EditInput
                             type="number"
-                            value={editData.keyMoney || 0}
-                            onChange={(e) => handleEditChange('keyMoney', parseInt(e.target.value) || 0)}
+                            value={editData.keyMoney || (editData as any).premium || 0}
+                            onChange={(e) => {
+                              // keyMoney와 premium 모두 업데이트 (호환성)
+                              handleEditChange('keyMoney', parseInt(e.target.value) || 0);
+                              handleEditChange('premium' as any, parseInt(e.target.value) || 0);
+                            }}
                             placeholder="권리금 (만원)"
                           />
                         ) : (
-                          editData.keyMoney && editData.keyMoney > 0
-                            ? `${editData.keyMoney}만원`
-                            : '-'
+                          (() => {
+                            // 임대용 매물에서: keyMoney 또는 premium이 권리금
+                            const keyMoney = editData.keyMoney;
+                            const premium = (editData as any).premium;
+                            
+                            const keyMoneyValue = typeof keyMoney === 'number' ? keyMoney : (keyMoney ? parseFloat(keyMoney) : undefined);
+                            const premiumValue = typeof premium === 'number' ? premium : (premium ? parseFloat(premium) : undefined);
+                            
+                            // keyMoney 우선, 없으면 premium
+                            const value = keyMoneyValue || premiumValue;
+                            
+                            if (value !== undefined && value !== null && !isNaN(value) && value > 0) {
+                              return `${value}만원`;
+                            }
+                            return '-';
+                          })()
                         )}
                 </PropertyInfoValue>
               </PropertyInfoItem>
                   </>
                 )}
-              <PropertyInfoItem>
+                <PropertyInfoItem>
                   <PropertyInfoLabel>매물현황</PropertyInfoLabel>
                 <PropertyInfoValue>
                     {isEditMode ? (
                       <EditInput
                         value={editData.propertyStatus || ''}
                         onChange={(e) => handleEditChange('propertyStatus', e.target.value)}
-                        placeholder="매물현황"
+                        placeholder="매물현황 (예: 임대중, 매매중)"
                       />
                     ) : (
-                      editData.propertyStatus || '-'
+                      (() => {
+                        const propertyStatus = editData.propertyStatus;
+                        // propertyStatus 필드가 있으면 우선 사용
+                        if (propertyStatus && typeof propertyStatus === 'string' && propertyStatus.trim() !== '') {
+                          return propertyStatus.trim();
+                        }
+                        // propertyStatus가 없으면 type 필드를 기반으로 표시 (PC 사이트 방식)
+                        if (editData.type === 'sale') {
+                          return '매매중';
+                        } else if (editData.type === 'rent') {
+                          return '임대중';
+                        }
+                        return '-';
+                      })()
                     )}
                   </PropertyInfoValue>
                 </PropertyInfoItem>
@@ -1401,10 +1559,10 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       (() => {
                         const supplyArea = editData.supplyArea || editData.area;
                         const dedicatedArea = editData.dedicatedArea || editData.area;
-                        const supplyAreaM2 = Math.round(supplyArea);
-                        const supplyAreaPyeong = Math.round(supplyArea / 3.3058);
-                        const dedicatedAreaM2 = Math.round(dedicatedArea);
-                        const dedicatedAreaPyeong = Math.round(dedicatedArea / 3.3058);
+                        const supplyAreaM2 = parseFloat(supplyArea.toFixed(2));
+                        const supplyAreaPyeong = parseFloat((supplyArea / 3.3058).toFixed(2));
+                        const dedicatedAreaM2 = parseFloat(dedicatedArea.toFixed(2));
+                        const dedicatedAreaPyeong = parseFloat((dedicatedArea / 3.3058).toFixed(2));
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <span>공급{supplyAreaM2}m²({supplyAreaPyeong}평)</span>
@@ -1448,14 +1606,20 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditInput
-                        value={editData.propertyType === 'commercial' ? '상가' : editData.propertyType === 'office' ? '사무실' : editData.propertyType === 'building' ? '건물' : '기타'}
-                        readOnly
-                        style={{ backgroundColor: '#f3f4f6' }}
+                        value={editData.buildingUse || ''}
+                        onChange={(e) => handleEditChange('buildingUse', e.target.value)}
+                        placeholder="건축물용도 (예: 제2종 일반주거지역, 제1종 근린생활시설)"
                       />
                     ) : (
-                      editData.propertyType === 'commercial' ? '상가' :
-                      editData.propertyType === 'office' ? '사무실' :
-                      editData.propertyType === 'building' ? '건물' : '기타'
+                      (() => {
+                        const buildingUse = editData.buildingUse;
+                        // buildingUse 필드가 있으면 우선 사용
+                        if (buildingUse && typeof buildingUse === 'string' && buildingUse.trim() !== '') {
+                          return buildingUse.trim();
+                        }
+                        // buildingUse가 없으면 공란
+                        return '';
+                      })()
                     )}
                   </PropertyInfoValue>
               </PropertyInfoItem>
@@ -1463,25 +1627,48 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 <PropertyInfoLabel>방/화장실</PropertyInfoLabel>
                 <PropertyInfoValue>
                     {isEditMode ? (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <EditInput
-                          type="number"
-                          value={editData.bedrooms || 0}
-                          onChange={(e) => handleEditChange('bedrooms', parseInt(e.target.value) || 0)}
-                          placeholder="방"
-                          style={{ flex: 1 }}
-                        />
-                        <span>/</span>
-                        <EditInput
-                          type="number"
-                          value={editData.bathrooms || 0}
-                          onChange={(e) => handleEditChange('bathrooms', parseInt(e.target.value) || 0)}
-                          placeholder="화장실"
-                          style={{ flex: 1 }}
-                        />
-                      </div>
+                      (() => {
+                        // roomBathInfo가 있으면 텍스트 입력 필드 사용
+                        if (editData.roomBathInfo) {
+                          return (
+                            <EditInput
+                              value={editData.roomBathInfo || ''}
+                              onChange={(e) => handleEditChange('roomBathInfo', e.target.value)}
+                              placeholder="방/화장실 (예: 내부남녀혼용, 외부남녀구분)"
+                            />
+                          );
+                        }
+                        // roomBathInfo가 없으면 숫자 입력 필드 사용
+                        return (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <EditInput
+                              type="number"
+                              value={editData.bedrooms || 0}
+                              onChange={(e) => handleEditChange('bedrooms', parseInt(e.target.value) || 0)}
+                              placeholder="방"
+                              style={{ flex: 1 }}
+                            />
+                            <span>/</span>
+                            <EditInput
+                              type="number"
+                              value={editData.bathrooms || 0}
+                              onChange={(e) => handleEditChange('bathrooms', parseInt(e.target.value) || 0)}
+                              placeholder="화장실"
+                              style={{ flex: 1 }}
+                            />
+                          </div>
+                        );
+                      })()
                     ) : (
-                      `${editData.bedrooms || 0} / ${editData.bathrooms || 0}`
+                      (() => {
+                        const roomBathInfo = editData.roomBathInfo;
+                        // roomBathInfo 필드가 있으면 우선 사용
+                        if (roomBathInfo && typeof roomBathInfo === 'string' && roomBathInfo.trim() !== '') {
+                          return roomBathInfo.trim();
+                        }
+                        // roomBathInfo가 없으면 bedrooms/bathrooms 숫자로 표시
+                        return `${editData.bedrooms || 0} / ${editData.bathrooms || 0}`;
+                      })()
                     )}
                 </PropertyInfoValue>
               </PropertyInfoItem>
@@ -1548,13 +1735,13 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   <PropertyInfoValue>
                     {isEditMode ? (
                       <EditInput
-                        type="number"
-                        value={editData.parkingCount || 0}
-                        onChange={(e) => handleEditChange('parkingCount', parseInt(e.target.value) || 0)}
+                        type="text"
+                        value={editData.parkingCount ? String(editData.parkingCount) : ''}
+                        onChange={(e) => handleEditChange('parkingCount', e.target.value)}
                         placeholder="주차대수"
                       />
                     ) : (
-                      editData.parkingCount && editData.parkingCount > 0 ? `${editData.parkingCount}대` : '-'
+                      editData.parkingCount && String(editData.parkingCount).trim() !== '' ? String(editData.parkingCount) : '-'
                     )}
                   </PropertyInfoValue>
               </PropertyInfoItem>
@@ -1610,9 +1797,12 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                         value={editData.recommendedBusiness || ''}
                         onChange={(e) => handleEditChange('recommendedBusiness', e.target.value)}
                         placeholder="추천업종"
+                        style={{ color: '#dc2626' }}
                       />
                     ) : (
-                      editData.recommendedBusiness || '-'
+                      <span style={{ color: '#dc2626' }}>
+                        {editData.recommendedBusiness || '-'}
+                      </span>
                     )}
                   </PropertyInfoValue>
               </PropertyInfoItem>
@@ -1621,7 +1811,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
 
           <Section>
             <SectionTitle>매물설명</SectionTitle>
-            <div>
+            <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {isEditMode ? (
                   <EditTextarea
                     value={editData.description}

@@ -14,6 +14,7 @@ export interface Property {
   };
   bedrooms?: number;
   bathrooms?: number;
+  roomBathInfo?: string; // 방/화장실 정보 (텍스트, 예: 내부남녀혼용, 외부남녀구분)
   area: number; // 평방미터 (기본 면적, 전용면적로 사용 가능)
   supplyArea?: number; // 공급면적 (평방미터)
   dedicatedArea?: number; // 전용면적 (평방미터)
@@ -54,6 +55,7 @@ export interface Property {
   approvalDate?: string; // 사용승인일
   recommendedBusiness?: string; // 추천업종
   mapImage?: string; // 위치정보 지도 이미지 URL
+  buildingUse?: string; // 건축물용도 (예: 제2종 일반주거지역, 제1종 근린생활시설)
   // Firebase 관련 필드들
   createdBy?: string; // 생성한 사용자 ID
   updatedBy?: string; // 수정한 사용자 ID
