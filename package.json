@@ -28,17 +28,10 @@
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
-<<<<<<< HEAD
-    "postbuild": "node scripts/check-auto-deploy.js",
+    "postbuild": "node scripts/auto-deploy.js",
     "auto-deploy": "npm run build && node scripts/auto-deploy.js",
-    "deploy:auto": "node scripts/set-env-and-build.js",
-    "setup:git": "node scripts/setup-git.js"
-=======
-    "build:deploy": "npm run build && node scripts/auto-deploy.js",
-    "deploy:auto": "npm run build && call auto-deploy.bat",
-    "deploy:auto:ps1": "npm run build && powershell -ExecutionPolicy Bypass -File auto-deploy.ps1",
-    "postbuild": "node scripts/auto-deploy.js"
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
+    "deploy:auto": "npm run build && node scripts/auto-deploy.js",
+    "build:deploy": "npm run build && node scripts/auto-deploy.js"
   },
   "eslintConfig": {
     "extends": [
