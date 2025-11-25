@@ -209,42 +209,58 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryCount]);
 
-  // 2단계 클러스터링 거리 계산 함수
+  // 3단계 클러스터링 거리 계산 함수
   const getClusterDistance = (zoom: number) => {
     const isMobile = window.innerWidth <= 768;
     
-    // 1단계: 대형 클러스터 (넓은 범위) - 더 좁게 축소
+    // 1단계: 대형 클러스터 (매우 넓은 범위) - 낮은 줌 레벨
     const getLargeClusterDistance = () => {
       if (isMobile) {
-        if (zoom < 6) return 0.15;   // 매우 넓은 범위 (0.25 -> 0.15)
-        if (zoom < 8) return 0.09;   // 넓은 범위 (0.15 -> 0.09)
-        if (zoom < 10) return 0.05; // 중간 범위 (0.08 -> 0.05)
-        return 0.015; // 좁은 범위 (0.025 -> 0.015)
+        if (zoom < 7) return 0.2;   // 매우 넓은 범위
+        if (zoom < 9) return 0.12;  // 넓은 범위
+        if (zoom < 11) return 0.08;  // 중간 범위
+        return 0.04; // 좁은 범위
       } else {
-        if (zoom < 6) return 0.18;   // 매우 넓은 범위 (0.3 -> 0.18)
-        if (zoom < 8) return 0.11;   // 넓은 범위 (0.18 -> 0.11)
-        if (zoom < 10) return 0.06;  // 중간 범위 (0.09 -> 0.06)
-        return 0.025; // 좁은 범위 (0.04 -> 0.025)
+        if (zoom < 7) return 0.25;  // 매우 넓은 범위
+        if (zoom < 9) return 0.15;   // 넓은 범위
+        if (zoom < 11) return 0.1;   // 중간 범위
+        return 0.05; // 좁은 범위
       }
     };
 
-    // 2단계: 소형 클러스터 (좁은 범위) - 더 좁게 축소
+    // 2단계: 중형 클러스터 (중간 범위) - 중간 줌 레벨
+    const getMediumClusterDistance = () => {
+      if (isMobile) {
+        if (zoom < 11) return 0.06;   // 중간 범위
+        if (zoom < 13) return 0.03;  // 좁은 범위
+        if (zoom < 14) return 0.015; // 매우 좁은 범위
+        return 0; // 개별 마커 (줌 14 이상)
+      } else {
+        if (zoom < 11) return 0.08;   // 중간 범위
+        if (zoom < 13) return 0.04;   // 좁은 범위
+        if (zoom < 14) return 0.02;   // 매우 좁은 범위
+        return 0; // 개별 마커 (줌 14 이상)
+      }
+    };
+
+    // 3단계: 소형 클러스터 (좁은 범위) - 높은 줌 레벨 (최소 2개)
     const getSmallClusterDistance = () => {
       if (isMobile) {
-        if (zoom < 10) return 0.025;  // 중간 범위 (0.04 -> 0.025)
-        if (zoom < 12) return 0.012;  // 좁은 범위 (0.02 -> 0.012)
-        if (zoom < 13) return 0.006;  // 매우 좁은 범위 (0.01 -> 0.006)
-        return 0; // 개별 마커 (줌 13 이상)
+        if (zoom < 13) return 0.02;   // 중간 범위
+        if (zoom < 14) return 0.01;   // 좁은 범위
+        if (zoom < 15) return 0.005;  // 매우 좁은 범위
+        return 0; // 개별 마커 (줌 15 이상)
       } else {
-        if (zoom < 10) return 0.03;   // 중간 범위 (0.05 -> 0.03)
-        if (zoom < 12) return 0.015;  // 좁은 범위 (0.025 -> 0.015)
-        if (zoom < 13) return 0.008;  // 매우 좁은 범위 (0.012 -> 0.008)
-        return 0; // 개별 마커 (줌 13 이상)
+        if (zoom < 13) return 0.025;  // 중간 범위
+        if (zoom < 14) return 0.012;  // 좁은 범위
+        if (zoom < 15) return 0.006;  // 매우 좁은 범위
+        return 0; // 개별 마커 (줌 15 이상)
       }
     };
 
     return {
       large: getLargeClusterDistance(),
+      medium: getMediumClusterDistance(),
       small: getSmallClusterDistance()
     };
   };
@@ -373,7 +389,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     const zoom = mapInstance.current.getZoom();
     const clusterDistances = getClusterDistance(zoom);
     
-    console.log(`🔍 2단계 클러스터링 시작 - 줌: ${zoom}, 대형거리: ${clusterDistances.large}, 소형거리: ${clusterDistances.small}`);
+    console.log(`🔍 3단계 클러스터링 시작 - 줌: ${zoom}, 대형거리: ${clusterDistances.large}, 중형거리: ${clusterDistances.medium}, 소형거리: ${clusterDistances.small}`);
     
     if (clusterDistances.small === 0) {
       // 개별 마커 표시 모드 - 모든 마커를 개별적으로 표시
