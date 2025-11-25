@@ -722,7 +722,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           
           const marker = new window.google.maps.Marker({
             position: { lat: property.location.lat, lng: property.location.lng },
-            map: mapInstance.current,
+            map: null, // 클러스터링을 위해 먼저 null로 설정, updateClusters에서 표시
             title: property.id,
             zIndex: 1,
             optimized: true,
@@ -736,19 +736,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           markersRef.current.push(marker);
           console.log(`✅ 마커 생성 완료: ${property.id} - ${property.title}`);
           console.log(`📍 마커 위치 확인:`, marker.getPosition());
-          console.log(`🗺️ 마커가 지도에 표시됨:`, marker.getMap() === mapInstance.current);
-          
-          // 마커가 제대로 표시되었는지 확인 (안전장치)
-          setTimeout(() => {
-            try {
-              if (marker.getMap() !== mapInstance.current) {
-                console.warn(`⚠️ 마커가 지도에 표시되지 않음, 다시 표시: ${property.id}`);
-                marker.setMap(mapInstance.current);
-              }
-            } catch (checkErr) {
-              console.error(`❌ 마커 표시 확인 오류: ${property.id}`, checkErr);
-            }
-          }, 100);
+          // 클러스터링을 위해 마커는 updateClusters에서 표시됨
         } catch (err) {
           console.error('❌ 마커 생성 오류:', err);
         }
@@ -756,19 +744,8 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
 
       console.log('생성된 마커 수:', markersRef.current.length);
 
-      // 모든 마커가 표시되었는지 최종 확인
+      // 클러스터링 업데이트 (마커는 updateClusters에서 표시됨)
       setTimeout(() => {
-        markersRef.current.forEach((marker, index) => {
-          try {
-            if (marker.getMap() !== mapInstance.current) {
-              console.warn(`⚠️ 마커 ${index + 1}가 표시되지 않음, 강제 표시: ${marker.property.id}`);
-              marker.setMap(mapInstance.current);
-            }
-          } catch (err) {
-            console.error(`❌ 마커 ${index + 1} 표시 확인 오류:`, err);
-          }
-        });
-        
         updateClusters();
       }, 200);
 
@@ -993,7 +970,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
             try {
               const marker = new window.google.maps.Marker({
                 position: { lat: property.location.lat, lng: property.location.lng },
-                map: mapInstance.current,
+                map: null, // 클러스터링을 위해 먼저 null로 설정, updateClusters에서 표시
                 title: property.id,
                 zIndex: 1,
                 optimized: true,
