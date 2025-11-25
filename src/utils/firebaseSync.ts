@@ -1663,7 +1663,6 @@ class FirebaseSync {
       // undefined 값 제거 (Firebase 호환성)
       const cleanPropertyData = this.removeUndefinedValues(propertyData);
       
-<<<<<<< HEAD
       // 디버깅: 정리 전후 비교
       console.log('🔍 데이터 정리 전후 비교:', {
         원본키수: Object.keys(propertyData).length,
