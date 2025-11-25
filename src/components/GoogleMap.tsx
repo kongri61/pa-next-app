@@ -1044,14 +1044,13 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           return;
         }
         
-        if (mapInstance.current) {
-          // 구월동 중심점 (초기화 버튼 클릭 시)
-          const guwolDongCenter = { lat: 37.4563, lng: 126.7052 };
-          mapInstance.current.panTo(guwolDongCenter);
-          mapInstance.current.setZoom(10); // 클러스터가 보이도록 줌 레벨 낮춤 (14 -> 10)
+        if (!mapInstance.current) {
+          console.warn('⚠️ 지도 인스턴스가 초기화되지 않았습니다.');
+          return;
         }
         
-        // 마커 재생성
+        // 기존 마커와 클러스터 제거
+        console.log('🗑️ 기존 마커 및 클러스터 제거 시작');
         markersRef.current.forEach(marker => {
           try {
             marker.setMap(null);
@@ -1069,11 +1068,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           }
         });
         clustersRef.current = [];
-        
-        if (!mapInstance.current) {
-          console.warn('⚠️ 지도 인스턴스가 초기화되지 않았습니다.');
-          return;
-        }
+        console.log('✅ 기존 마커 및 클러스터 제거 완료');
         
         // 지도 초기 범위 설정: 구월로(상단), 인천문화예술회관(하단), 석바위공원(좌측) - 좌측을 오른쪽으로 이동
         console.log('🔄 초기화 버튼 클릭 - resetMarkers 실행');
@@ -1192,10 +1187,13 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           console.warn('⚠️ bounds가 유효하지 않음:', { isEmpty, hasMapInstance: !!mapInstance.current });
         }
         
-        // 마커 재생성
-        if (properties && properties.length > 0) {
-          properties.forEach((property) => {
-            if (!property.location) {
+        // 마커 재생성 (properties prop 사용)
+        console.log('🔄 마커 재생성 시작 - 매물 수:', properties?.length || 0);
+        
+        if (properties && properties.length > 0 && mapInstance.current) {
+          properties.forEach((property, index) => {
+            if (!property.location || !property.location.lat || !property.location.lng) {
+              console.log(`⚠️ 매물 ${index + 1} 위치 정보 없음:`, property.title);
               return;
             }
 
@@ -1215,16 +1213,33 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
               marker.property = property;
               markersRef.current.push(marker);
             } catch (err) {
-              console.error('마커 재생성 오류:', err);
+              console.error('❌ 마커 재생성 오류:', err, property);
             }
+          });
+          
+          console.log('✅ 마커 재생성 완료 - 생성된 마커 수:', markersRef.current.length);
+        } else {
+          console.warn('⚠️ 마커 재생성 건너뜀:', {
+            hasProperties: !!properties,
+            propertiesLength: properties?.length || 0,
+            hasMapInstance: !!mapInstance.current
           });
         }
         
         // 초기화 완료 후 플래그 해제 및 클러스터링 업데이트
         setTimeout(() => {
           (mapInstance.current as any).__isResetting = false;
-          console.log('🔄 초기화 완료 - 클러스터링 업데이트');
-          updateClusters();
+          console.log('🔄 초기화 완료 - 클러스터링 업데이트 시작');
+          console.log('📊 현재 마커 수:', markersRef.current.length);
+          if (markersRef.current.length > 0 && mapInstance.current && isLoaded) {
+            updateClusters();
+          } else {
+            console.warn('⚠️ 클러스터링 업데이트 건너뜀:', {
+              markersCount: markersRef.current.length,
+              hasMapInstance: !!mapInstance.current,
+              isLoaded
+            });
+          }
         }, 600); // 줌 레벨 설정 완료 후 클러스터링 업데이트
       } catch (error) {
         console.error('❌ resetMarkers 오류:', error);
