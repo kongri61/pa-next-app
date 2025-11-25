@@ -558,7 +558,11 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     if (clusterDistances.medium > 0) {
       largeGroups.forEach(largeGroup => {
         if (largeGroup.markers.length === 1) {
-          // 단일 마커는 중형 클러스터링 대상에서 제외
+          // 단일 마커는 개별 마커로 전달
+          mediumGroups.push({
+            ...largeGroup,
+            type: 'large' // 개별 마커는 large 타입으로 처리
+          });
           return;
         }
 
@@ -614,22 +618,26 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           }
         });
 
-        // 중형 클러스터들을 추가 (최소 2개 마커만)
+        // 중형 클러스터들을 추가 (2개 이상은 클러스터, 1개는 개별 마커로 전달)
         tempMediumGroups.forEach(mediumGroup => {
           if (mediumGroup.markers.length >= 2) {
             mediumGroups.push(mediumGroup);
+          } else {
+            // 단일 마커는 개별 마커로 전달 (타입을 large로 설정하여 개별 마커로 처리)
+            mediumGroups.push({
+              ...mediumGroup,
+              type: 'large' as 'medium' // 개별 마커는 large 타입으로 처리
+            });
           }
         });
       });
     } else {
       // 중형 클러스터링이 비활성화된 경우 대형 클러스터를 그대로 사용
       largeGroups.forEach(largeGroup => {
-        if (largeGroup.markers.length >= 2) {
-          mediumGroups.push({
-            ...largeGroup,
-            type: 'medium'
-          });
-        }
+        mediumGroups.push({
+          ...largeGroup,
+          type: largeGroup.markers.length >= 2 ? 'medium' : 'large' // 2개 이상은 medium, 1개는 large(개별 마커)
+        });
       });
     }
 
@@ -646,11 +654,8 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     if (clusterDistances.small > 0) {
       mediumGroups.forEach(mediumGroup => {
         if (mediumGroup.markers.length === 1) {
-          // 단일 마커는 개별 마커로 처리
-          finalGroups.push({
-            ...mediumGroup,
-            type: 'large' // 개별 마커는 large 타입으로 처리
-          });
+          // 단일 마커는 개별 마커로 처리 (이미 large 타입으로 설정됨)
+          finalGroups.push(mediumGroup);
           return;
         }
 
@@ -706,31 +711,21 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           }
         });
 
-        // 소형 클러스터들을 최종 그룹에 추가 (최소 2개 마커만)
+        // 소형 클러스터들을 최종 그룹에 추가 (2개 이상은 클러스터, 1개는 개별 마커)
         smallGroups.forEach(smallGroup => {
-          if (smallGroup.markers.length >= 2) {
-            finalGroups.push(smallGroup);
-          } else {
-            // 단일 마커는 개별 마커로 처리
-            finalGroups.push({
-              ...smallGroup,
-              type: 'large' // 개별 마커는 large 타입으로 처리
-            });
-          }
+          finalGroups.push({
+            ...smallGroup,
+            type: smallGroup.markers.length >= 2 ? 'small' : 'large' // 2개 이상은 small, 1개는 large(개별 마커)
+          });
         });
       });
     } else {
       // 소형 클러스터링이 비활성화된 경우 중형 클러스터를 그대로 사용
       mediumGroups.forEach(mediumGroup => {
-        if (mediumGroup.markers.length >= 2) {
-          finalGroups.push(mediumGroup);
-        } else {
-          // 단일 마커는 개별 마커로 처리
-          finalGroups.push({
-            ...mediumGroup,
-            type: 'large' // 개별 마커는 large 타입으로 처리
-          });
-        }
+        finalGroups.push({
+          ...mediumGroup,
+          type: mediumGroup.markers.length >= 2 ? mediumGroup.type : 'large' // 2개 이상은 원래 타입, 1개는 large(개별 마커)
+        });
       });
     }
 
