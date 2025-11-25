@@ -2,7 +2,7 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 
-REM Git 저장소 확인
+REM Check Git repository
 if not exist ".git" (
     echo Git repository not found. Initializing...
     call git init
@@ -12,7 +12,7 @@ if not exist ".git" (
     exit /b 1
 )
 
-REM 원격 저장소 확인
+REM Check remote repository
 call git remote -v >nul 2>&1
 if %errorlevel% neq 0 (
     echo Remote repository not configured.
@@ -34,9 +34,18 @@ if %errorlevel% neq 0 (
     echo No changes to commit or commit failed.
 )
 
-REM 브랜치 확인 및 푸시
+REM Check branch and push
 for /f "tokens=*" %%i in ('git branch --show-current') do set CURRENT_BRANCH=%%i
 if "%CURRENT_BRANCH%"=="" set CURRENT_BRANCH=main
+
+REM Pull remote changes
+echo Pulling remote changes...
+call git pull --rebase origin %CURRENT_BRANCH%
+if %errorlevel% neq 0 (
+    echo Pull failed or conflict occurred. Please resolve manually.
+    pause
+    exit /b %errorlevel%
+)
 
 call git push origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (

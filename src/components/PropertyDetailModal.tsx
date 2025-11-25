@@ -260,7 +260,7 @@ const ImageCounter = styled.div`
   font-size: 0.75rem;
   width: fit-content;
   margin-left: auto;
-  margin-right: auto;
+  margin-right: 0;
 `;
 
 const ImageNavigationButton = styled.button`

@@ -3,10 +3,10 @@ chcp 65001 >nul
 cd /d "%~dp0"
 
 echo ========================================
-echo 자동 배포 시작
+echo Auto Deployment Started
 echo ========================================
 
-REM Git 저장소 확인
+REM Check Git repository
 if not exist ".git" (
     echo Git repository not found. Initializing...
     call git init
@@ -16,7 +16,7 @@ if not exist ".git" (
     exit /b 1
 )
 
-REM 원격 저장소 확인
+REM Check remote repository
 call git remote -v >nul 2>&1
 if %errorlevel% neq 0 (
     echo Remote repository not configured.
@@ -26,7 +26,7 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo 1. 프로젝트 빌드 중...
+echo 1. Building project...
 call npm run build
 if %errorlevel% neq 0 (
     echo Build failed!
@@ -35,23 +35,32 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo 2. Git 상태 확인...
+echo 2. Checking Git status...
 call git status
 
 echo.
-echo 3. 변경사항 커밋...
+echo 3. Committing changes...
 call git add .
 call git commit -m "Auto deploy: %date% %time%"
 if %errorlevel% neq 0 (
     echo No changes to commit or commit failed.
 )
 
-REM 브랜치 확인 및 푸시
+REM Check branch and push
 for /f "tokens=*" %%i in ('git branch --show-current') do set CURRENT_BRANCH=%%i
 if "%CURRENT_BRANCH%"=="" set CURRENT_BRANCH=main
 
 echo.
-echo 4. GitHub에 푸시 중...
+echo 4. Pulling remote changes...
+call git pull --rebase origin %CURRENT_BRANCH%
+if %errorlevel% neq 0 (
+    echo Pull failed or conflict occurred. Please resolve manually.
+    pause
+    exit /b %errorlevel%
+)
+
+echo.
+echo 5. Pushing to GitHub...
 call git push origin %CURRENT_BRANCH%
 if %errorlevel% neq 0 (
     echo Push failed!
@@ -60,7 +69,7 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo 5. Vercel 배포 중...
+echo 6. Deploying to Vercel...
 call npx vercel --prod --yes
 if %errorlevel% neq 0 (
     echo Deployment failed!
@@ -70,6 +79,6 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ========================================
-echo 모든 작업이 완료되었습니다!
+echo All tasks completed!
 echo ========================================
 pause
