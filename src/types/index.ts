@@ -39,7 +39,6 @@ export interface Property {
   // 상세 정보 필드들
   maintenanceFee?: number; // 관리비 (만원)
   premium?: number; // 권리금 (만원)
-  buildingUse?: string; // 건축물용도
   coolingHeating?: string; // 냉/난방
   approvalDate?: string; // 사용승인일
   maintenanceFeeItems?: string; // 관리비포함항목
