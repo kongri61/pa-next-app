@@ -307,7 +307,21 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     };
   };
 
-  // 2단계 소형 클러스터 아이콘 생성
+  // 2단계 중형 클러스터 아이콘 생성
+  const createMediumClusterIcon = (count: number) => {
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg width="45" height="45" viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="22.5" cy="22.5" r="20" fill="#f59e0b" stroke="white" stroke-width="3.5"/>
+          <text x="22.5" y="28" text-anchor="middle" fill="white" font-size="15" font-weight="bold">${count}</text>
+        </svg>
+      `),
+      scaledSize: new window.google.maps.Size(45, 45),
+      anchor: new window.google.maps.Point(22.5, 22.5)
+    };
+  };
+
+  // 3단계 소형 클러스터 아이콘 생성
   const createSmallClusterIcon = (count: number) => {
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
@@ -332,6 +346,20 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       `),
       scaledSize: new window.google.maps.Size(54, 54),
       anchor: new window.google.maps.Point(27, 27)
+    };
+  };
+
+  // 선택된 중형 클러스터 아이콘 생성
+  const createSelectedMediumClusterIcon = (count: number) => {
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg width="49" height="49" viewBox="0 0 49 49" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="24.5" cy="24.5" r="22" fill="#d97706" stroke="white" stroke-width="4.5"/>
+          <text x="24.5" y="31" text-anchor="middle" fill="white" font-size="16" font-weight="bold">${count}</text>
+        </svg>
+      `),
+      scaledSize: new window.google.maps.Size(49, 49),
+      anchor: new window.google.maps.Point(24.5, 24.5)
     };
   };
 
@@ -423,7 +451,14 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           if (selectedClusterIdRef.current) {
             const previousCluster = clustersRef.current.find(c => c.clusterId === selectedClusterIdRef.current);
             if (previousCluster) {
-              const iconFunction = previousCluster.clusterType === 'large' ? createLargeClusterIcon : createSmallClusterIcon;
+              let iconFunction;
+              if (previousCluster.clusterType === 'large') {
+                iconFunction = createLargeClusterIcon;
+              } else if (previousCluster.clusterType === 'medium') {
+                iconFunction = createMediumClusterIcon;
+              } else {
+                iconFunction = createSmallClusterIcon;
+              }
               previousCluster.setIcon(iconFunction(previousCluster.clusterCount));
             }
             selectedClusterIdRef.current = null;
@@ -446,7 +481,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       return;
     }
 
-    // 1단계: 대형 클러스터링 (넓은 범위)
+    // 1단계: 대형 클러스터링 (넓은 범위) - 낮은 줌 레벨
     const largeGroups: Array<{
       center: { lat: number; lng: number };
       markers: any[];
@@ -454,135 +489,252 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       type: 'large';
     }> = [];
 
-    markersRef.current.forEach(marker => {
-      const position = marker.getPosition();
-      const lat = position.lat();
-      const lng = position.lng();
-      
-      let addedToGroup = false;
-      let closestGroup = null;
-      let minDistance = Infinity;
-      
-      for (const group of largeGroups) {
-        const distance = Math.sqrt(
-          Math.pow(lat - group.center.lat, 2) + Math.pow(lng - group.center.lng, 2)
-        );
-        
-        if (distance <= clusterDistances.large && distance < minDistance) {
-          minDistance = distance;
-          closestGroup = group;
-        }
-      }
-      
-      if (closestGroup) {
-        closestGroup.markers.push(marker);
-        closestGroup.properties.push(marker.property);
-        
-        const totalLat = closestGroup.markers.reduce((sum, m) => sum + m.getPosition().lat(), 0);
-        const totalLng = closestGroup.markers.reduce((sum, m) => sum + m.getPosition().lng(), 0);
-        closestGroup.center = {
-          lat: totalLat / closestGroup.markers.length,
-          lng: totalLng / closestGroup.markers.length
-        };
-        
-        addedToGroup = true;
-      }
-      
-      if (!addedToGroup) {
-        largeGroups.push({
-          center: { lat, lng },
-          markers: [marker],
-          properties: [marker.property],
-          type: 'large'
-        });
-      }
-    });
-
-    console.log(`🔍 1단계 대형 클러스터 생성: ${largeGroups.length}개`);
-
-    // 2단계: 소형 클러스터링 (각 대형 클러스터 내에서)
-    const finalGroups: Array<{
-      center: { lat: number; lng: number };
-      markers: any[];
-      properties: Property[];
-      type: 'large' | 'small';
-    }> = [];
-
-    largeGroups.forEach(largeGroup => {
-      if (largeGroup.markers.length === 1) {
-        // 단일 마커는 그대로 유지
-        finalGroups.push(largeGroup);
-        return;
-      }
-
-      // 대형 클러스터 내에서 소형 클러스터링 시도
-      const smallGroups: Array<{
-        center: { lat: number; lng: number };
-        markers: any[];
-        properties: Property[];
-        type: 'small';
-      }> = [];
-
-      largeGroup.markers.forEach(marker => {
+    if (clusterDistances.large > 0) {
+      markersRef.current.forEach(marker => {
         const position = marker.getPosition();
         const lat = position.lat();
         const lng = position.lng();
         
-        let addedToSmallGroup = false;
-        let closestSmallGroup = null;
-        let minSmallDistance = Infinity;
+        let addedToGroup = false;
+        let closestGroup = null;
+        let minDistance = Infinity;
         
-        for (const smallGroup of smallGroups) {
+        for (const group of largeGroups) {
           const distance = Math.sqrt(
-            Math.pow(lat - smallGroup.center.lat, 2) + Math.pow(lng - smallGroup.center.lng, 2)
+            Math.pow(lat - group.center.lat, 2) + Math.pow(lng - group.center.lng, 2)
           );
           
-          if (distance <= clusterDistances.small && distance < minSmallDistance) {
-            minSmallDistance = distance;
-            closestSmallGroup = smallGroup;
+          if (distance <= clusterDistances.large && distance < minDistance) {
+            minDistance = distance;
+            closestGroup = group;
           }
         }
         
-        if (closestSmallGroup) {
-          closestSmallGroup.markers.push(marker);
-          closestSmallGroup.properties.push(marker.property);
+        if (closestGroup) {
+          closestGroup.markers.push(marker);
+          closestGroup.properties.push(marker.property);
           
-          const totalLat = closestSmallGroup.markers.reduce((sum, m) => sum + m.getPosition().lat(), 0);
-          const totalLng = closestSmallGroup.markers.reduce((sum, m) => sum + m.getPosition().lng(), 0);
-          closestSmallGroup.center = {
-            lat: totalLat / closestSmallGroup.markers.length,
-            lng: totalLng / closestSmallGroup.markers.length
+          const totalLat = closestGroup.markers.reduce((sum, m) => sum + m.getPosition().lat(), 0);
+          const totalLng = closestGroup.markers.reduce((sum, m) => sum + m.getPosition().lng(), 0);
+          closestGroup.center = {
+            lat: totalLat / closestGroup.markers.length,
+            lng: totalLng / closestGroup.markers.length
           };
           
-          addedToSmallGroup = true;
+          addedToGroup = true;
         }
         
-        if (!addedToSmallGroup) {
-          smallGroups.push({
+        if (!addedToGroup) {
+          largeGroups.push({
             center: { lat, lng },
             markers: [marker],
             properties: [marker.property],
-            type: 'small'
+            type: 'large'
           });
         }
       });
+    } else {
+      // 대형 클러스터링이 비활성화된 경우 모든 마커를 개별 그룹으로 처리
+      markersRef.current.forEach(marker => {
+        largeGroups.push({
+          center: { lat: marker.getPosition().lat(), lng: marker.getPosition().lng() },
+          markers: [marker],
+          properties: [marker.property],
+          type: 'large'
+        });
+      });
+    }
 
-      // 소형 클러스터들을 최종 그룹에 추가
-      smallGroups.forEach(smallGroup => {
-        if (smallGroup.markers.length === 1) {
+    console.log(`🔍 1단계 대형 클러스터 생성: ${largeGroups.length}개`);
+
+    // 2단계: 중형 클러스터링 (중간 범위) - 중간 줌 레벨
+    const mediumGroups: Array<{
+      center: { lat: number; lng: number };
+      markers: any[];
+      properties: Property[];
+      type: 'medium';
+    }> = [];
+
+    if (clusterDistances.medium > 0) {
+      largeGroups.forEach(largeGroup => {
+        if (largeGroup.markers.length === 1) {
+          // 단일 마커는 중형 클러스터링 대상에서 제외
+          return;
+        }
+
+        // 대형 클러스터 내에서 중형 클러스터링 시도
+        const tempMediumGroups: Array<{
+          center: { lat: number; lng: number };
+          markers: any[];
+          properties: Property[];
+          type: 'medium';
+        }> = [];
+
+        largeGroup.markers.forEach(marker => {
+          const position = marker.getPosition();
+          const lat = position.lat();
+          const lng = position.lng();
+          
+          let addedToMediumGroup = false;
+          let closestMediumGroup = null;
+          let minMediumDistance = Infinity;
+          
+          for (const mediumGroup of tempMediumGroups) {
+            const distance = Math.sqrt(
+              Math.pow(lat - mediumGroup.center.lat, 2) + Math.pow(lng - mediumGroup.center.lng, 2)
+            );
+            
+            if (distance <= clusterDistances.medium && distance < minMediumDistance) {
+              minMediumDistance = distance;
+              closestMediumGroup = mediumGroup;
+            }
+          }
+          
+          if (closestMediumGroup) {
+            closestMediumGroup.markers.push(marker);
+            closestMediumGroup.properties.push(marker.property);
+            
+            const totalLat = closestMediumGroup.markers.reduce((sum, m) => sum + m.getPosition().lat(), 0);
+            const totalLng = closestMediumGroup.markers.reduce((sum, m) => sum + m.getPosition().lng(), 0);
+            closestMediumGroup.center = {
+              lat: totalLat / closestMediumGroup.markers.length,
+              lng: totalLng / closestMediumGroup.markers.length
+            };
+            
+            addedToMediumGroup = true;
+          }
+          
+          if (!addedToMediumGroup) {
+            tempMediumGroups.push({
+              center: { lat, lng },
+              markers: [marker],
+              properties: [marker.property],
+              type: 'medium'
+            });
+          }
+        });
+
+        // 중형 클러스터들을 추가 (최소 2개 마커만)
+        tempMediumGroups.forEach(mediumGroup => {
+          if (mediumGroup.markers.length >= 2) {
+            mediumGroups.push(mediumGroup);
+          }
+        });
+      });
+    } else {
+      // 중형 클러스터링이 비활성화된 경우 대형 클러스터를 그대로 사용
+      largeGroups.forEach(largeGroup => {
+        if (largeGroup.markers.length >= 2) {
+          mediumGroups.push({
+            ...largeGroup,
+            type: 'medium'
+          });
+        }
+      });
+    }
+
+    console.log(`🔍 2단계 중형 클러스터 생성: ${mediumGroups.length}개`);
+
+    // 3단계: 소형 클러스터링 (좁은 범위) - 높은 줌 레벨
+    const finalGroups: Array<{
+      center: { lat: number; lng: number };
+      markers: any[];
+      properties: Property[];
+      type: 'large' | 'medium' | 'small';
+    }> = [];
+
+    if (clusterDistances.small > 0) {
+      mediumGroups.forEach(mediumGroup => {
+        if (mediumGroup.markers.length === 1) {
           // 단일 마커는 개별 마커로 처리
           finalGroups.push({
-            ...smallGroup,
+            ...mediumGroup,
             type: 'large' // 개별 마커는 large 타입으로 처리
           });
+          return;
+        }
+
+        // 중형 클러스터 내에서 소형 클러스터링 시도
+        const smallGroups: Array<{
+          center: { lat: number; lng: number };
+          markers: any[];
+          properties: Property[];
+          type: 'small';
+        }> = [];
+
+        mediumGroup.markers.forEach(marker => {
+          const position = marker.getPosition();
+          const lat = position.lat();
+          const lng = position.lng();
+          
+          let addedToSmallGroup = false;
+          let closestSmallGroup = null;
+          let minSmallDistance = Infinity;
+          
+          for (const smallGroup of smallGroups) {
+            const distance = Math.sqrt(
+              Math.pow(lat - smallGroup.center.lat, 2) + Math.pow(lng - smallGroup.center.lng, 2)
+            );
+            
+            if (distance <= clusterDistances.small && distance < minSmallDistance) {
+              minSmallDistance = distance;
+              closestSmallGroup = smallGroup;
+            }
+          }
+          
+          if (closestSmallGroup) {
+            closestSmallGroup.markers.push(marker);
+            closestSmallGroup.properties.push(marker.property);
+            
+            const totalLat = closestSmallGroup.markers.reduce((sum, m) => sum + m.getPosition().lat(), 0);
+            const totalLng = closestSmallGroup.markers.reduce((sum, m) => sum + m.getPosition().lng(), 0);
+            closestSmallGroup.center = {
+              lat: totalLat / closestSmallGroup.markers.length,
+              lng: totalLng / closestSmallGroup.markers.length
+            };
+            
+            addedToSmallGroup = true;
+          }
+          
+          if (!addedToSmallGroup) {
+            smallGroups.push({
+              center: { lat, lng },
+              markers: [marker],
+              properties: [marker.property],
+              type: 'small'
+            });
+          }
+        });
+
+        // 소형 클러스터들을 최종 그룹에 추가 (최소 2개 마커만)
+        smallGroups.forEach(smallGroup => {
+          if (smallGroup.markers.length >= 2) {
+            finalGroups.push(smallGroup);
+          } else {
+            // 단일 마커는 개별 마커로 처리
+            finalGroups.push({
+              ...smallGroup,
+              type: 'large' // 개별 마커는 large 타입으로 처리
+            });
+          }
+        });
+      });
+    } else {
+      // 소형 클러스터링이 비활성화된 경우 중형 클러스터를 그대로 사용
+      mediumGroups.forEach(mediumGroup => {
+        if (mediumGroup.markers.length >= 2) {
+          finalGroups.push(mediumGroup);
         } else {
-          // 소형 클러스터로 처리
-          finalGroups.push(smallGroup);
+          // 단일 마커는 개별 마커로 처리
+          finalGroups.push({
+            ...mediumGroup,
+            type: 'large' // 개별 마커는 large 타입으로 처리
+          });
         }
       });
-    });
+    }
 
-    console.log(`🔍 2단계 소형 클러스터 완료: ${finalGroups.length}개 그룹`);
+    console.log(`🔍 3단계 소형 클러스터 완료: ${finalGroups.length}개 그룹`);
 
     // 클러스터에 포함된 마커를 추적하기 위한 Set
     const clusteredMarkers = new Set<any>();
@@ -617,7 +769,14 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           if (selectedClusterIdRef.current) {
             const previousCluster = clustersRef.current.find(c => c.clusterId === selectedClusterIdRef.current);
             if (previousCluster) {
-              const iconFunction = previousCluster.clusterType === 'large' ? createLargeClusterIcon : createSmallClusterIcon;
+              let iconFunction;
+              if (previousCluster.clusterType === 'large') {
+                iconFunction = createLargeClusterIcon;
+              } else if (previousCluster.clusterType === 'medium') {
+                iconFunction = createMediumClusterIcon;
+              } else {
+                iconFunction = createSmallClusterIcon;
+              }
               previousCluster.setIcon(iconFunction(previousCluster.clusterCount));
             }
             selectedClusterIdRef.current = null;
@@ -635,16 +794,29 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           }
         });
         
-      } else {
-        // 2단계 클러스터 (대형 또는 소형)
-        const isLargeCluster = group.type === 'large';
-        const iconFunction = isLargeCluster ? createLargeClusterIcon : createSmallClusterIcon;
-        const selectedIconFunction = isLargeCluster ? createSelectedLargeClusterIcon : createSelectedSmallClusterIcon;
+      } else if (group.markers.length >= 2) {
+        // 3단계 클러스터 (대형, 중형, 소형) - 최소 2개 마커만 클러스터로 표시
+        let iconFunction, selectedIconFunction;
+        let zIndex = 10;
+        
+        if (group.type === 'large') {
+          iconFunction = createLargeClusterIcon;
+          selectedIconFunction = createSelectedLargeClusterIcon;
+          zIndex = 15;
+        } else if (group.type === 'medium') {
+          iconFunction = createMediumClusterIcon;
+          selectedIconFunction = createSelectedMediumClusterIcon;
+          zIndex = 12;
+        } else {
+          iconFunction = createSmallClusterIcon;
+          selectedIconFunction = createSelectedSmallClusterIcon;
+          zIndex = 10;
+        }
         
         const cluster = new window.google.maps.Marker({
           position: group.center,
           map: mapInstance.current,
-          zIndex: isLargeCluster ? 15 : 10, // 대형 클러스터가 위에 표시
+          zIndex: zIndex,
           icon: iconFunction(group.markers.length)
         });
 
@@ -678,7 +850,14 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           if (selectedClusterIdRef.current && selectedClusterIdRef.current !== clusterId) {
             const previousCluster = clustersRef.current.find(c => c.clusterId === selectedClusterIdRef.current);
             if (previousCluster) {
-              const prevIconFunction = previousCluster.clusterType === 'large' ? createLargeClusterIcon : createSmallClusterIcon;
+              let prevIconFunction;
+              if (previousCluster.clusterType === 'large') {
+                prevIconFunction = createLargeClusterIcon;
+              } else if (previousCluster.clusterType === 'medium') {
+                prevIconFunction = createMediumClusterIcon;
+              } else {
+                prevIconFunction = createSmallClusterIcon;
+              }
               previousCluster.setIcon(prevIconFunction(previousCluster.clusterCount));
             }
           }
