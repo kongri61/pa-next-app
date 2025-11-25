@@ -74,3 +74,4 @@ git push origin main
    PowerShell: Set-Location "D:\1-2. CURSOR_지도기반사이트만들기"
    CMD: cd /d "D:\1-2. CURSOR_지도기반사이트만들기"
 
+
