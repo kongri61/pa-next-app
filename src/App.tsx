@@ -32,7 +32,18 @@ interface AppProps {
 function App({ initialProperties = [] }: AppProps) {
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
   const [isBulkPropertyModalOpen, setIsBulkPropertyModalOpen] = useState(false); // 대량매물등록 모달 상태 추가
-  const [isAdmin] = useState(true); // 로그인 기능 제거, 항상 관리자 권한
+  
+  // 모바일 서버 감지 (컴포넌트 레벨에서 한 번만 정의)
+  // PC 메인 서버: localhost, 192.168.219.105, pa-realestate-pc.vercel.app, pa-realestate-*.vercel.app
+  // 모바일 사이트: real-estate-map-site.vercel.app 또는 기타 도메인
+  const isMainServer = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '192.168.219.105' ||
+                      window.location.hostname === 'pa-realestate-pc.vercel.app' ||
+                      (window.location.hostname.includes('vercel.app') && 
+                       window.location.hostname.includes('pa-realestate'));
+  
+  // 모바일 사이트는 읽기 전용이므로 관리자 권한 없음
+  const [isAdmin] = useState(isMainServer); // PC 서버에서만 관리자 권한
   const [searchTerm, setSearchTerm] = useState('');
   const [addressSearch, setAddressSearch] = useState('');
   const [propertyNumberSearch, setPropertyNumberSearch] = useState(''); // 매물번호 검색 상태 추가

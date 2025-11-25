@@ -65,7 +65,9 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
             initMap();
           }, 2000);
         } else {
-          setError('지도를 로드할 수 없습니다. 인터넷 연결을 확인해주세요.');
+          // 모바일 사이트에서는 에러 메시지를 표시하지 않음 (콘솔에만 기록)
+          console.error('지도를 로드할 수 없습니다. 인터넷 연결을 확인해주세요.');
+          // setError('지도를 로드할 수 없습니다. 인터넷 연결을 확인해주세요.');
         }
         return;
       }
@@ -176,12 +178,14 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
         
         map.addListener('error', (error: any) => {
           console.error('지도 오류:', error);
-          setError('지도를 로드하는 중 오류가 발생했습니다.');
+          // 모바일 사이트에서는 에러 메시지를 표시하지 않음 (콘솔에만 기록)
+          // setError('지도를 로드하는 중 오류가 발생했습니다.');
         });
         
       } catch (error) {
         console.error('지도 초기화 오류:', error);
-        setError('지도를 초기화할 수 없습니다.');
+        // 모바일 사이트에서는 에러 메시지를 표시하지 않음 (콘솔에만 기록)
+        // setError('지도를 초기화할 수 없습니다.');
       }
     };
 
@@ -1017,11 +1021,19 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     }
   }));
 
+  // 모바일 사이트에서는 에러 메시지를 표시하지 않음
+  const isMainServer = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '192.168.219.105' ||
+                      window.location.hostname === 'pa-realestate-pc.vercel.app' ||
+                      (window.location.hostname.includes('vercel.app') && 
+                       window.location.hostname.includes('pa-realestate'));
+
   return (
     <MapContainer>
       <MapDiv ref={mapRef} />
       
-      {error && (
+      {/* PC 서버에서만 에러 메시지 표시 */}
+      {error && isMainServer && (
         <div style={{
           position: 'absolute',
           top: '50%',
