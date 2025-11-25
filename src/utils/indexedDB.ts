@@ -1,10 +1,6 @@
 // IndexedDB 설정
 const DB_NAME = 'RealEstateDB';
-<<<<<<< HEAD
 const DB_VERSION = 4; // 버전 업데이트: 버전 충돌 해결
-=======
-const DB_VERSION = 4; // 기존 버전 3보다 높게 설정
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
 const PROPERTIES_STORE = 'properties';
 const IMAGES_STORE = 'images';
 const SETTINGS_STORE = 'settings';

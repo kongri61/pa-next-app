@@ -2752,17 +2752,12 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                         style={{ color: '#dc2626' }}
                       />
                     ) : (
-<<<<<<< HEAD
-                      <span style={{ color: '#dc2626' }}>
-                        {editData.recommendedBusiness || '-'}
-=======
                       <span style={{
                         color: '#dc2626',
                         fontWeight: '700',
                         display: 'inline-block'
                       }}>
                         {editData.recommendedBusinessType || editData.recommendedBusiness || '-'}
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
                       </span>
                     )}
                   </PropertyInfoValue>

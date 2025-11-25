@@ -448,7 +448,9 @@ import { firebaseSync } from '../utils/firebaseSync';
   } catch (error) {
     console.error('❌ 매물 데이터 확인 실패:', error);
     return null;
-=======
+  }
+};
+
 // 삭제된 매물(isActive: false) 완전 삭제 함수
 (window as any).deleteInactiveProperties = async () => {
   console.log('🗑️ 삭제된 매물(isActive: false) 완전 삭제 시작...');
@@ -1206,17 +1208,21 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       return;
     }
     
-    // preloadedProperties가 없으면 IndexedDB에서 로드 시도 (백그라운드)
-    console.log('🚀 IndexedDB 데이터 로드 시작 (preloadedProperties 없음)...');
-    
-    let cancelled = false;
-    
-    const loadIndexedDBFirst = async () => {
-      try {
-        const startTime = performance.now();
-=======
   // 데이터 초기화 및 Firebase 실시간 동기화 (성능 최적화: IndexedDB 우선 로드)
   useEffect(() => {
+    // preloadedProperties가 있으면 즉시 사용
+    if (preloadedProperties && preloadedProperties.length > 0) {
+      console.log('🚀 Preloaded properties 사용:', {
+        preloadedCount: preloadedProperties.length,
+        defaultCount: defaultProperties.length
+      });
+      if (preloadedProperties.length > 0 && defaultProperties.length === 0) {
+        setDefaultProperties(preloadedProperties);
+      }
+      setIsDataLoaded(true);
+      return;
+    }
+    
     console.log('🚀 데이터 초기화 시작 (성능 최적화: IndexedDB 우선 로드)...');
     
     // 모바일 서버 감지
@@ -1231,6 +1237,8 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     console.log('🌐 현재 호스트:', window.location.hostname);
     console.log('🖥️ 메인 서버 여부:', isMainServer);
     
+    let cancelled = false;
+    
     // 1단계: IndexedDB에서 즉시 로드 (빠른 초기 표시)
     const loadFromIndexedDB = async () => {
       try {
@@ -1239,17 +1247,23 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         const localProperties = await IndexedDB.getAllProperties();
         console.log('✅ IndexedDB 로드 완료:', localProperties.length, '개 매물');
         
-        if (localProperties.length > 0) {
-          // IndexedDB에 데이터가 있으면 즉시 표시
-          setDefaultProperties(localProperties);
-          console.log('⚡ IndexedDB 데이터 즉시 표시 완료');
-        } else {
-          // IndexedDB에 데이터가 없으면 빈 배열로 시작
-          setDefaultProperties(initialProperties);
+        if (!cancelled) {
+          if (localProperties.length > 0) {
+            // IndexedDB에 데이터가 있으면 즉시 표시
+            setDefaultProperties(localProperties);
+            console.log('⚡ IndexedDB 데이터 즉시 표시 완료');
+          } else {
+            // IndexedDB에 데이터가 없으면 빈 배열로 시작
+            setDefaultProperties(initialProperties);
+          }
+          setIsDataLoaded(true);
         }
       } catch (dbError) {
         console.warn('⚠️ IndexedDB 로드 실패, 빈 배열로 시작:', dbError);
-        setDefaultProperties(initialProperties);
+        if (!cancelled) {
+          setDefaultProperties(initialProperties);
+          setIsDataLoaded(true);
+        }
       }
     };
     
@@ -1262,8 +1276,10 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
           console.log('🔄 Firebase 실시간 업데이트 받음:', properties.length, '개 매물');
           
           // Firebase 데이터로 업데이트 (IndexedDB 데이터보다 최신일 수 있음)
-          setDefaultProperties(properties);
-          setIsFirebaseConnected(true);
+          if (!cancelled) {
+            setDefaultProperties(properties);
+            setIsFirebaseConnected(true);
+          }
           
           console.log('✅ Firebase 동기화 완료:', {
             매물수: properties.length,
@@ -1272,43 +1288,12 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
             이미지있는매물: properties.filter(p => p.images && p.images.length > 0).length
           });
         });
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
-        
-        // IndexedDB 초기화 확인 및 데이터 로드
-        try {
-          await IndexedDB.initDatabase();
-        } catch (initError) {
-          // 이미 초기화되어 있으면 무시
-          console.log('IndexedDB 이미 초기화됨');
-        }
-        
-        const indexedDBProperties = await IndexedDB.getAllProperties();
-        const loadTime = performance.now() - startTime;
-        console.log(`✅ IndexedDB에서 ${indexedDBProperties.length}개 매물 로드 완료 (${loadTime.toFixed(2)}ms)`);
-        
-        if (!cancelled) {
-          if (indexedDBProperties.length > 0) {
-            console.log('⚡ IndexedDB 데이터 즉시 표시');
-            setDefaultProperties(indexedDBProperties);
-          }
-          setIsDataLoaded(true); // 데이터 로드 완료 표시
-        }
       } catch (error) {
-<<<<<<< HEAD
-        console.warn('⚠️ IndexedDB 로드 실패:', error);
-        // 로드 실패해도 로딩 상태는 해제 (빈 상태 메시지 표시)
-        if (!cancelled) {
-          setIsDataLoaded(true);
-        }
-      }
-    };
-    
-    // 즉시 실행 (비동기 - UI 블로킹 없음)
-    loadIndexedDBFirst();
-=======
         console.error('❌ Firebase 초기화 실패:', error);
-        setError('데이터를 불러오는 중 오류가 발생했습니다. 오프라인 모드로 전환합니다.');
-        setIsFirebaseConnected(false);
+        if (!cancelled) {
+          setError('데이터를 불러오는 중 오류가 발생했습니다. 오프라인 모드로 전환합니다.');
+          setIsFirebaseConnected(false);
+        }
         // IndexedDB 데이터는 이미 표시되었으므로 오류만 표시
       }
     };
@@ -1318,7 +1303,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       // IndexedDB 로드 완료 후 Firebase 초기화 시작 (지연 없이 즉시)
       initializeFirebase();
     });
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
     
     return () => {
       cancelled = true;
@@ -1840,17 +1824,12 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     
     const sorted = [...properties].sort((a, b) => {
       // 매물번호를 숫자로 변환하여 정렬 (P001 -> 1, P002 -> 2)
-<<<<<<< HEAD
-      const aId = parseInt(a.id.replace(/[^0-9]/g, '')) || 0;
-      const bId = parseInt(b.id.replace(/[^0-9]/g, '')) || 0;
-=======
       const extractNumber = (id: string) => {
         const match = id.match(/\d+/);
         return match ? parseInt(match[0], 10) : 0;
       };
       const aId = extractNumber(a.id);
       const bId = extractNumber(b.id);
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
       const result = aId - bId;
       console.log(`정렬 비교: ${a.id}(${aId}) vs ${b.id}(${bId}) = ${result}`);
       return result;
@@ -1968,7 +1947,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
       </div>
     );
   }
-=======
+  
   // 로딩 화면 비활성화
   // if (isLoading) {
   //   return (

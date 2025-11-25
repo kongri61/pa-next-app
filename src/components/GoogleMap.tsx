@@ -197,16 +197,6 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     const getLargeClusterDistance = () => {
       if (isMobile) {
 <<<<<<< HEAD
-        if (zoom < 6) return 0.25;   // 매우 넓은 범위
-        if (zoom < 8) return 0.15;   // 넓은 범위
-        if (zoom < 10) return 0.08; // 중간 범위
-        return 0.02; // 좁은 범위
-      } else {
-        if (zoom < 6) return 0.3;   // 매우 넓은 범위
-        if (zoom < 8) return 0.2;   // 넓은 범위
-        if (zoom < 10) return 0.1;  // 중간 범위
-        return 0.04; // 좁은 범위
-=======
         if (zoom < 6) return 0.15;   // 매우 넓은 범위 (0.25 -> 0.15)
         if (zoom < 8) return 0.09;   // 넓은 범위 (0.15 -> 0.09)
         if (zoom < 10) return 0.05; // 중간 범위 (0.08 -> 0.05)
@@ -216,24 +206,12 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
         if (zoom < 8) return 0.11;   // 넓은 범위 (0.18 -> 0.11)
         if (zoom < 10) return 0.06;  // 중간 범위 (0.09 -> 0.06)
         return 0.025; // 좁은 범위 (0.04 -> 0.025)
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
       }
     };
 
     // 2단계: 소형 클러스터 (좁은 범위) - 더 좁게 축소
     const getSmallClusterDistance = () => {
       if (isMobile) {
-<<<<<<< HEAD
-        if (zoom < 10) return 0.04; // 중간 범위
-        if (zoom < 12) return 0.02; // 좁은 범위
-        if (zoom < 14) return 0.008; // 매우 좁은 범위
-        return 0; // 개별 마커
-      } else {
-        if (zoom < 10) return 0.05;  // 중간 범위
-        if (zoom < 12) return 0.025; // 좁은 범위
-        if (zoom < 14) return 0.012; // 매우 좁은 범위
-        return 0; // 개별 마커
-=======
         if (zoom < 10) return 0.025;  // 중간 범위 (0.04 -> 0.025)
         if (zoom < 12) return 0.012;  // 좁은 범위 (0.02 -> 0.012)
         if (zoom < 13) return 0.006;  // 매우 좁은 범위 (0.01 -> 0.006)
@@ -243,7 +221,6 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
         if (zoom < 12) return 0.015;  // 좁은 범위 (0.025 -> 0.015)
         if (zoom < 13) return 0.008;  // 매우 좁은 범위 (0.012 -> 0.008)
         return 0; // 개별 마커 (줌 13 이상)
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
       }
     };
 
@@ -257,15 +234,9 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
   const createMarkerIcon = () => {
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-<<<<<<< HEAD
-        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="16" cy="16" r="14" fill="#1f2937" stroke="white" stroke-width="2"/>
-          <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">1</text>
-=======
         <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
           <circle cx="18" cy="18" r="16" fill="#1a1a1a" stroke="white" stroke-width="2"/>
           <text x="18" y="23" text-anchor="middle" fill="white" font-size="13" font-weight="bold">1</text>
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
         </svg>
       `),
       scaledSize: new window.google.maps.Size(36, 36),
@@ -277,15 +248,9 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
   const createSelectedMarkerIcon = () => {
     return {
       url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-<<<<<<< HEAD
-        <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="18" cy="18" r="16" fill="#111827" stroke="white" stroke-width="3"/>
-          <text x="18" y="23" text-anchor="middle" fill="white" font-size="13" font-weight="bold">1</text>
-=======
         <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
           <circle cx="20" cy="20" r="18" fill="#000000" stroke="white" stroke-width="3"/>
           <text x="20" y="26" text-anchor="middle" fill="white" font-size="14" font-weight="bold">1</text>
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
         </svg>
       `),
       scaledSize: new window.google.maps.Size(40, 40),

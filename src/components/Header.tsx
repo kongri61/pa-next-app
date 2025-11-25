@@ -384,23 +384,14 @@ const AreaButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isI
   }
 `;
 
-<<<<<<< HEAD
 const PriceSection = styled.div<{ isPriceModal?: boolean }>`
   padding: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
-=======
-const PriceSection = styled.div`
-  padding: 0.5rem 1rem;
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   border-bottom: 1px solid #e5e7eb;
 `;
 
 const PriceTitle = styled.div<{ isPriceModal?: boolean }>`
   font-weight: bold;
-<<<<<<< HEAD
   margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '1rem'};
-=======
-  margin-bottom: 0.5rem;
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   color: #374151;
   font-size: ${props => props.isPriceModal ? '0.85rem' : '1rem'};
 `;
@@ -408,13 +399,8 @@ const PriceTitle = styled.div<{ isPriceModal?: boolean }>`
 const PriceGrid = styled.div<{ isPriceModal?: boolean }>`
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-<<<<<<< HEAD
   gap: ${props => props.isPriceModal ? '0.08rem' : '0.4rem'};
   margin-bottom: ${props => props.isPriceModal ? '0.15rem' : '0.75rem'};
-=======
-  gap: 0.4rem;
-  margin-bottom: 0.5rem;
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   width: 100%;
 `;
 

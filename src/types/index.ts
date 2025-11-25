@@ -14,13 +14,8 @@ export interface Property {
   };
   bedrooms?: number;
   bathrooms?: number;
-<<<<<<< HEAD
-  roomBathInfo?: string; // 방/화장실 정보 (텍스트, 예: 내부남녀혼용, 외부남녀구분)
-  area: number; // 평방미터 (기본 면적, 전용면적로 사용 가능)
-=======
   roomBathInfo?: string; // 방/화장실 텍스트 정보 (예: "외부 남녀구분")
   area: number; // 전용면적 (평방미터)
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   supplyArea?: number; // 공급면적 (평방미터)
   dedicatedArea?: number; // 전용면적 (평방미터)
   images: string[];

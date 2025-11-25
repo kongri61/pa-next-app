@@ -44,11 +44,7 @@ class FirebaseSync {
         return;
       }
       
-<<<<<<< HEAD
-      // 모바일 서버 감지 (GitHub Pages 도메인)
-=======
       // 모바일 서버 감지
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
       const isMainServer = window.location.hostname === 'localhost' || 
                           window.location.hostname === '192.168.219.105' ||
                           window.location.hostname === 'pa-realestate-pc.vercel.app' ||
