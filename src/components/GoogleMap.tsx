@@ -738,7 +738,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           
           const marker = new window.google.maps.Marker({
             position: { lat: property.location.lat, lng: property.location.lng },
-            map: null, // 클러스터링을 위해 먼저 null로 설정, updateClusters에서 표시
+            map: mapInstance.current, // 지도에 바로 표시
             title: property.id,
             zIndex: 1,
             optimized: true,
@@ -760,9 +760,8 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
 
       console.log('생성된 마커 수:', markersRef.current.length);
 
-      // 클러스터링 업데이트 (마커는 updateClusters에서 표시됨)
-      // 지도가 로드되었는지 확인 후 클러스터링 업데이트
-      if (isLoaded) {
+      // 클러스터링 업데이트 (마커는 이미 지도에 표시되었으므로 updateClusters에서 클러스터링 적용)
+      if (isLoaded && mapInstance.current) {
         setTimeout(() => {
           console.log('🔄 매물 업데이트 후 클러스터링 업데이트');
           updateClusters();
@@ -770,6 +769,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       } else {
         // 지도가 아직 로드되지 않았으면 tilesloaded 이벤트에서 처리됨
         console.log('⏳ 지도 로드 대기 중 - tilesloaded 이벤트에서 클러스터링 업데이트 예정');
+        // 지도가 로드되면 자동으로 클러스터링이 적용됨
       }
 
     } catch (error) {
@@ -983,7 +983,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
             try {
               const marker = new window.google.maps.Marker({
                 position: { lat: property.location.lat, lng: property.location.lng },
-                map: null, // 클러스터링을 위해 먼저 null로 설정, updateClusters에서 표시
+                map: mapInstance.current, // 지도에 바로 표시
                 title: property.id,
                 zIndex: 1,
                 optimized: true,
