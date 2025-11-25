@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { addTestProperty, addTestRentProperty, getProperties } from '../firebase/propertyService';
-import { useFirebase } from '../contexts/FirebaseContext';
+import { addTestProperty, addTestRentProperty, getProperties, deleteAllProperties, deleteTestProperties } from '../firebase/propertyService';
+import * as IndexedDB from '../utils/indexedDB';
+import { firebaseSync } from '../utils/firebaseSync';
 
 const DebugContainer = styled.div`
   position: fixed;
@@ -45,6 +46,14 @@ const DebugButton = styled.button`
   }
 `;
 
+const DangerButton = styled(DebugButton)`
+  background: #ef4444;
+
+  &:hover {
+    background: #dc2626;
+  }
+`;
+
 const DebugLog = styled.div`
   background: #111827;
   padding: 0.5rem;
@@ -78,7 +87,6 @@ interface FirebaseDebuggerProps {
 const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
-  const { user } = useFirebase();
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -86,11 +94,6 @@ const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
   };
 
   const testAddProperty = async () => {
-    if (!user) {
-      addLog('❌ 사용자가 로그인되지 않았습니다.');
-      return;
-    }
-
     setIsLoading(true);
     addLog('🧪 매매용 테스트 매물 추가 시작...');
     
@@ -106,11 +109,6 @@ const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
   };
 
   const testAddRentProperty = async () => {
-    if (!user) {
-      addLog('❌ 사용자가 로그인되지 않았습니다.');
-      return;
-    }
-
     setIsLoading(true);
     addLog('🏠 임대용 테스트 매물 추가 시작...');
     
@@ -181,26 +179,200 @@ const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
     setLogs([]);
   };
 
+  const handleDeleteTestProperties = async () => {
+    const confirmed = window.confirm(
+      '테스트 매물만 삭제합니다.\n\n제목에 "테스트"가 포함된 매물들이 삭제됩니다.\n실제 등록된 매물은 유지됩니다.\n\n계속하시겠습니까?'
+    );
+
+    if (!confirmed) {
+      addLog('❌ 삭제가 취소되었습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    addLog('🗑️ 테스트 매물 삭제 시작...');
+    
+    try {
+      const deletedCount = await deleteTestProperties();
+      if (deletedCount > 0) {
+        addLog(`✅ 테스트 매물 삭제 완료! 총 ${deletedCount}개 삭제됨`);
+        addLog('🔄 페이지를 새로고침하여 변경사항을 확인하세요.');
+        
+        // 2초 후 자동 새로고침
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        addLog('ℹ️ 삭제할 테스트 매물이 없습니다.');
+      }
+    } catch (error: any) {
+      addLog(`❌ 테스트 매물 삭제 실패: ${error.message}`);
+      addLog(`   오류 코드: ${error.code || 'N/A'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAllProperties = async () => {
+    const confirmed = window.confirm(
+      '⚠️ 경고: 모든 매물이 삭제됩니다!\n\n이 작업은 되돌릴 수 없습니다. 정말로 모든 매물을 삭제하시겠습니까?'
+    );
+
+    if (!confirmed) {
+      addLog('❌ 삭제가 취소되었습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    addLog('🗑️ 모든 매물 삭제 시작...');
+    
+    try {
+      const deletedCount = await deleteAllProperties();
+      addLog(`✅ 모든 매물 삭제 완료! 총 ${deletedCount}개 삭제됨`);
+      addLog('🔄 페이지를 새로고침하여 변경사항을 확인하세요.');
+      
+      // 2초 후 자동 새로고침
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error: any) {
+      addLog(`❌ 모든 매물 삭제 실패: ${error.message}`);
+      addLog(`   오류 코드: ${error.code || 'N/A'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCleanIndexedDB = async () => {
+    setIsLoading(true);
+    addLog('🧹 IndexedDB 정리 시작...');
+    
+    try {
+      // 1. Firebase에서 현재 매물 목록 가져오기
+      const { properties: firebaseProperties } = await getProperties();
+      const firebaseIds = new Set(firebaseProperties.map(p => p.id));
+      addLog(`🔥 Firebase 매물 수: ${firebaseProperties.length}개`);
+      addLog(`📋 Firebase 매물 ID: ${Array.from(firebaseIds).join(', ') || '(없음)'}`);
+      
+      // 2. IndexedDB에서 모든 매물 가져오기
+      const allIndexedDBProperties = await IndexedDB.getAllProperties();
+      addLog(`📱 IndexedDB 매물 수: ${allIndexedDBProperties.length}개`);
+      addLog(`📋 IndexedDB 매물 ID: ${allIndexedDBProperties.map(p => p.id).join(', ')}`);
+      
+      // 3. Firebase에 없는 매물 찾기
+      const toDelete = allIndexedDBProperties.filter(p => !firebaseIds.has(p.id));
+      
+      if (toDelete.length === 0) {
+        addLog('✅ IndexedDB에 정리할 매물이 없습니다.');
+      } else {
+        addLog(`🗑️ 삭제할 매물 ${toDelete.length}개: ${toDelete.map(p => p.id).join(', ')}`);
+        
+        // 4. 삭제 실행 (여러 번 시도)
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const property of toDelete) {
+          try {
+            await IndexedDB.deleteProperty(property.id);
+            addLog(`  ✅ 삭제 완료: ${property.id} - ${property.title}`);
+            successCount++;
+          } catch (error: any) {
+            addLog(`  ❌ 삭제 실패: ${property.id} - ${error.message}`);
+            failCount++;
+          }
+        }
+        
+        // 5. 삭제 후 재확인 및 재시도
+        const afterDelete = await IndexedDB.getAllProperties();
+        const stillExists = afterDelete.filter(p => !firebaseIds.has(p.id));
+        
+        if (stillExists.length > 0) {
+          addLog(`⚠️ 여전히 ${stillExists.length}개 매물이 남아있음 - 재시도...`);
+          for (const property of stillExists) {
+            try {
+              await IndexedDB.deleteProperty(property.id);
+              addLog(`  ✅ 재시도 삭제 완료: ${property.id}`);
+              successCount++;
+            } catch (error: any) {
+              addLog(`  ❌ 재시도 삭제 실패: ${property.id} - ${error.message}`);
+              failCount++;
+            }
+          }
+        }
+        
+        addLog(`✅ IndexedDB 정리 완료! 성공: ${successCount}개, 실패: ${failCount}개`);
+      }
+      
+      // 6. 최종 확인 (간단히)
+      const finalProperties = await IndexedDB.getAllProperties();
+      addLog(`📱 최종 IndexedDB 매물 수: ${finalProperties.length}개`);
+      
+      if (finalProperties.length > firebaseProperties.length) {
+        addLog('⚠️ IndexedDB에 여전히 불필요한 매물이 있습니다.');
+        addLog('💡 IndexedDB 완전 초기화를 시도하세요.');
+      } else {
+        addLog('✅ IndexedDB 정리 완료!');
+      }
+      
+      addLog('🔄 페이지를 새로고침합니다...');
+      
+      // 즉시 새로고침 (대기 시간 제거)
+      window.location.reload();
+    } catch (error: any) {
+      addLog(`❌ IndexedDB 정리 실패: ${error.message}`);
+      addLog(`   스택: ${error.stack}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearIndexedDB = async () => {
+    const confirmed = window.confirm(
+      '⚠️ 경고: IndexedDB를 완전히 초기화합니다!\n\n모든 로컬 데이터가 삭제됩니다.\n\n계속하시겠습니까?'
+    );
+
+    if (!confirmed) {
+      addLog('❌ 초기화가 취소되었습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    addLog('🗑️ IndexedDB 완전 초기화 시작...');
+    
+    try {
+      // IndexedDB 데이터베이스 완전 삭제 (빠른 실행)
+      addLog('🗑️ IndexedDB 데이터베이스 삭제 중...');
+      await IndexedDB.deleteDatabase();
+      addLog('✅ IndexedDB 데이터베이스 삭제 완료');
+      addLog('🔄 페이지를 새로고침합니다...');
+      
+      // 즉시 새로고침 (대기 시간 제거)
+      window.location.reload();
+    } catch (error: any) {
+      addLog(`❌ IndexedDB 초기화 실패: ${error.message}`);
+      addLog('💡 브라우저 개발자 도구에서 수동으로 삭제해보세요.');
+      addLog('   Application > IndexedDB > RealEstateDB > 삭제');
+      setIsLoading(false);
+    }
+  };
+
   return (
     <DebugContainer>
       <CloseButton onClick={onClose}>×</CloseButton>
       <DebugTitle>🔧 Firebase 디버거</DebugTitle>
       
       <div>
-        <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem' }}>
-          사용자: {user ? `✅ ${user.email}` : '❌ 로그인 필요'}
-        </div>
         
         <DebugButton 
           onClick={testAddProperty} 
-          disabled={isLoading || !user}
+          disabled={isLoading}
         >
           🧪 매매용 테스트 매물
         </DebugButton>
         
         <DebugButton 
           onClick={testAddRentProperty} 
-          disabled={isLoading || !user}
+          disabled={isLoading}
         >
           🏠 임대용 테스트 매물
         </DebugButton>
@@ -225,6 +397,38 @@ const FirebaseDebugger: React.FC<FirebaseDebuggerProps> = ({ onClose }) => {
         >
           🔄 페이지 새로고침
         </DebugButton>
+        
+        <DebugButton 
+          onClick={handleDeleteTestProperties} 
+          disabled={isLoading}
+          style={{ marginTop: '0.5rem', background: '#f59e0b' }}
+        >
+          🧹 테스트 매물만 삭제
+        </DebugButton>
+        
+        <DebugButton 
+          onClick={handleCleanIndexedDB} 
+          disabled={isLoading}
+          style={{ marginTop: '0.5rem', background: '#3b82f6' }}
+        >
+          🧹 IndexedDB 정리
+        </DebugButton>
+        
+        <DangerButton 
+          onClick={handleClearIndexedDB} 
+          disabled={isLoading}
+          style={{ marginTop: '0.5rem', background: '#dc2626' }}
+        >
+          🗑️ IndexedDB 완전 초기화
+        </DangerButton>
+        
+        <DangerButton 
+          onClick={handleDeleteAllProperties} 
+          disabled={isLoading}
+          style={{ marginTop: '0.5rem' }}
+        >
+          ⚠️ 모든 매물 삭제
+        </DangerButton>
       </div>
 
       {logs.length > 0 && (

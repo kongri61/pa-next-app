@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import * as IndexedDB from '../utils/indexedDB';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -96,6 +97,28 @@ const CancelButton = styled.button`
   
   &:hover {
     background: #4b5563;
+  }
+`;
+
+const ClearButton = styled.button`
+  padding: 0.75rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 0.5rem;
+  
+  &:hover {
+    background: #b91c1c;
+  }
+  
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
   }
 `;
 
@@ -244,6 +267,28 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
     onClose();
   };
 
+  const handleClearIndexedDB = async () => {
+    const confirmed = window.confirm(
+      '⚠️ IndexedDB를 완전히 초기화합니다!\n\n모든 로컬 데이터가 삭제됩니다.\n\n계속하시겠습니까?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await IndexedDB.deleteDatabase();
+      alert('✅ IndexedDB 초기화 완료!\n페이지를 새로고침합니다.');
+      window.location.reload();
+    } catch (error: any) {
+      setError(`IndexedDB 초기화 실패: ${error.message}`);
+      setIsLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -283,6 +328,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
               {isLoading ? '로그인 중...' : '로그인'}
             </Button>
             <CancelButton onClick={handleClose}>나가기</CancelButton>
+            <ClearButton 
+              onClick={handleClearIndexedDB} 
+              disabled={isLoading}
+              type="button"
+            >
+              🗑️ IndexedDB 초기화
+            </ClearButton>
           </ButtonContainer>
           
           {error && <ErrorMessage>{error}</ErrorMessage>}

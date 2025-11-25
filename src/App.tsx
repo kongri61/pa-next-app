@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import Header from './components/Header';
 import HomePage, { HomePageRef } from './pages/HomePage';
 import AddPropertyModal from './components/AddPropertyModal';
-import LoginModal from './components/LoginModal';
 import GlobalStyle from './styles/GlobalStyle';
 import { Property } from './types';
 import { initHybridDataManager } from './utils/hybridDataManager';
@@ -19,19 +18,16 @@ const AppContainer = styled.div`
 
 const MainContent = styled.main`
   flex: 1;
-  margin-top: 0; // 헤더 여백 제거
-
-  @media (max-width: 768px) {
-    margin-top: 0; // 모바일에서도 헤더 여백 제거
-  }
+  margin-top: 0; /* 모바일 전용: 헤더 여백 제거 */
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden; /* 가로 스크롤 방지 */
 `;
 
 function App() {
   const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
   const [isBulkPropertyModalOpen, setIsBulkPropertyModalOpen] = useState(false); // 대량매물등록 모달 상태 추가
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin] = useState(true); // 로그인 기능 제거, 항상 관리자 권한
   const [searchTerm, setSearchTerm] = useState('');
   const [addressSearch, setAddressSearch] = useState('');
   const [propertyNumberSearch, setPropertyNumberSearch] = useState(''); // 매물번호 검색 상태 추가
@@ -47,26 +43,7 @@ function App() {
   const [showDebugger, setShowDebugger] = useState(false);
   const homePageRef = useRef<HomePageRef>(null);
 
-  // 로그인 상태 확인
-  useEffect(() => {
-    console.log('=== App.tsx - 로그인 상태 확인 ===');
-    const loginStatus = localStorage.getItem('is_logged_in');
-    const userRole = localStorage.getItem('user_role');
-    
-    console.log('localStorage is_logged_in:', loginStatus);
-    console.log('localStorage user_role:', userRole);
-    
-    if (loginStatus === 'true') {
-      console.log('로그인 상태로 설정됨');
-      setIsLoggedIn(true);
-      setIsAdmin(userRole === 'admin');
-      console.log('관리자 권한:', userRole === 'admin');
-    } else {
-      console.log('로그아웃 상태로 설정됨');
-      setIsLoggedIn(false);
-      setIsAdmin(false);
-    }
-  }, []);
+  // 로그인 기능 제거됨 - 항상 관리자 권한
 
   // 하이브리드 데이터 관리자 초기화
   useEffect(() => {
@@ -195,44 +172,7 @@ function App() {
     }
   };
 
-  // 로그인 처리 함수
-  const handleLogin = (adminStatus: boolean) => {
-    console.log('=== App.tsx - handleLogin 호출됨 ===');
-    console.log('adminStatus:', adminStatus);
-    console.log('현재 로그인 상태:', isLoggedIn);
-    console.log('현재 관리자 상태:', isAdmin);
-    
-    setIsLoggedIn(true);
-    setIsAdmin(adminStatus);
-    
-    console.log('로그인 상태 업데이트 완료');
-    console.log('새 로그인 상태:', true);
-    console.log('새 관리자 상태:', adminStatus);
-    
-    // localStorage 확인
-    console.log('localStorage 확인:');
-    console.log('user_role:', localStorage.getItem('user_role'));
-    console.log('is_logged_in:', localStorage.getItem('is_logged_in'));
-  };
-
-  // 로그아웃 처리 함수
-  const handleLogout = () => {
-    console.log('=== App.tsx - handleLogout 호출됨 ===');
-    localStorage.removeItem('is_logged_in');
-    localStorage.removeItem('user_role');
-    setIsLoggedIn(false);
-    setIsAdmin(false);
-    // 로그인 모달 상태 초기화
-    setIsLoginModalOpen(false);
-    console.log('로그아웃 완료');
-  };
-
-  // 관리자 권한 확인 (로그인 상태 기반)
-  const checkAdminStatus = () => {
-    const adminStatus = isLoggedIn && isAdmin;
-    console.log('🔧 checkAdminStatus 호출 - isLoggedIn:', isLoggedIn, 'isAdmin:', isAdmin, '결과:', adminStatus);
-    return adminStatus;
-  };
+  // 로그인 기능 제거됨 - 항상 관리자 권한
 
   // 지도 초기화 함수
   const handleMapReset = () => {
@@ -266,10 +206,7 @@ function App() {
           onFilterChange={setFilters}
           onMapReset={handleMapReset}
           onRefresh={handleRefresh}
-          isLoggedIn={isLoggedIn}
           isAdmin={isAdmin}
-          onLoginClick={() => setIsLoginModalOpen(true)}
-          onLogoutClick={handleLogout}
         />
         <MainContent>
           {isDataManagerInitialized ? (
@@ -282,7 +219,7 @@ function App() {
               onFilterChange={setFilters}
               onSearchChange={setSearchTerm} // 검색어 변경 핸들러 추가
               onPropertyAdded={handlePropertyAdded}
-              isAdmin={checkAdminStatus()}
+              isAdmin={isAdmin}
               newProperties={newProperties}
             />
           ) : (
@@ -343,11 +280,6 @@ function App() {
         />
       )}
 
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLogin={handleLogin}
-      />
     </FirebaseProvider>
   );
 }

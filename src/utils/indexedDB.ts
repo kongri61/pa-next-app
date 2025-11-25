@@ -1,6 +1,10 @@
 // IndexedDB 설정
 const DB_NAME = 'RealEstateDB';
+<<<<<<< HEAD
 const DB_VERSION = 4; // 기존 버전 3보다 높게 설정
+=======
+const DB_VERSION = 3; // 버전 업데이트: PC 사이트 URL 수정 (pa-realestate-pc.vercel.app)
+>>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
 const PROPERTIES_STORE = 'properties';
 const IMAGES_STORE = 'images';
 const SETTINGS_STORE = 'settings';

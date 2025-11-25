@@ -1,5 +1,8 @@
 @echo off
+<<<<<<< HEAD
 chcp 65001 >nul
+=======
+>>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
 cd /d "%~dp0"
 echo ========================================
 echo Deployment Start

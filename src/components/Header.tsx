@@ -6,7 +6,7 @@ import { firebaseSync } from '../utils/firebaseSync';
 const HeaderContainer = styled.header`
   background: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 1rem 2rem;
+  padding: 0.75rem 1rem; /* 모바일 전용: 작은 패딩 */
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -15,14 +15,37 @@ const HeaderContainer = styled.header`
   max-width: 100vw;
   box-sizing: border-box;
   border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column; /* 2줄 구조 */
+  gap: 0.5rem; /* 줄 간격 */
+`;
+
+// 첫 번째 줄: 상호명 + 초기화 버튼
+const TopRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+  box-sizing: border-box;
+`;
+
+// 두 번째 줄: 필터 버튼들
+const FilterRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 버튼들 사이 공간 균등 배치 */
+  width: 100%;
+  gap: 0.5rem;
+  box-sizing: border-box;
 `;
 
 const MainSection = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1400px; // 1200px에서 1400px로 증가
-  margin: 0 auto;
+  max-width: 100%; /* 모바일 전용: 최대 너비 제한 제거 */
+  margin: 0; /* 모바일 전용: 중앙 정렬 제거 */
   gap: 1rem;
   background: #fff;
   width: 100%;
@@ -30,75 +53,87 @@ const MainSection = styled.div`
   overflow: hidden;
 `;
 
-// 왼쪽 섹션 (로고 + 회사명)
+// 왼쪽 섹션 (로고 + 회사명) - 모바일 전용
 const LeftSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem; // 0.75rem에서 1rem으로 증가
+  gap: 0.5rem; /* 모바일 전용: 작은 간격 */
   flex-shrink: 0;
-  min-width: 200px; // 로고 영역 최소 너비 추가
+  min-width: auto; /* 모바일 전용: 최소 너비 제거 */
 `;
 
-// 중앙 섹션 (검색 + 필터)
+// 중앙 섹션 (검색 + 필터) - 모바일 전용 (사용하지 않음, FilterRow로 대체)
 const CenterSection = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex: 1;
-  justify-content: center;
-  max-width: 800px; // 최대 너비 제한 추가
+  justify-content: flex-start;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  & > * {
+    flex-shrink: 0;
+  }
 `;
 
-// 오른쪽 섹션 (버튼들)
+// 오른쪽 섹션 (버튼들) - 모바일 전용
 const RightSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem; // 0.5rem에서 0.75rem으로 증가
+  gap: 0.5rem; /* 모바일 전용: 작은 간격 */
   flex-shrink: 0;
-  min-width: 300px; // 최소 너비 추가
+  min-width: auto; /* 모바일 전용: 최소 너비 제거 */
 `;
 
 const LogoSection = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 150px; // 로고 섹션 최소 너비 추가
+  min-width: auto; /* 모바일 전용: 최소 너비 제거 */
 `;
 
 const Logo = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem; // 1.5rem에서 0.75rem으로 줄임
-  min-width: 120px;
+  gap: 0.3rem; /* 로고와 상호명 사이 간격 축소 */
+  min-width: auto; /* 모바일 전용: 최소 너비 제거 */
   transition: gap 0.3s ease;
 `;
 
 const CompanyName = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   line-height: 1.2;
+  gap: 0;
 
   .company-main {
-    font-size: 1.5rem;
+    font-size: 0.8rem; /* 크기 축소 */
     font-weight: 700;
     color: #000000;
   }
 
   .company-sub {
-    font-size: 1rem;
+    font-size: 0.8rem; /* 크기 축소 */
     font-weight: 400;
-    color: #6b7280;
+    color: #000000;
+    display: block; /* 표시 */
   }
 `;
 
-// 검색 필드
+// 검색 필드 (모바일 전용)
 const SearchInput = styled.input`
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem; /* 모바일 전용: 큰 터치 영역 */
   border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 8px;
+  font-size: 1rem; /* 모바일 전용: 큰 폰트 */
   background: white;
-  min-width: 200px;
+  min-width: 0; /* 모바일 전용: 최소 너비 제거 */
+  width: 100%;
+  min-height: 44px; /* 모바일 터치 최적화 */
   
   &:focus {
     outline: none;
@@ -111,48 +146,56 @@ const SearchInput = styled.input`
   }
 `;
 
-// 필터 버튼 (기본 상태)
+// 필터 버튼 (기본 상태) - 모바일 전용
 const FilterButtonDefault = styled.button`
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.6rem; /* 좌우 패딩 축소 */
   background: white;
   color: #4b5563;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 8px;
+  font-size: 0.75rem; /* 폰트 크기 축소 */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  min-height: auto; /* 최소 높이 제거 */
+  touch-action: manipulation;
+  width: auto; /* 내용에 맞는 너비 */
+  flex: 0 0 auto; /* 크기 고정 */
   
-  &:hover {
+  &:active {
     background: #f9fafb;
     border-color: #9ca3af;
+    transform: scale(0.98);
   }
 `;
 
-// 액션 버튼
+// 액션 버튼 (모바일 전용)
 const ActionButton = styled.button`
-  padding: 0.5rem 0.75rem; // 1rem에서 0.75rem으로 줄임
+  padding: 0.4rem 0.6rem; /* 좌우 패딩 축소 */
   background: #4b5563;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 8px;
+  font-size: 0.75rem; /* 폰트 크기 축소 */
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap; // 텍스트 줄바꿈 방지
+  gap: 0.3rem; /* 간격 축소 */
+  white-space: nowrap;
+  min-height: auto; /* 최소 높이 제거 */
+  touch-action: manipulation;
   
-  &:hover {
+  &:active {
     background: #374151;
+    transform: scale(0.98);
   }
   
   svg {
-    width: 16px;
-    height: 16px;
+    width: 14px; /* 아이콘 크기 축소 */
+    height: 14px;
   }
 `;
 
@@ -270,11 +313,12 @@ const ResetFilterButton = styled.button`
 const FilterButtonContainer = styled.div`
   position: relative;
   display: inline-block;
-  overflow: hidden; /* visible에서 hidden으로 변경 */
+  flex: 0 0 auto; /* 크기 고정, 내용에 맞는 너비 */
+  overflow: visible; /* 팝업이 잘리지 않도록 */
   z-index: 1000;
 
   @media (max-width: 768px) {
-    overflow: hidden; /* visible에서 hidden으로 변경 */
+    overflow: visible;
     z-index: 1000;
   }
 `;
@@ -484,9 +528,6 @@ interface HeaderProps {
   };
   onFilterChange?: (filters: any) => void;
   isAdmin?: boolean; // 관리자 권한 추가
-  isLoggedIn?: boolean; // 로그인 상태 추가
-  onLoginClick?: () => void; // 로그인 클릭 핸들러 추가
-  onLogoutClick?: () => void; // 로그아웃 클릭 핸들러 추가
   onMapReset?: () => void; // 지도 리셋 핸들러 추가
   onRefresh?: () => void; // 새로고침 핸들러 추가
 }
@@ -503,15 +544,11 @@ const Header: React.FC<HeaderProps> = ({
   filters = { type: '', propertyType: '', area: '', price: '', deposit: '' },
   onFilterChange,
   isAdmin,
-  isLoggedIn,
-  onLoginClick,
-  onLogoutClick,
   onMapReset,
   onRefresh
 }) => {
   // 디버깅: 관리자 상태 확인
-  console.log('🔧 Header 렌더링 - isLoggedIn:', isLoggedIn, 'isAdmin:', isAdmin);
-  console.log('🔧 관리자 버튼 표시 조건:', isLoggedIn && isAdmin);
+  console.log('🔧 Header 렌더링 - isAdmin:', isAdmin);
   
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
@@ -1348,7 +1385,8 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <HeaderContainer>
-      <MainSection>
+      {/* 첫 번째 줄: 상호명 + 초기화 버튼 */}
+      <TopRow>
         <LeftSection>
           <LogoSection>
             <Logo>
@@ -1361,15 +1399,15 @@ const Header: React.FC<HeaderProps> = ({
                   // 이미지 로드 실패 시 대체 로고 표시
                   const fallbackLogo = document.createElement('div');
                   fallbackLogo.style.cssText = `
-                    width: 65px;
-                    height: 65px;
+                    width: 45px; /* 로고 크기 축소 */
+                    height: 45px;
                     border-radius: 8px;
                     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
                     color: white;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.5rem;
+                    font-size: 1.2rem; /* 폰트 크기 축소 */
                     font-weight: bold;
                     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                     border: none;
@@ -1378,8 +1416,8 @@ const Header: React.FC<HeaderProps> = ({
                   target.parentNode?.insertBefore(fallbackLogo, target);
                 }}
                 style={{
-                  width: '65px',
-                  height: '65px',
+                  width: '45px', /* 로고 크기 축소 */
+                  height: '45px',
                   borderRadius: '8px',
                   objectFit: 'cover',
                   boxShadow: 'none',
@@ -1396,8 +1434,57 @@ const Header: React.FC<HeaderProps> = ({
           </LogoSection>
         </LeftSection>
 
-        <CenterSection>
-          <SearchInput
+        <RightSection>
+          <ActionButton onClick={() => {
+            
+            // 1. 모든 로컬 필터 상태 초기화
+            setSelectedAreas([]);
+            setSelectedPrices([]);
+            setSelectedDeposits([]);
+            setAreaRange({ min: '', max: '' });
+            setPriceRange({ min: '', max: '' });
+            setDepositRange({ min: '', max: '' });
+            setOpenDropdown(null);
+            
+            // 2. 필터 초기화 (App.tsx로 전달)
+            if (onFilterChange) {
+              const resetFilters = {
+                type: '',
+                propertyType: '',
+                area: '',
+                price: '',
+                deposit: ''
+              };
+              onFilterChange(resetFilters);
+            }
+            
+            // 3. 검색어 초기화
+            if (onSearchChange) {
+              onSearchChange('');
+            }
+            if (onAddressSearchChange) {
+              onAddressSearchChange('');
+            }
+            
+            // 4. 지도 리셋
+            if (onMapReset) {
+              onMapReset();
+            } else {
+              window.location.reload();
+            }
+          }}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            초기화
+          </ActionButton>
+        </RightSection>
+      </TopRow>
+
+      {/* 두 번째 줄: 필터 버튼들 일렬로 배치 */}
+      <FilterRow>
+          {/* 매물번호, 제목, 주소 검색창 숨김 */}
+          {/* <SearchInput
             type="text"
             placeholder="매물번호, 제목, 주소 검색 (예: 1, P1, 상가)"
             value={searchTerm}
@@ -1407,8 +1494,13 @@ const Header: React.FC<HeaderProps> = ({
                 // 검색 실행 로직 (필요시 추가)
               }
             }}
+<<<<<<< HEAD
             title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 0021→P0021, 상가, 강남구"
           />
+=======
+            title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 상가, 강남구"
+          /> */}
+>>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
           
           <FilterButtonContainer className="filter-dropdown" style={{ overflow: 'visible', zIndex: 99999 }}>
             <FilterButtonDefault
@@ -1893,7 +1985,8 @@ const Header: React.FC<HeaderProps> = ({
             </FilterPopup>
           </FilterButtonContainer>
           
-          <SearchInput
+          {/* 주소 검색창 숨김 */}
+          {/* <SearchInput
             type="text"
             placeholder="주소 검색"
             value={addressSearch}
@@ -1903,112 +1996,8 @@ const Header: React.FC<HeaderProps> = ({
                 // 검색 실행 로직 (필요시 추가)
               }
             }}
-          />
-        </CenterSection>
-
-        <RightSection>
-          <ActionButton onClick={() => {
-            
-            // 1. 모든 로컬 필터 상태 초기화
-            setSelectedAreas([]);
-            setSelectedPrices([]);
-            setSelectedDeposits([]);
-            setAreaRange({ min: '', max: '' });
-            setPriceRange({ min: '', max: '' });
-            setDepositRange({ min: '', max: '' });
-            setOpenDropdown(null);
-            
-            // 2. 필터 초기화 (App.tsx로 전달)
-            if (onFilterChange) {
-              const resetFilters = {
-                type: '',
-                propertyType: '',
-                area: '',
-                price: '',
-                deposit: ''
-              };
-              onFilterChange(resetFilters);
-            }
-            
-            // 3. 검색어 초기화
-            if (onSearchChange) {
-              onSearchChange('');
-            }
-            if (onAddressSearchChange) {
-              onAddressSearchChange('');
-            }
-            
-            // 4. 지도 리셋
-            if (onMapReset) {
-              onMapReset();
-            } else {
-              window.location.reload();
-            }
-          }}>
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            초기화
-          </ActionButton>
-          
-          {isLoggedIn && isAdmin && (
-            <ActionButton onClick={async () => {
-              try {
-                console.log('🔄 수동 동기화 시작...');
-                await firebaseSync.manualSync();
-                alert('✅ 동기화가 완료되었습니다!');
-                window.location.reload();
-              } catch (error) {
-                console.error('❌ 동기화 실패:', error);
-                alert('❌ 동기화에 실패했습니다. 콘솔을 확인해주세요.');
-              }
-            }}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              동기화
-            </ActionButton>
-          )}
-          
-          
-          {isLoggedIn && isAdmin && (
-            <ActionButton onClick={() => {
-              if (onBulkPropertyUpload) {
-                onBulkPropertyUpload();
-              }
-            }}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              대량매물등록
-            </ActionButton>
-          )}
-          
-          {isLoggedIn ? (
-            <ActionButton onClick={() => {
-              if (onLogoutClick) {
-                onLogoutClick();
-              }
-            }}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              로그아웃
-            </ActionButton>
-          ) : (
-            <ActionButton onClick={() => {
-              if (onLoginClick) {
-                onLoginClick();
-              }
-            }}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              로그인
-            </ActionButton>
-          )}
-        </RightSection>
-      </MainSection>
+          /> */}
+      </FilterRow>
     </HeaderContainer>
   );
 };

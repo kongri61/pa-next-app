@@ -5,33 +5,21 @@ import { Property } from '../types';
 const MapContainer = styled.div`
   width: 100%;
   height: 100%;
-  min-height: 300px;
+  min-height: 0; /* 모바일 전용: 최소 높이 제거 */
   position: relative;
   background: #f8fafc;
-  
-  @media (max-width: 768px) {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-  }
+  /* 모바일 전용: 부모 컨테이너의 50% 높이를 차지 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 const MapDiv = styled.div`
   width: 100%;
   height: 100%;
-  min-height: 300px;
-  
-  @media (max-width: 768px) {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-  }
+  min-height: 0; /* 모바일 전용: 최소 높이 제거 */
+  flex: 1;
+  position: relative;
 `;
 
 interface GoogleMapProps {
@@ -94,7 +82,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         
         const map = new window.google.maps.Map(mapRef.current, {
           center: incheonCenter,
-          zoom: 12, // 적당한 클로즈업 줌 레벨
+          zoom: 10, // 인천광역시 전체가 보이도록 설정
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
           zoomControl: false, // 줌 컨트롤 제거
           mapTypeControl: false,
@@ -134,12 +122,17 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
 
         mapInstance.current = map;
 
+<<<<<<< HEAD
         // 지도 초기 범위 설정: 인천가좌시장(상단), 인천문학경기장(하단), 인하대병원(좌측), 장수동(우측)
         const bounds = new window.google.maps.LatLngBounds();
         bounds.extend(new window.google.maps.LatLng(37.4700, 126.7000)); // 인천가좌시장 (상단)
         bounds.extend(new window.google.maps.LatLng(37.4300, 126.6900)); // 인천문학경기장 (하단)
         bounds.extend(new window.google.maps.LatLng(37.4500, 126.6400)); // 인하대병원 (좌측)
         bounds.extend(new window.google.maps.LatLng(37.4200, 126.7200)); // 장수동 (우측)
+=======
+        map.panTo(incheonCenter);
+        map.setZoom(10); // 인천광역시 전체가 보이도록 설정
+>>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
 
         map.addListener('tilesloaded', () => {
           setIsLoaded(true);
@@ -823,6 +816,7 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
       }
     },
     resetMarkers: () => {
+<<<<<<< HEAD
       try {
         // 초기화 중 플래그 설정 (줌 변경 이벤트 무시)
         const resetFlag = (mapInstance.current as any).__isResetting = true;
@@ -833,6 +827,36 @@ const GoogleMap = forwardRef<GoogleMapRef, GoogleMapProps>(({
         // Google Maps API와 지도 인스턴스 확인
         if (!window.google || !window.google.maps) {
           console.warn('⚠️ Google Maps API가 아직 로드되지 않았습니다.');
+=======
+      if (mapInstance.current) {
+        // 구월동 중심점 (초기화 버튼 클릭 시)
+        const guwolDongCenter = { lat: 37.4563, lng: 126.7052 };
+        mapInstance.current.panTo(guwolDongCenter);
+        mapInstance.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
+      }
+      
+      // 마커 재생성
+      markersRef.current.forEach(marker => {
+        try {
+          marker.setMap(null);
+        } catch (err) {
+          console.error('마커 제거 오류:', err);
+        }
+      });
+      markersRef.current = [];
+      
+      clustersRef.current.forEach(cluster => {
+        try {
+          cluster.setMap(null);
+        } catch (err) {
+          console.error('클러스터 제거 오류:', err);
+        }
+      });
+      clustersRef.current = [];
+      
+      properties.forEach((property) => {
+        if (!property.location) {
+>>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
           return;
         }
         

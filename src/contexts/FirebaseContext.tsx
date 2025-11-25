@@ -27,12 +27,28 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children }) 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    try {
+      const unsubscribe = onAuthStateChanged(
+        auth, 
+        (user) => {
+          setUser(user);
+          setLoading(false);
+        },
+        (error) => {
+          // 인증 오류 발생 시에도 앱은 계속 작동
+          console.warn('Firebase 인증 상태 변경 오류 (무시됨):', error);
+          setUser(null);
+          setLoading(false);
+        }
+      );
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      // 인증 초기화 실패 시에도 앱은 계속 작동
+      console.warn('Firebase 인증 리스너 설정 실패 (무시됨):', error);
+      setUser(null);
+      setLoading(false);
+    }
   }, []);
 
   const value: FirebaseContextType = {
