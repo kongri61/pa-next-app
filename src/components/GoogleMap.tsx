@@ -529,7 +529,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       center: { lat: number; lng: number };
       markers: any[];
       properties: Property[];
-      type: 'medium';
+      type: 'large' | 'medium';
     }> = [];
 
     if (clusterDistances.medium > 0) {
@@ -603,7 +603,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
             // 단일 마커는 개별 마커로 전달 (타입을 large로 설정하여 개별 마커로 처리)
             mediumGroups.push({
               ...mediumGroup,
-              type: 'large' as 'medium' // 개별 마커는 large 타입으로 처리
+              type: 'large' // 개별 마커는 large 타입으로 처리
             });
           }
         });
