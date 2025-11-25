@@ -55,54 +55,6 @@ class IndexedDBManager {
 
   // 데이터베이스 초기화
   async init(): Promise<void> {
-<<<<<<< HEAD
-    // 이미 초기화되어 있으면 성공으로 처리
-    if (this.db) {
-      console.log('IndexedDB 이미 초기화됨');
-      return Promise.resolve();
-    }
-
-    return new Promise((resolve, reject) => {
-      const request = window.indexedDB.open(dbConfig.name, dbConfig.version);
-
-      request.onerror = () => {
-        const error = request.error;
-        console.error('IndexedDB 초기화 실패:', error);
-        
-        // 버전 에러인 경우: 현재 버전 확인 후 재시도
-        if (error && error.name === 'VersionError') {
-          console.warn('⚠️ IndexedDB 버전 충돌 감지, 현재 버전 확인 중...');
-          // 현재 버전 확인을 위해 버전 없이 열기 시도
-          const checkRequest = window.indexedDB.open(dbConfig.name);
-          checkRequest.onsuccess = () => {
-            const currentVersion = checkRequest.result.version;
-            checkRequest.result.close();
-            console.log(`현재 IndexedDB 버전: ${currentVersion}, 요청 버전: ${dbConfig.version}`);
-            
-            // 현재 버전이 더 높으면 현재 버전으로 열기
-            if (currentVersion > dbConfig.version) {
-              console.log(`현재 버전(${currentVersion})으로 재시도...`);
-              const retryRequest = window.indexedDB.open(dbConfig.name, currentVersion);
-              retryRequest.onsuccess = () => {
-                this.db = retryRequest.result;
-                console.log('IndexedDB 초기화 성공 (현재 버전 사용)');
-                resolve();
-              };
-              retryRequest.onerror = () => {
-                console.error('IndexedDB 재시도 실패:', retryRequest.error);
-                reject(retryRequest.error);
-              };
-            } else {
-              reject(error);
-            }
-          };
-          checkRequest.onerror = () => {
-            reject(error);
-          };
-        } else {
-          reject(error);
-        }
-=======
     // 이미 초기화 중이면 기존 Promise 반환
     if (this.initPromise) {
       return this.initPromise;
@@ -120,7 +72,6 @@ class IndexedDBManager {
         console.error('IndexedDB 초기화 실패:', request.error);
         this.initPromise = null;
         reject(request.error);
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
       };
 
       request.onsuccess = () => {
@@ -132,16 +83,6 @@ class IndexedDBManager {
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         const db = (event.target as IDBOpenDBRequest).result;
-<<<<<<< HEAD
-        const oldVersion = event.oldVersion;
-        const newVersion = event.newVersion;
-
-        console.log(`IndexedDB 업그레이드: ${oldVersion} → ${newVersion}`);
-
-        // 기존 스토어가 없으면 생성, 있으면 유지
-        dbConfig.stores.forEach(storeConfig => {
-          if (!db.objectStoreNames.contains(storeConfig.name)) {
-=======
         const transaction = (event.target as IDBOpenDBRequest).transaction;
         const oldVersion = event.oldVersion || 0;
         const newVersion = event.newVersion || dbConfig.version;
@@ -153,27 +94,10 @@ class IndexedDBManager {
           if (!db.objectStoreNames.contains(storeConfig.name)) {
             // 스토어가 없으면 생성
             console.log(`스토어 생성: ${storeConfig.name}`);
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
             const objectStore = db.createObjectStore(storeConfig.name, { keyPath: storeConfig.keyPath });
             
             // 인덱스 생성
             storeConfig.indexes?.forEach(indexConfig => {
-<<<<<<< HEAD
-              objectStore.createIndex(indexConfig.name, indexConfig.keyPath, indexConfig.options);
-            });
-            console.log(`스토어 생성: ${storeConfig.name}`);
-          } else {
-            // 기존 스토어는 유지하고 인덱스만 확인
-            // ⚠️ onupgradeneeded 내에서는 버전 변경 트랜잭션이 이미 실행 중이므로
-            // db.transaction()을 호출할 수 없습니다. 
-            // 버전 변경 트랜잭션 내에서만 인덱스를 추가할 수 있지만,
-            // 기존 스토어에 인덱스를 추가하려면 event.transaction을 사용해야 합니다.
-            // 하지만 event.transaction이 없을 수 있으므로, 안전하게 인덱스 추가를 스킵합니다.
-            
-            // 인덱스가 없어도 데이터 조회는 가능하므로 문제없습니다.
-            // 인덱스는 성능 최적화를 위한 것이므로, 없어도 기능은 정상 작동합니다.
-            console.log(`스토어 ${storeConfig.name} 이미 존재 - 인덱스 확인 스킵 (버전 변경 트랜잭션 제약)`);
-=======
               try {
                 objectStore.createIndex(indexConfig.name, indexConfig.keyPath, indexConfig.options);
                 console.log(`인덱스 생성: ${storeConfig.name}.${indexConfig.name}`);
@@ -202,7 +126,6 @@ class IndexedDBManager {
             } catch (err) {
               console.warn(`스토어 접근 실패: ${storeConfig.name}`, err);
             }
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
           }
         });
 

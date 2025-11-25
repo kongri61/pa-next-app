@@ -171,7 +171,6 @@ import { firebaseSync } from '../utils/firebaseSync';
   }
 };
 
-<<<<<<< HEAD
 // 임대용 매물 찾기 함수
 (window as any).findRentProperties = async () => {
   console.log('🔍 임대용 매물 찾기');

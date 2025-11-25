@@ -54,28 +54,9 @@ class FirebaseSync {
       console.log('🌐 현재 호스트:', window.location.hostname);
       console.log('🖥️ 메인 서버 여부:', isMainServer);
       
-<<<<<<< HEAD
-      if (isMainServer) {
-        console.log('🖥️ PC 메인 서버 감지 - Firebase 초기 데이터 설정');
-        // PC 메인 서버: Firebase에 초기 데이터 업로드
-        await this.setupMainServer();
-      } else {
-        console.log('📱 모바일 서버 감지 - Firebase에서 최신 데이터 로드 (비동기)');
-        // 모바일 서버: Firebase에서 최신 데이터 로드 (완전 비동기 - UI 블로킹 없음)
-        // setTimeout을 사용하여 다음 이벤트 루프에서 실행 (UI 블로킹 방지)
-        setTimeout(() => {
-          this.loadFromFirebase(onPropertyUpdate).catch(error => {
-            console.error('❌ Firebase 로드 실패:', error);
-          });
-        }, 0);
-      }
-      
-      // 실시간 동기화 설정
-=======
       // 성능 최적화: 실시간 동기화를 먼저 설정하여 즉시 업데이트 수신
       // 초기 데이터 로드는 백그라운드에서 진행
       console.log('⚡ 실시간 동기화 즉시 설정 (초기 데이터는 백그라운드 로드)...');
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
       this.setupRealTimeSync(onPropertyUpdate);
       
       // 초기화 완료 플래그 설정 (실시간 동기화가 설정되었으므로)
@@ -221,8 +202,6 @@ class FirebaseSync {
             }, {} as Record<string, number>)
           });
         } // 원본 데이터 저장
-=======
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
         
         // 삭제된 매물 필터링: deletedProperties Set에 있거나 isActive: false인 경우 제외
         if (this.deletedProperties.has(doc.id)) {
@@ -400,8 +379,6 @@ class FirebaseSync {
           // Firebase에 실제로 저장된 모든 필드
           allFields: Object.keys(data)
         });
-=======
-          title: data.title || '',
           description: data.description || '',
           price: data.price || 0,
           type: data.type || 'sale',
@@ -886,8 +863,6 @@ class FirebaseSync {
             propertyType: data.propertyType || undefined,
             buildingUse: data.buildingUse || undefined,
             mapImage: data.mapImage || undefined,
-=======
-            bedrooms: data.bedrooms || undefined,
             bathrooms: data.bathrooms || undefined,
             roomBathInfo: data.roomBathInfo || undefined,
             approvalDate: data.approvalDate || undefined,
@@ -1029,14 +1004,13 @@ class FirebaseSync {
               }
             } else {
               console.warn(`⚠️ IndexedDB 초기화 실패로 인해 ${property.id} 삭제 건너뜀`);
+            } else {
+              // 삭제된 매물 목록에 추가 (재업로드 방지)
+              this.deletedProperties.add(property.id);
+              // IndexedDB에서 삭제
+              await IndexedDB.deleteProperty(property.id);
+              console.log(`✅ IndexedDB 삭제 완료: ${property.id}`);
             }
-=======
-            // 삭제된 매물 목록에 추가 (재업로드 방지)
-            this.deletedProperties.add(property.id);
-            // IndexedDB에서 삭제
-            await IndexedDB.deleteProperty(property.id);
-            console.log(`✅ IndexedDB 삭제 완료: ${property.id}`);
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
           }
         } catch (changeError) {
           console.error(`❌ 매물 ${change.type} 처리 실패:`, changeError);
@@ -1212,7 +1186,7 @@ class FirebaseSync {
           
           firebaseProperties.push(property);
         });
-=======
+        
         const allProperties = await IndexedDB.getAllProperties();
         // 삭제된 매물 제외 및 ID 기준으로 중복 제거
         const uniqueProperties = allProperties
@@ -1754,8 +1728,6 @@ class FirebaseSync {
         images정리후개수: cleanPropertyData.images?.length || 0
       });
       
-=======
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
       // P001 특별 디버깅 - setDoc 전
       if (property.id === 'P001') {
         console.log('🔍 P001 setDoc 실행 전 디버깅');
