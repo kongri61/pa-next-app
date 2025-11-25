@@ -302,7 +302,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
   const downloadTemplate = () => {
     // 논리적으로 정리된 헤더 순서
     const headers = [
-<<<<<<< HEAD
       // 기본 정보
       '매물번호', '매물제목', '매물설명', '거래유형', '매물종류', '확인매물날짜',
       // 가격 정보
@@ -346,17 +345,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         '사무실', '남향', '중앙냉난방', '기본인테리어', '협의', '2000-03-15', '사무실, 학원',
         '피에이공인중개사사무소    대표 김동화', '', 'kongri61@naver.com', '/contact-photo.jpg'
       ]
-=======
-      '매물번호', '매물제목', '매물설명', '거래유형', '매물종류',
-      '매매가(억원)', '보증금(만원)', '월세(만원)', '주소', '위도', '경도',
-      '공급/전용면적(평)', '공급/전용면적(㎡)', '방/화장실', '해당층/전체층',
-      '주차', '엘리베이터', '확인매물날짜', '연락처이름', '연락처전화번호', '연락처전화번호2', '연락처이메일', '연락처프로필사진URL', '위치정보지도이미지URL'
-    ];
-
-    const sampleData = [
-      ['P001', '강남구 역삼동 상가', '1층 상가 매매', '매매', '상가', '8.5', '0', '0', '서울시 강남구 역삼동 123-45', '37.5008', '127.0374', '19.5', '64.5', '3/2', '1/5층', 'Y', 'Y', '25.07.19', '김부동산', '02-1234-5678', '02-1234-5679', 'kim@realestate.com', 'https://example.com/profile.jpg', 'https://example.com/map.jpg'],
-      ['P002', '서초구 서초동 사무실', '고층 사무실 임대', '임대', '사무실', '0', '1000', '50', '서울시 서초구 서초동 456-78', '37.4947', '127.0276', '25.0', '82.5', '4/3', '10/20층', 'Y', 'Y', '25.07.20', '이부동산', '02-2345-6789', '', 'lee@realestate.com', '', '']
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
     ];
 
     // 헤더와 샘플 데이터를 결합
@@ -664,15 +652,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
             name: contactName,
             companyName: contactCompanyName || undefined,
             phone: contactPhone,
-<<<<<<< HEAD
             email: contactEmail,
             photo: contactPhoto // 엑셀에서 읽은 프로필 사진 URL 또는 기본값
-=======
-            phone2: contactPhone2 || undefined,
-            phones: phones.length > 0 ? phones : undefined,
-            email: contactEmail,
-            photo: contactPhoto || undefined
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
           },
           features: [],
           createdAt: new Date(),
