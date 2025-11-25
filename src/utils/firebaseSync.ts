@@ -641,7 +641,6 @@ class FirebaseSync {
           const property: Property = {
             ...data,
             id: change.doc.id,
-            createdAt: this.safeConvertTimestamp(data.createdAt),
             // contact 객체를 명시적으로 복사 (모든 필드 보존)
             contact: data.contact ? {
               ...data.contact,
@@ -831,18 +830,6 @@ class FirebaseSync {
             ? (typeof data.parkingSpaces === 'number' ? String(data.parkingSpaces) : String(data.parkingSpaces))
             : undefined,
             recommendedBusinessType: data.recommendedBusinessType || undefined,
-            contact: data.contact ? {
-              ...data.contact,
-              name: data.contact.name || '피에이공인중개사사무소    대표 김동화',
-              phone: data.contact.phone || '',
-              email: data.contact.email || 'kongri61@naver.com',
-              photo: data.contact.photo || '/contact-photo.jpg'
-            } : {
-              name: '피에이공인중개사사무소    대표 김동화',
-              phone: '',
-              email: 'kongri61@naver.com',
-              photo: '/contact-photo.jpg'
-            },
             location: this.convertLocation(data.location) || { lat: 0, lng: 0 }
           } as Property;
           
