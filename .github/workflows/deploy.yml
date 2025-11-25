@@ -1,0 +1,31 @@
+# Vercel 자동 배포 설정
+# 
+# 이 워크플로우는 Vercel이 GitHub와 연동되어 있으면 필요 없습니다.
+# Vercel 대시보드에서 GitHub 저장소를 연결하면 자동으로 배포됩니다.
+#
+# 만약 Vercel 연동이 안 되어 있다면 아래 설정을 사용하세요:
+#
+# name: Deploy to Vercel
+#
+# on:
+#   push:
+#     branches:
+#       - main
+#
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#       - uses: actions/setup-node@v3
+#         with:
+#           node-version: '18'
+#       - run: npm ci
+#       - run: npm run build
+#       - uses: amondnet/vercel-action@v25
+#         with:
+#           vercel-token: ${{ secrets.VERCEL_TOKEN }}
+#           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+#           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+#           vercel-args: '--prod'
+

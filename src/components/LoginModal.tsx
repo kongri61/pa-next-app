@@ -181,15 +181,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin }) => 
     }
 
     console.log('=== 로그인 검증 시작 ===');
-    console.log('예상 아이디: kongri61');
-    console.log('예상 비밀번호: rlaehdghk61@');
-    console.log('아이디 일치:', trimmedUsername === 'kongri61');
-    console.log('비밀번호 일치:', trimmedPassword === 'rlaehdghk61@');
+    console.log('예상 아이디: pa1234');
+    console.log('예상 비밀번호: 1234');
+    console.log('아이디 일치:', trimmedUsername === 'pa1234');
+    console.log('비밀번호 일치:', trimmedPassword === '1234');
     console.log('아이디 타입:', typeof trimmedUsername);
     console.log('비밀번호 타입:', typeof trimmedPassword);
 
     // 간단한 로그인 로직 (실제로는 서버 인증 필요)
-    if (trimmedUsername === 'kongri61' && trimmedPassword === 'rlaehdghk61@') {
+    if (trimmedUsername === 'pa1234' && trimmedPassword === '1234') {
       console.log('=== 로그인 성공 ===');
       console.log('관리자 권한 부여');
       

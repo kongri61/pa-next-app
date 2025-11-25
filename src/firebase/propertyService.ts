@@ -16,6 +16,34 @@ import { Property } from '../types';
 // 컬렉션 이름
 const PROPERTIES_COLLECTION = 'properties';
 
+// 위치 정보 변환 함수 (GeoPoint 또는 일반 객체 모두 처리)
+const convertLocation = (location: any): { lat: number; lng: number } | null => {
+  try {
+    if (!location) return null;
+    
+    // Firebase GeoPoint 객체인 경우 (latitude, longitude)
+    if (location.latitude !== undefined && location.longitude !== undefined) {
+      return {
+        lat: location.latitude,
+        lng: location.longitude
+      };
+    }
+    
+    // 일반 객체인 경우 (lat, lng)
+    if (location.lat !== undefined && location.lng !== undefined) {
+      return {
+        lat: typeof location.lat === 'number' ? location.lat : parseFloat(location.lat),
+        lng: typeof location.lng === 'number' ? location.lng : parseFloat(location.lng)
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('위치 정보 변환 오류:', error);
+    return null;
+  }
+};
+
 // 매물 추가
 export const addProperty = async (property: Omit<Property, 'id' | 'createdAt'>): Promise<string> => {
   try {
@@ -98,6 +126,11 @@ export const getProperties = async (
         // 필드명 매핑 (Firebase에서 다른 필드명으로 저장된 경우)
         price: data.price || data.rentPrice || 0,
         deposit: data.deposit || 0,
+        bedrooms: data.bedrooms || undefined,
+        bathrooms: data.bathrooms || undefined,
+        roomBathInfo: data.roomBathInfo || undefined,
+        approvalDate: data.approvalDate || undefined,
+        propertyStatus: data.propertyStatus || undefined,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
         isActive: data.isActive !== false // isActive가 없거나 true인 경우 true로 설정
@@ -154,8 +187,27 @@ export const getProperty = async (id: string): Promise<Property | null> => {
       return {
         id: docSnap.id,
         ...data,
+        bedrooms: data.bedrooms || undefined,
+        bathrooms: data.bathrooms || undefined,
+        roomBathInfo: data.roomBathInfo || undefined,
+        approvalDate: data.approvalDate || undefined,
+        propertyStatus: data.propertyStatus || undefined,
         createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date()
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        // 필수 필드들이 제대로 읽혀지는지 확인
+        maintenanceFeeItems: data.maintenanceFeeItems || undefined,
+        buildingUse: data.buildingUse || undefined,
+        parkingSpaces: data.parkingSpaces !== undefined && data.parkingSpaces !== null
+          ? (typeof data.parkingSpaces === 'number' ? String(data.parkingSpaces) : String(data.parkingSpaces))
+          : undefined,
+        recommendedBusinessType: data.recommendedBusinessType || undefined,
+        contact: {
+          name: data.contact?.name || '피에이공인중개사사무소    대표 김동화',
+          phone: data.contact?.phone || '',
+          email: data.contact?.email || 'kongri61@naver.com',
+          photo: data.contact?.photo || '/contact-photo.jpg'
+        },
+        location: convertLocation(data.location) || { lat: 0, lng: 0 }
       } as Property;
     } else {
       return null;
@@ -220,21 +272,78 @@ export const searchProperties = async (
     const querySnapshot = await getDocs(q);
     const properties: Property[] = [];
 
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const property = {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date()
-      } as Property;
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const property = {
+          id: doc.id,
+          ...data,
+          bedrooms: data.bedrooms || undefined,
+          bathrooms: data.bathrooms || undefined,
+          roomBathInfo: data.roomBathInfo || undefined,
+          approvalDate: data.approvalDate || undefined,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+          // 필수 필드들이 제대로 읽혀지는지 확인
+          maintenanceFeeItems: data.maintenanceFeeItems || undefined,
+          buildingUse: data.buildingUse || undefined,
+          parkingSpaces: data.parkingSpaces !== undefined && data.parkingSpaces !== null
+          ? (typeof data.parkingSpaces === 'number' ? String(data.parkingSpaces) : String(data.parkingSpaces))
+          : undefined,
+          recommendedBusinessType: data.recommendedBusinessType || undefined,
+          contact: {
+            name: data.contact?.name || '피에이공인중개사사무소    대표 김동화',
+            phone: data.contact?.phone || '',
+            email: data.contact?.email || 'kongri61@naver.com',
+            photo: data.contact?.photo || '/contact-photo.jpg'
+          },
+          location: convertLocation(data.location) || { lat: 0, lng: 0 }
+        } as Property;
 
-      // 검색어 필터링 (제목, 설명, 주소에서 검색)
-      if (!searchTerm || 
-          property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          property.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          property.address.toLowerCase().includes(searchTerm.toLowerCase())) {
+      // 검색어 필터링 (제목, 설명, 주소, 추가 필드에서 검색)
+      if (!searchTerm) {
         properties.push(property);
+      } else {
+        const searchLower = searchTerm.toLowerCase();
+        const titleMatch = property.title.toLowerCase().includes(searchLower);
+        const descriptionMatch = property.description?.toLowerCase().includes(searchLower) || false;
+        const addressMatch = property.address.toLowerCase().includes(searchLower);
+        
+        // 추가 필드 검색: 관리비포함항목, 건축물용도, 주차대수, 추천업종, 매물현황
+        const maintenanceFeeItemsMatch = property.maintenanceFeeItems?.toLowerCase().includes(searchLower) || false;
+        const buildingUseMatch = property.buildingUse?.toLowerCase().includes(searchLower) || false;
+        const parkingSpacesMatch = property.parkingSpaces?.toString().includes(searchTerm) || false;
+        const recommendedBusinessTypeMatch = property.recommendedBusinessType?.toLowerCase().includes(searchLower) || false;
+        // 매물현황: type이 'sale'이면 '매매', 'rent'이면 '임대중'으로 검색
+        const propertyStatusMatch = (property.type === 'sale' && searchLower.includes('매매')) || 
+                                    (property.type === 'rent' && searchLower.includes('임대중')) ||
+                                    (property.type === 'rent' && searchLower.includes('임대'));
+        
+        // 연락처 정보 검색: 상호명, 이름, 전화번호, 이메일
+        const contactNameMatch = property.contact?.name?.toLowerCase().includes(searchLower) || false;
+        // 전화번호 검색: 여러 번호가 쉼표로 구분되어 있을 수 있으므로 각각 검색
+        const phoneNumbers = property.contact?.phone?.split(',').map(p => p.trim()) || [];
+        const contactPhoneMatch = phoneNumbers.some(phone => phone.includes(searchTerm)) || false;
+        const contactEmailMatch = property.contact?.email?.toLowerCase().includes(searchLower) || false;
+        // 상호명과 대표 이름 분리 검색
+        const parseContactName = (name: string) => {
+          if (!name) return { companyName: '', representativeName: '' };
+          const parts = name.split(/\s+대표\s+/);
+          if (parts.length === 2) {
+            return { companyName: parts[0].trim(), representativeName: parts[1].trim() };
+          }
+          return { companyName: name.trim(), representativeName: '' };
+        };
+        const { companyName, representativeName } = parseContactName(property.contact?.name || '');
+        const companyNameMatch = companyName.toLowerCase().includes(searchLower) || false;
+        const representativeNameMatch = representativeName.toLowerCase().includes(searchLower) || false;
+        
+        if (titleMatch || descriptionMatch || addressMatch ||
+            maintenanceFeeItemsMatch || buildingUseMatch || parkingSpacesMatch ||
+            recommendedBusinessTypeMatch || propertyStatusMatch ||
+            contactNameMatch || contactPhoneMatch || contactEmailMatch ||
+            companyNameMatch || representativeNameMatch) {
+          properties.push(property);
+        }
       }
     });
 

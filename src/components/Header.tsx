@@ -156,7 +156,7 @@ const ActionButton = styled.button`
   }
 `;
 
-const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean }>`
+const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean; isPrice?: boolean }>`
   position: fixed;
   top: 120px;
   left: ${props => props.isWide ? '50%' : '50%'};
@@ -166,13 +166,14 @@ const FilterPopup = styled.div<{ isOpen: boolean; isWide?: boolean }>`
   border-radius: 8px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   z-index: 999999;
-  padding: 1rem;
+  padding: ${props => props.isPrice ? '1rem 1rem 1.5rem 1rem' : '1rem'}; /* 금액 모달은 하단 패딩 추가 */
   margin-top: 0.5rem;
   display: ${props => props.isOpen ? 'block' : 'none'};
   min-width: 200px;
   max-width: ${props => props.isWide ? '1200px' : '500px'};
-  max-height: calc(100vh - 200px); /* 화면 높이에서 헤더 높이와 여백을 뺀 값 */
-  overflow-y: auto; /* 스크롤 활성화 */
+  max-height: ${props => props.isPrice ? 'calc(100vh - 140px)' : 'calc(100vh - 200px)'}; /* 금액 모달은 더 큰 높이 */
+  height: ${props => props.isPrice ? 'auto' : 'auto'}; /* 금액 모달은 내용에 맞게 자동 높이 */
+  overflow-y: ${props => props.isPrice ? 'visible' : 'auto'}; /* 금액 모달은 스크롤 없음 */
   white-space: nowrap;
   opacity: ${props => props.isOpen ? '1' : '0'};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
@@ -225,7 +226,7 @@ const ConfirmButton = styled.button`
 const FilterPopupContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 `;
 
 const FilterPopupButton = styled.button<{ isSelected?: boolean }>`
@@ -257,7 +258,8 @@ const ResetFilterButton = styled.button`
   transition: all 0.2s;
   text-align: center;
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 
   &:hover {
     background: #fee2e2;
@@ -327,13 +329,13 @@ const AreaButton = styled.button<{ isSelected?: boolean; isActive?: boolean; isI
 `;
 
 const PriceSection = styled.div`
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid #e5e7eb;
 `;
 
 const PriceTitle = styled.div`
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #374151;
 `;
 
@@ -341,7 +343,7 @@ const PriceGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 0.4rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   width: 100%;
 `;
 
@@ -381,7 +383,7 @@ const CustomRangeContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   position: relative;
 `;
 
@@ -406,12 +408,12 @@ const RangeSeparator = styled.span`
 `;
 
 const DepositSection = styled.div`
-  padding: 1rem;
+  padding: 0.5rem 1rem;
 `;
 
 const DepositTitle = styled.div`
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #374151;
 `;
 
@@ -419,7 +421,7 @@ const DepositSlider = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.4rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   width: 100%;
   max-width: 100%;
 `;
@@ -667,9 +669,14 @@ const Header: React.FC<HeaderProps> = ({
     ],
     propertyType: [
       { value: '', label: '전체' },
+      { value: 'land', label: '토지' },
+      { value: 'building', label: '건물' },
       { value: 'commercial', label: '상가' },
       { value: 'office', label: '사무실' },
-      { value: 'building', label: '건물' },
+      { value: 'apartment', label: '아파트' },
+      { value: 'officetel', label: '오피스텔' },
+      { value: 'villa', label: '빌라' },
+      { value: 'house', label: '단독주택' },
       { value: 'other', label: '기타' }
     ]
   };
@@ -1400,7 +1407,7 @@ const Header: React.FC<HeaderProps> = ({
                 // 검색 실행 로직 (필요시 추가)
               }
             }}
-            title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 상가, 강남구"
+            title="매물번호는 숫자만 입력해도 됩니다. 예: 1→P1, 001→P001, 0021→P0021, 상가, 강남구"
           />
           
           <FilterButtonContainer className="filter-dropdown" style={{ overflow: 'visible', zIndex: 99999 }}>
@@ -1634,7 +1641,7 @@ const Header: React.FC<HeaderProps> = ({
                 return text;
               })()}▼
             </FilterButtonDefault>
-            <FilterPopup isOpen={openDropdown === 'price'} isWide={true}>
+            <FilterPopup isOpen={openDropdown === 'price'} isWide={true} isPrice={true}>
               <FilterPopupHeader>
                 <FilterPopupTitle>금액</FilterPopupTitle>
                 <ConfirmButton onClick={() => setOpenDropdown(null)}>확인</ConfirmButton>
@@ -1751,7 +1758,7 @@ const Header: React.FC<HeaderProps> = ({
                         onFilterChange?.(newFilters);
                       }}
                     />
-                    <RangeSeparator>억원</RangeSeparator>
+                    <RangeSeparator>원</RangeSeparator>
                   </CustomRangeContainer>
                 </PriceSection>
 

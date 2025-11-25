@@ -51,4 +51,11 @@ try {
 }
 
 export { db, auth, storage };
-export default app; 
+export default app;
+
+// 브라우저 콘솔에서 접근 가능하도록 전역에 노출 (디버깅용)
+if (typeof window !== 'undefined') {
+  (window as any).__firebaseDb = db;
+  (window as any).__firebaseAuth = auth;
+  (window as any).__firebaseStorage = storage;
+} 

@@ -1,28 +1,96 @@
 @echo off
-cd /d "C:\Users\user\매물지도보기"
+chcp 65001 >nul
+cd /d "%~dp0"
 echo ========================================
-echo 개별등록 문제 해결 및 배포 시작
+echo Deployment Start
 echo ========================================
 
 echo.
-echo 1. Git 상태 확인...
-call git status
+echo 1. Checking Git user info...
+git config user.name >nul 2>&1
+if errorlevel 1 (
+    echo Setting Git user info...
+    git config user.name "PA Property"
+    git config user.email "kongri61@naver.com"
+    echo Git user info configured.
+) else (
+    echo Git user info already configured.
+)
 
 echo.
-echo 2. 변경사항 커밋...
-call git add .
-call git commit -m "개별등록 시 기존 매물 덮어쓰기 문제 해결 - Firebase에서 실제 매물 ID 조회"
+echo 2. Checking Git status...
+git status
 
 echo.
-echo 3. GitHub에 푸시...
-call git push origin main
+echo 3. Pulling remote changes...
+git fetch origin main
+if errorlevel 1 (
+    echo.
+    echo Warning: Error during git fetch. Continuing anyway...
+) else (
+    git pull origin main --no-edit --no-rebase
+    if errorlevel 1 (
+        echo.
+        echo Warning: Error during git pull. Attempting to continue...
+        echo You may need to resolve conflicts manually later.
+    )
+)
 
 echo.
-echo 4. Vercel 배포...
-call npx vercel --prod
+echo 4. Staging all changes...
+git add .
+
+echo.
+echo 5. Committing changes...
+git diff --cached --quiet >nul 2>&1
+if errorlevel 1 (
+    git commit -m "Auto-deploy: Update project files - %date% %time%"
+    if errorlevel 1 (
+        echo.
+        echo Warning: Commit failed or no changes to commit.
+    ) else (
+        echo Changes committed successfully.
+    )
+) else (
+    echo No changes to commit.
+)
+
+echo.
+echo 6. Pushing to GitHub...
+git push origin main
+if errorlevel 1 (
+    echo.
+    echo Warning: Failed to push to GitHub.
+    echo Attempting to pull and merge first...
+    git pull origin main --no-edit --no-rebase
+    if errorlevel 1 (
+        echo.
+        echo Error: Cannot resolve conflicts automatically.
+        echo Please resolve conflicts manually and try again.
+        pause
+        exit /b 1
+    ) else (
+        echo Retrying push...
+        git push origin main
+        if errorlevel 1 (
+            echo.
+            echo Error: Failed to push to GitHub after merge.
+            echo Please resolve manually and try again.
+            pause
+            exit /b 1
+        )
+    )
+)
+
+echo.
+echo 7. Deployment completed!
+echo.
+echo GitHub에 푸시가 완료되었습니다.
+echo Vercel 자동 배포가 설정되어 있으면 자동으로 배포가 시작됩니다.
+echo Vercel 대시보드에서 배포 상태를 확인하세요.
 
 echo.
 echo ========================================
-echo 모든 작업이 완료되었습니다!
+echo All tasks completed!
 echo ========================================
 pause

@@ -16,6 +16,14 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/contact-photo\\.(jpg|jpeg|png|gif|webp)",
+      "dest": "/contact-photo.$1"
+    },
+    {
+      "src": "/(.*\\.(jpg|jpeg|png|gif|webp|svg|ico|pdf|txt|xml|json))",
+      "dest": "/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
