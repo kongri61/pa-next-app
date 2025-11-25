@@ -656,6 +656,28 @@ const SectionTitle = styled.h3`
   padding-bottom: 0.5rem;
 `;
 
+const LocationInfoTitlePC = styled.span`
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const LocationInfoTitleMobile = styled.div`
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #374151;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+    width: 100%;
+  }
+`;
+
 const ContactSectionContainer = styled.div`
   display: flex;
   gap: 6rem;
@@ -2786,7 +2808,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               <span>연락처</span>
               {((property.location && property.location.lat && property.location.lng) || 
                 (editData.location && editData.location.lat && editData.location.lng)) && (
-                <span>위치정보</span>
+                <LocationInfoTitlePC>위치정보</LocationInfoTitlePC>
               )}
             </SectionTitle>
             <ContactSectionContainer>
@@ -2917,40 +2939,50 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       </ContactValue>
                     </ContactItem>
                   </ContactDetails>
-                </ContactContent>
-              </ContactInfo>
-              {(() => {
-                // 위치 정보 변환 및 확인
-                const rawLocation = property.location || editData.location;
-                const location = convertLocation(rawLocation);
-                const hasValidLocation = location && location.lat && location.lng && location.lat !== 0 && location.lng !== 0;
-                
-                return hasValidLocation ? (
-                  <SmallMapWrapper>
-                    <SmallMapContainer>
-                      <SmallMapDiv ref={smallMapRef} />
-                    </SmallMapContainer>
-                  </SmallMapWrapper>
-                ) : (
-                  <SmallMapWrapper>
-                    <div style={{ 
-                      width: '100%', 
-                      height: window.innerWidth <= 768 ? '200px' : '140px',
-                      background: '#f3f4f6',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#6b7280',
-                      fontSize: '0.875rem'
-                    }}>
-                      위치정보 없음
-                    </div>
-                  </SmallMapWrapper>
-                );
-              })()}
-            </ContactSectionContainer>
+                 </ContactContent>
+               </ContactInfo>
+               {(() => {
+                 // 위치 정보 변환 및 확인
+                 const rawLocation = property.location || editData.location;
+                 const location = convertLocation(rawLocation);
+                 const hasValidLocation = location && location.lat && location.lng && location.lat !== 0 && location.lng !== 0;
+                 
+                 return (
+                   <>
+                     {/* 모바일에서만 표시되는 위치정보 제목 */}
+                     {hasValidLocation && (
+                       <LocationInfoTitleMobile>
+                         위치정보
+                       </LocationInfoTitleMobile>
+                     )}
+                     {hasValidLocation ? (
+                       <SmallMapWrapper>
+                         <SmallMapContainer>
+                           <SmallMapDiv ref={smallMapRef} />
+                         </SmallMapContainer>
+                       </SmallMapWrapper>
+                     ) : (
+                       <SmallMapWrapper>
+                         <div style={{ 
+                           width: '100%', 
+                           height: window.innerWidth <= 768 ? '200px' : '140px',
+                           background: '#f3f4f6',
+                           border: '1px solid #e2e8f0',
+                           borderRadius: '12px',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           color: '#6b7280',
+                           fontSize: '0.875rem'
+                         }}>
+                           위치정보 없음
+                         </div>
+                       </SmallMapWrapper>
+                     )}
+                   </>
+                 );
+               })()}
+             </ContactSectionContainer>
             <input
               ref={contactPhotoInputRef}
               type="file"
