@@ -930,7 +930,6 @@ class FirebaseSync {
             updatedProperties.push(property);
           } else if (change.type === 'removed') {
             console.log(`🗑️ 매물 삭제: ${property.id} - ${property.title}`);
-<<<<<<< HEAD
             
             // IndexedDB 초기화 확인 및 보장
             let initSuccess = false;
@@ -956,6 +955,8 @@ class FirebaseSync {
             // IndexedDB가 초기화된 경우에만 삭제
             if (initSuccess) {
               try {
+                // 삭제된 매물 목록에 추가 (재업로드 방지)
+                this.deletedProperties.add(property.id);
                 await IndexedDB.deleteProperty(property.id);
                 console.log(`✅ IndexedDB 삭제 완료: ${property.id}`);
               } catch (deleteError) {
@@ -963,12 +964,6 @@ class FirebaseSync {
               }
             } else {
               console.warn(`⚠️ IndexedDB 초기화 실패로 인해 ${property.id} 삭제 건너뜀`);
-            } else {
-              // 삭제된 매물 목록에 추가 (재업로드 방지)
-              this.deletedProperties.add(property.id);
-              // IndexedDB에서 삭제
-              await IndexedDB.deleteProperty(property.id);
-              console.log(`✅ IndexedDB 삭제 완료: ${property.id}`);
             }
           }
         } catch (changeError) {
