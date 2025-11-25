@@ -1149,7 +1149,18 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   // ⚡ 초기 데이터가 있으면 즉시 로드 완료로 표시
   const [isDataLoaded, setIsDataLoaded] = useState(preloadedProperties.length > 0); // 데이터 로드 완료 여부
   const [error, setError] = useState<string | null>(null);
-  const [isFirebaseConnected, setIsFirebaseConnected] = useState(false); // Firebase 연결 상태
+  
+  // 모바일 서버 감지 (컴포넌트 레벨에서 한 번만 정의)
+  // PC 메인 서버: localhost, 192.168.219.105, pa-realestate-pc.vercel.app, pa-realestate-*.vercel.app
+  // 모바일 사이트: real-estate-map-site.vercel.app 또는 기타 도메인
+  const isMainServer = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '192.168.219.105' ||
+                      window.location.hostname === 'pa-realestate-pc.vercel.app' ||
+                      (window.location.hostname.includes('vercel.app') && 
+                       window.location.hostname.includes('pa-realestate'));
+  
+  // 모바일 사이트는 읽기 전용이므로 기본적으로 Firebase 연결된 것으로 간주 (오프라인 모드 표시 제거)
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState(!isMainServer);
 
   // 기본 매물 데이터 (빈 배열로 초기화 - 서울 매물 제거됨)
   const initialProperties: Property[] = useMemo(() => [], []);
@@ -1205,16 +1216,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
     }
     
     console.log('🚀 데이터 초기화 시작 (성능 최적화: IndexedDB 우선 로드)...');
-    
-    // 모바일 서버 감지
-    // PC 메인 서버: localhost, 192.168.219.105, pa-realestate-pc.vercel.app, pa-realestate-*.vercel.app
-    // 모바일 사이트: real-estate-map-site.vercel.app 또는 기타 도메인
-    const isMainServer = window.location.hostname === 'localhost' || 
-                        window.location.hostname === '192.168.219.105' ||
-                        window.location.hostname === 'pa-realestate-pc.vercel.app' ||
-                        (window.location.hostname.includes('vercel.app') && 
-                         window.location.hostname.includes('pa-realestate'));
-    
     console.log('🌐 현재 호스트:', window.location.hostname);
     console.log('🖥️ 메인 서버 여부:', isMainServer);
     
@@ -1394,11 +1395,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   const handlePropertyUpdate = async (updatedProperty: Property) => {
     try {
       // 모바일 서버에서는 수정 불가 (PC에서만 수정 가능)
-      const isMainServer = window.location.hostname === 'localhost' || 
-                          window.location.hostname === '192.168.219.105' ||
-                          window.location.hostname === 'pa-realestate-pc.vercel.app' ||
-                          (window.location.hostname.includes('vercel.app') && 
-                           window.location.hostname.includes('pa-realestate'));
       
       if (!isMainServer) {
         alert('📱 모바일에서는 매물 수정이 불가능합니다. PC에서 수정해주세요.');
@@ -1833,9 +1829,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
   const handleConfirmDelete = async () => {
     try {
       // 모바일 서버에서는 삭제 불가
-      const isMainServer = window.location.hostname === 'localhost' || 
-                          window.location.hostname === '192.168.219.105' ||
-                          window.location.hostname.includes('vercel.app');
       
       if (!isMainServer) {
         alert('📱 모바일에서는 매물 삭제가 불가능합니다. PC에서 삭제해주세요.');
@@ -2054,7 +2047,8 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                   ? `검색 결과: ${listProperties.length}개 (전체 ${allProperties.length}개 중)`
                   : `총 ${allProperties.length}개 매물`
               }
-              {!isFirebaseConnected && allProperties.length > 0 && (
+              {/* 모바일 사이트에서는 오프라인 모드 표시 제거 (읽기 전용) */}
+              {isMainServer && !isFirebaseConnected && allProperties.length > 0 && (
                 <span style={{ 
                   marginLeft: '0.5rem', 
                   fontSize: '0.7rem', 
