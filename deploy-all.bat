@@ -62,20 +62,46 @@ if errorlevel 1 (
     echo.
     echo Warning: Failed to push to GitHub.
     echo Attempting to pull and merge first...
+    echo.
+    echo Fetching latest changes...
+    git fetch origin main
+    echo.
+    echo Merging remote changes...
     git pull origin main --no-edit --no-rebase
     if errorlevel 1 (
         echo.
         echo Error: Cannot resolve conflicts automatically.
-        echo Please resolve conflicts manually and try again.
+        echo.
+        echo ========================================
+        echo 충돌 해결 방법:
+        echo ========================================
+        echo 1. Git 상태 확인: git status
+        echo 2. 충돌 파일 확인 및 수정
+        echo 3. 충돌 해결 후: git add .
+        echo 4. 커밋: git commit -m "Resolve conflicts"
+        echo 5. 푸시: git push origin main
+        echo.
+        echo 또는 강제 푸시 (주의: 원격 변경사항 덮어쓰기):
+        echo git push origin main --force
+        echo.
         pause
         exit /b 1
     ) else (
+        echo Merge successful!
+        echo.
         echo Retrying push...
         git push origin main
         if errorlevel 1 (
             echo.
             echo Error: Failed to push to GitHub after merge.
-            echo Please resolve manually and try again.
+            echo.
+            echo ========================================
+            echo 수동 해결 방법:
+            echo ========================================
+            echo 1. git status 로 상태 확인
+            echo 2. git pull origin main 로 최신 변경사항 가져오기
+            echo 3. 충돌 해결 후 git push origin main
+            echo.
             pause
             exit /b 1
         )
