@@ -847,7 +847,6 @@ class FirebaseSync {
               photo: '/contact-photo.jpg'
             },
             location: this.convertLocation(data.location) || { lat: 0, lng: 0 }
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
           } as Property;
           
           // 디버깅: contact.photo 확인
