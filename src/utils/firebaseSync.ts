@@ -823,13 +823,10 @@ class FirebaseSync {
             propertyType: data.propertyType || undefined,
             buildingUse: data.buildingUse || undefined,
             mapImage: data.mapImage || undefined,
-            bathrooms: data.bathrooms || undefined,
-            roomBathInfo: data.roomBathInfo || undefined,
             approvalDate: data.approvalDate || undefined,
             createdAt: this.safeConvertTimestamp(data.createdAt),
             // 필수 필드들이 제대로 읽혀지는지 확인
             maintenanceFeeItems: data.maintenanceFeeItems || undefined,
-            buildingUse: data.buildingUse || undefined,
             parkingSpaces: data.parkingSpaces !== undefined && data.parkingSpaces !== null 
             ? (typeof data.parkingSpaces === 'number' ? String(data.parkingSpaces) : String(data.parkingSpaces))
             : undefined,
