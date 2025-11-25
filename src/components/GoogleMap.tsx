@@ -144,13 +144,29 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
                 }
               } catch (boundsError) {
                 console.warn('⚠️ fitBounds 오류, 대체 방법 사용:', boundsError);
-                // 대체 방법: 중심점과 줌 설정
+                // 대체 방법: 중심점과 줌 설정 (클러스터가 보이도록 낮은 줌 레벨)
                 if (map && typeof map.setCenter === 'function' && typeof map.setZoom === 'function') {
                   map.setCenter({ lat: 37.4500, lng: 126.6800 });
-                  map.setZoom(13);
+                  map.setZoom(10); // 클러스터가 보이도록 줌 레벨 낮춤 (13 -> 10)
                 }
               }
+              
+              // 지도 로드 완료 후 클러스터링 업데이트
+              setTimeout(() => {
+                if (markersRef.current.length > 0) {
+                  console.log('🗺️ 지도 로드 완료 - 클러스터링 업데이트 시작');
+                  updateClusters();
+                }
+              }, 200);
             }, 500); // 지도가 완전히 준비될 때까지 약간의 지연
+          } else {
+            // 이미 bounds가 설정된 경우에도 클러스터링 업데이트
+            setTimeout(() => {
+              if (markersRef.current.length > 0) {
+                console.log('🗺️ 지도 타일 로드 완료 - 클러스터링 업데이트');
+                updateClusters();
+              }
+            }, 100);
           }
         });
 
@@ -745,9 +761,16 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       console.log('생성된 마커 수:', markersRef.current.length);
 
       // 클러스터링 업데이트 (마커는 updateClusters에서 표시됨)
-      setTimeout(() => {
-        updateClusters();
-      }, 200);
+      // 지도가 로드되었는지 확인 후 클러스터링 업데이트
+      if (isLoaded) {
+        setTimeout(() => {
+          console.log('🔄 매물 업데이트 후 클러스터링 업데이트');
+          updateClusters();
+        }, 200);
+      } else {
+        // 지도가 아직 로드되지 않았으면 tilesloaded 이벤트에서 처리됨
+        console.log('⏳ 지도 로드 대기 중 - tilesloaded 이벤트에서 클러스터링 업데이트 예정');
+      }
 
     } catch (error) {
       console.error('마커 생성 전체 오류:', error);
@@ -806,7 +829,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           // 구월동 중심점 (초기화 버튼 클릭 시)
           const guwolDongCenter = { lat: 37.4563, lng: 126.7052 };
           mapInstance.current.panTo(guwolDongCenter);
-          mapInstance.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
+          mapInstance.current.setZoom(10); // 클러스터가 보이도록 줌 레벨 낮춤 (14 -> 10)
         }
         
         // 마커 재생성
@@ -885,47 +908,39 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           const maxDiff = Math.max(latDiff, lngDiff);
           
           // 경도 차이를 기반으로 줌 레벨 계산
-          // 줌 레벨을 16으로 명시적으로 설정
-          const calculatedZoom = 16;
+          // 클러스터가 보이도록 줌 레벨을 10으로 설정 (16 -> 10)
+          const targetZoom = 10;
           
-          console.log('🔧 [초기화] 줌 레벨 설정 시작 - 목표 줌: 16');
+          console.log('🔧 [초기화] 줌 레벨 설정 시작 - 목표 줌:', targetZoom);
           console.log('🔧 [초기화] 현재 줌 레벨:', mapInstance.current?.getZoom?.());
           
           // 중심점 설정
           mapInstance.current.setCenter({ lat: centerLat, lng: centerLng });
           
-          // 줌 레벨을 여러 번 설정하여 확실하게 적용
-          console.log('🔧 [초기화] setZoom(16) 호출 전 줌:', mapInstance.current?.getZoom?.());
-          mapInstance.current.setZoom(16);
-          console.log('🔧 [초기화] setZoom(16) 호출 직후 줌:', mapInstance.current?.getZoom?.());
+          // 줌 레벨 설정
+          console.log('🔧 [초기화] setZoom 호출 전 줌:', mapInstance.current?.getZoom?.());
+          mapInstance.current.setZoom(targetZoom);
+          console.log('🔧 [초기화] setZoom 호출 직후 줌:', mapInstance.current?.getZoom?.());
           
           // 즉시 다시 설정 (다른 이벤트에 의해 변경되는 것을 방지)
           setTimeout(() => {
-            const beforeZoom = mapInstance.current?.getZoom?.();
-            console.log('🔧 [초기화] 1차 설정 전 줌:', beforeZoom);
-            mapInstance.current.setZoom(16);
             const actualZoom = mapInstance.current?.getZoom?.();
             console.log('🔧 [초기화] 1차 설정 후 줌 레벨:', actualZoom);
-            console.log('🔧 [초기화] 지도 객체:', mapInstance.current);
-            console.log('🔧 [초기화] maxZoom 설정:', (mapInstance.current as any)?.get('maxZoom'));
             
-            if (actualZoom !== 16) {
-              console.warn('⚠️ [초기화] 줌 레벨이 16이 아닙니다! 다시 설정합니다.', { expected: 16, actual: actualZoom });
-              mapInstance.current.setZoom(16);
+            if (actualZoom !== targetZoom) {
+              console.warn('⚠️ [초기화] 줌 레벨이 목표값이 아닙니다! 다시 설정합니다.', { expected: targetZoom, actual: actualZoom });
+              mapInstance.current.setZoom(targetZoom);
             }
           }, 50);
           
           // 추가 확인 및 재설정
           setTimeout(() => {
-            const beforeZoom = mapInstance.current?.getZoom?.();
-            console.log('🔧 [초기화] 2차 설정 전 줌:', beforeZoom);
-            mapInstance.current.setZoom(16);
             const actualZoom = mapInstance.current?.getZoom?.();
             console.log('🔧 [초기화] 2차 설정 후 줌 레벨:', actualZoom);
             
-            if (actualZoom !== 16) {
-              console.warn('⚠️ [초기화] 여전히 줌 레벨이 16이 아닙니다!', { expected: 16, actual: actualZoom });
-              mapInstance.current.setZoom(16);
+            if (actualZoom !== targetZoom) {
+              console.warn('⚠️ [초기화] 여전히 줌 레벨이 목표값이 아닙니다!', { expected: targetZoom, actual: actualZoom });
+              mapInstance.current.setZoom(targetZoom);
             }
           }, 200);
           
@@ -933,12 +948,10 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           setTimeout(() => {
             const actualZoom = mapInstance.current?.getZoom?.();
             console.log('🔧 [초기화] 최종 줌 레벨:', actualZoom);
-            console.log('🔧 [초기화] 최종 확인 - 지도 객체 타입:', typeof mapInstance.current);
-            console.log('🔧 [초기화] 최종 확인 - getZoom 함수:', typeof mapInstance.current?.getZoom);
-            if (actualZoom !== 16) {
-              console.error('❌ [초기화] 줌 레벨 설정 실패!', { expected: 16, actual: actualZoom });
+            if (actualZoom !== targetZoom) {
+              console.error('❌ [초기화] 줌 레벨 설정 실패!', { expected: targetZoom, actual: actualZoom });
               // 강제로 다시 설정
-              mapInstance.current.setZoom(16);
+              mapInstance.current.setZoom(targetZoom);
               console.log('🔧 [초기화] 강제 재설정 후 줌:', mapInstance.current?.getZoom?.());
             }
           }, 500);
@@ -951,7 +964,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           console.log('✅ 초기화: 중심점과 줌으로 지도 위치 설정 완료', { 
             centerLat, 
             centerLng, 
-            zoom: calculatedZoom,
+            zoom: targetZoom,
             latDiff,
             lngDiff,
             maxDiff
@@ -988,9 +1001,12 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           });
         }
         
+        // 초기화 완료 후 플래그 해제 및 클러스터링 업데이트
         setTimeout(() => {
+          (mapInstance.current as any).__isResetting = false;
+          console.log('🔄 초기화 완료 - 클러스터링 업데이트');
           updateClusters();
-        }, 100);
+        }, 600); // 줌 레벨 설정 완료 후 클러스터링 업데이트
       } catch (error) {
         console.error('❌ resetMarkers 오류:', error);
         // 에러 메시지를 UI에 표시하지 않고 콘솔에만 기록
