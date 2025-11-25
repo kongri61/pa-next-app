@@ -129,7 +129,6 @@ class FirebaseSync {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-<<<<<<< HEAD
         rawDataMap.set(doc.id, data);
         
         // 디버깅: 원본 Firebase 데이터의 모든 필드 확인 (매매용 필드)

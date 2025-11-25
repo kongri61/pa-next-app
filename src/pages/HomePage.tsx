@@ -538,7 +538,6 @@ import { firebaseSync } from '../utils/firebaseSync';
     
   } catch (error) {
     console.error('❌ 삭제 과정에서 오류 발생:', error);
->>>>>>> f85309789388d81d24ee5d938e63dd690806b864
   }
 };
 
