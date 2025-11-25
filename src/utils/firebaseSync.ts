@@ -241,7 +241,6 @@ class FirebaseSync {
         const property: Property = {
           ...data,
           id: doc.id,
-<<<<<<< HEAD
           createdAt: this.safeConvertTimestamp(data.createdAt),
           // images 배열 명시적으로 보존
           images: images,

@@ -1189,23 +1189,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
 
   // 디버깅 코드 제거됨 - 안정성을 위해
 
-<<<<<<< HEAD
-  // ⚡ 데이터 초기화 - preloadedProperties가 없을 때만 IndexedDB에서 로드 (최적화)
-  useEffect(() => {
-    // 이미 미리 로드된 데이터가 있으면 스킵 (즉시 반환)
-    if (preloadedProperties.length > 0 || defaultProperties.length > 0) {
-      console.log('⚡ 미리 로드된 데이터 사용 (로딩 스킵)', {
-        preloadedCount: preloadedProperties.length,
-        defaultCount: defaultProperties.length
-      });
-      if (preloadedProperties.length > 0 && defaultProperties.length === 0) {
-        // preloadedProperties가 있는데 defaultProperties가 비어있으면 즉시 업데이트
-        setDefaultProperties(preloadedProperties);
-      }
-      setIsDataLoaded(true);
-      return;
-    }
-    
   // 데이터 초기화 및 Firebase 실시간 동기화 (성능 최적화: IndexedDB 우선 로드)
   useEffect(() => {
     // preloadedProperties가 있으면 즉시 사용
