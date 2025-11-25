@@ -445,7 +445,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           nextRowParkingSpaces: nextRow ? nextRow['주차대수'] : 'N/A (다음 행 없음)'
         });
 
-<<<<<<< HEAD
         // 기본 정보
         const finalPropertyId = propertyId || `P${String(i + 1).padStart(4, '0')}`;
         const title = row['매물제목']?.toString().trim() || '';
@@ -643,49 +642,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
         }
         const contactEmail = row['연락처이메일']?.toString().trim() || 'kongri61@naver.com';
         const contactPhoto = row['연락처프로필사진URL']?.toString().trim() || '/contact-photo.jpg';
-=======
-        const propertyId = row[0] || `P${String(i + 1).padStart(3, '0')}`;
-        const title = row[1] || '';
-        const description = row[2] || '';
-        const type = row[3] === '임대' ? 'rent' : 'sale';
-        const propertyType = row[4] === '사무실' ? 'office' : row[4] === '건물' ? 'building' : 'commercial';
-        const price = parseFloat(row[5]) || 0;
-        const deposit = parseFloat(row[6]) || undefined;
-        const rentPrice = parseFloat(row[7]) || undefined;
-        const address = row[8] || '';
-        const lat = parseFloat(row[9]) || 0;
-        const lng = parseFloat(row[10]) || 0;
-        const area = parseFloat(row[12]) || 0;
-        const bedrooms = row[13] ? row[13].toString().split('/')[0] : undefined;
-        const bathrooms = row[13] ? row[13].toString().split('/')[1] : undefined;
-        const floor = row[14] || undefined;
-        const parking = row[15] === 'Y' || row[15] === 'y' || row[15] === '예';
-        const elevator = row[16] === 'Y' || row[16] === 'y' || row[16] === '예';
-        const confirmedDate = row[17] || undefined;
-        const contactName = row[18] || '중개소';
-        const contactPhone = row[19] || '02-0000-0000';
-        const contactPhone2 = row[20] || undefined;
-        const contactEmail = row[21] || 'contact@realestate.com';
-        const contactPhoto = row[22] || undefined;
-        const mapImage = row[23] || undefined;
-        
-        // 추가 필드들 (Excel 컬럼 확장 가능)
-        const maintenanceIncluded = row[24] || undefined;
-        const propertyStatus = row[25] || undefined;
-        const parkingCount = row[26] ? parseInt(row[26]) : undefined;
-        const recommendedBusiness = row[27] || undefined;
-        const contactCompanyName = row[28] || undefined;
-        // 매매용 필드들
-        const loanAmount = row[29] ? parseFloat(row[29]) : undefined;
-        const keyDepositMonthly = row[30] ? parseFloat(row[30]) : undefined;
-        // 임대용 필드들
-        const keyMoney = row[31] ? parseFloat(row[31]) : undefined;
-
-        // 전화번호 배열 생성 (phone, phone2 모두 포함)
-        const phones: string[] = [];
-        if (contactPhone) phones.push(contactPhone);
-        if (contactPhone2) phones.push(contactPhone2);
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
 
         const property: Property = {
           id: finalPropertyId,
@@ -725,7 +681,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           floor,
           parking,
           elevator,
-<<<<<<< HEAD
           maintenanceFee,
           premium,
           buildingUse,
@@ -740,19 +695,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ onClose, onProperty
           moveInDate,
           recommendedBusinessType,
           propertyStatus: propertyStatus || undefined // 엑셀에서 읽은 매물현황 저장
-=======
-          mapImage: mapImage || undefined,
-          // 추가 필드들
-          maintenanceIncluded: maintenanceIncluded || undefined,
-          propertyStatus: propertyStatus || undefined,
-          parkingCount: parkingCount || undefined,
-          recommendedBusiness: recommendedBusiness || undefined,
-          // 매매용 필드들
-          loanAmount: loanAmount || undefined,
-          keyDepositMonthly: keyDepositMonthly || undefined,
-          // 임대용 필드들
-          keyMoney: keyMoney || undefined
->>>>>>> 9e7019311411a0ce2b425e6bb761dfb0f00d242a
         };
 
         properties.push(property);
