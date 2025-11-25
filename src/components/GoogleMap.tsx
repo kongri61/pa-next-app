@@ -209,53 +209,30 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryCount]);
 
-  // 3단계 클러스터링 거리 계산 함수
+  // 3단계 클러스터링 거리 계산 함수 (PC와 동일)
   const getClusterDistance = (zoom: number) => {
-    const isMobile = window.innerWidth <= 768;
-    
     // 1단계: 대형 클러스터 (매우 넓은 범위) - 낮은 줌 레벨
     const getLargeClusterDistance = () => {
-      if (isMobile) {
-        if (zoom < 7) return 0.2;   // 매우 넓은 범위
-        if (zoom < 9) return 0.12;  // 넓은 범위
-        if (zoom < 11) return 0.08;  // 중간 범위
-        return 0.04; // 좁은 범위
-      } else {
-        if (zoom < 7) return 0.25;  // 매우 넓은 범위
-        if (zoom < 9) return 0.15;   // 넓은 범위
-        if (zoom < 11) return 0.1;   // 중간 범위
-        return 0.05; // 좁은 범위
-      }
+      if (zoom < 7) return 0.25;  // 매우 넓은 범위
+      if (zoom < 9) return 0.15;   // 넓은 범위
+      if (zoom < 11) return 0.1;   // 중간 범위
+      return 0.05; // 좁은 범위
     };
 
     // 2단계: 중형 클러스터 (중간 범위) - 중간 줌 레벨
     const getMediumClusterDistance = () => {
-      if (isMobile) {
-        if (zoom < 11) return 0.06;   // 중간 범위
-        if (zoom < 13) return 0.03;  // 좁은 범위
-        if (zoom < 14) return 0.015; // 매우 좁은 범위
-        return 0; // 개별 마커 (줌 14 이상)
-      } else {
-        if (zoom < 11) return 0.08;   // 중간 범위
-        if (zoom < 13) return 0.04;   // 좁은 범위
-        if (zoom < 14) return 0.02;   // 매우 좁은 범위
-        return 0; // 개별 마커 (줌 14 이상)
-      }
+      if (zoom < 11) return 0.08;   // 중간 범위
+      if (zoom < 13) return 0.04;   // 좁은 범위
+      if (zoom < 14) return 0.02;   // 매우 좁은 범위
+      return 0; // 개별 마커 (줌 14 이상)
     };
 
     // 3단계: 소형 클러스터 (좁은 범위) - 높은 줌 레벨 (최소 2개)
     const getSmallClusterDistance = () => {
-      if (isMobile) {
-        if (zoom < 13) return 0.02;   // 중간 범위
-        if (zoom < 14) return 0.01;   // 좁은 범위
-        if (zoom < 15) return 0.005;  // 매우 좁은 범위
-        return 0; // 개별 마커 (줌 15 이상)
-      } else {
-        if (zoom < 13) return 0.025;  // 중간 범위
-        if (zoom < 14) return 0.012;  // 좁은 범위
-        if (zoom < 15) return 0.006;  // 매우 좁은 범위
-        return 0; // 개별 마커 (줌 15 이상)
-      }
+      if (zoom < 13) return 0.025;  // 중간 범위
+      if (zoom < 14) return 0.012;  // 좁은 범위
+      if (zoom < 15) return 0.006;  // 매우 좁은 범위
+      return 0; // 개별 마커 (줌 15 이상)
     };
 
     return {
