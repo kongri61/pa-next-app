@@ -2782,7 +2782,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           </Section>
 
           <Section>
-            <SectionTitle style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '21rem' }}>
+            <SectionTitle style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '21rem' }}>
               <span>연락처</span>
               {((property.location && property.location.lat && property.location.lng) || 
                 (editData.location && editData.location.lat && editData.location.lng)) && (
