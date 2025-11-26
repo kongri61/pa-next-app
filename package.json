@@ -23,6 +23,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "dev": "node scripts/start-with-browser.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -31,7 +32,8 @@
     "postbuild": "node scripts/auto-deploy.js",
     "auto-deploy": "npm run build && node scripts/auto-deploy.js",
     "deploy:auto": "npm run build && node scripts/auto-deploy.js",
-    "build:deploy": "npm run build && node scripts/auto-deploy.js"
+    "build:deploy": "npm run build && node scripts/auto-deploy.js",
+    "deploy": "npm run build && node scripts/auto-deploy.js"
   },
   "eslintConfig": {
     "extends": [

@@ -285,7 +285,7 @@ function App({ initialProperties = [] }: AppProps) {
                 style={{
                   position: 'fixed',
                   top: '10px',
-                  right: '10px',
+                  left: '10px',
                   background: '#1f2937',
                   color: 'white',
                   border: 'none',

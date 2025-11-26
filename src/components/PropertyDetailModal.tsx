@@ -24,13 +24,172 @@ const ModalOverlay = styled.div`
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  
+  @media (max-width: 768px) {
+    padding: 0;
+    align-items: stretch;
+  }
+`;
+
+const ZoomedImageOverlay = styled.div`
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  cursor: pointer;
+  touch-action: none; /* 브라우저 기본 줌 방지 */
+  -webkit-touch-callout: none; /* iOS 롱프레스 메뉴 방지 */
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden; /* 스크롤 방지 */
+  transform: none !important; /* 오버레이도 절대 움직이지 않음 */
+  will-change: auto;
+  margin: 0 !important;
+  padding: 0 !important;
+`;
+
+const ZoomedImageContainer = styled.div`
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important; /* 중앙 정렬만, 다른 transform은 없음 */
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 90vw;
+  height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none; /* 브라우저 기본 줌 방지 */
+  will-change: auto; /* 레이어 분리 방지 */
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: auto;
+  
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+const ZoomedImage = styled.img<{ zoom: number; translateX: number; translateY: number }>`
+  max-width: 100%;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  position: absolute; /* 절대 위치로 컨테이너 내부에서만 이동 */
+  top: 50%;
+  left: 50%;
+  /* transform 순서: 중앙 정렬 -> 이동 -> 줌 */
+  transform: translate(calc(-50% + ${props => props.translateX}px), calc(-50% + ${props => props.translateY}px)) scale(${props => props.zoom}) !important;
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
+  cursor: grab;
+  touch-action: none; /* 브라우저 기본 줌 방지 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  will-change: transform; /* GPU 가속 */
+  margin: 0 !important;
+  
+  &.dragging {
+    transition: none;
+    cursor: grabbing;
+  }
+`;
+
+const ZoomControls = styled.div`
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 2002;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.5rem;
+  border-radius: 8px;
+`;
+
+const ZoomButton = styled.button`
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 4px;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: white;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ZoomResetButton = styled.button`
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: white;
+  }
+`;
+
+const ZoomCloseButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  &:hover {
+    background: white;
+  }
 `;
 
 const ModalContent = styled.div`
   background: white;
   border-radius: 8px;
   width: 100%;
-  max-width: 800px;
+  max-width: 832px; /* 800px (이미지) + 32px (좌우 padding) */
   height: 85vh;
   display: flex;
   overflow: hidden;
@@ -39,12 +198,23 @@ const ModalContent = styled.div`
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  
+  @media (max-width: 768px) {
+    max-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
 `;
 
 const LeftPanel = styled.div`
   width: 100%;
   padding: 2.5rem 1rem 1rem 1rem;
   overflow-y: auto;
+  
+  @media (max-width: 768px) {
+    padding: 1rem 0.5rem 1rem 0.5rem;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -236,25 +406,88 @@ const EditSelect = styled.select`
 const ImageSection = styled.div`
   margin-bottom: 3rem; /* 화살표가 사진 아래로 이동하므로 여백 증가 (0.5rem -> 3rem) */
   position: relative;
+  width: 800px !important;
+  min-width: 800px !important;
+  max-width: 800px !important;
+  margin-left: -1rem !important; /* LeftPanel의 좌측 padding(1rem)을 상쇄 */
+  margin-right: -1rem !important; /* LeftPanel의 우측 padding(1rem)을 상쇄 */
+  box-sizing: border-box;
+  
+  @media (max-width: 768px) {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
 `;
 
 const MainImage = styled.img`
-  width: 100%;
-  height: 500px; /* 전체 화면에 보이도록 높이 증가 (280px -> 500px) */
-  object-fit: contain; /* 화질 개선을 위해 cover에서 contain으로 변경 */
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain; /* 컨테이너 안에 맞도록 contain 사용 */
   background: #f3f4f6; /* 배경색 추가 */
   border-radius: 8px;
-  margin-bottom: 0.25rem;
+  display: block;
+  flex-shrink: 0; /* flex로 인한 크기 축소 방지 */
 `;
 
 const ImageContainer = styled.div`
   position: relative;
-  width: 100%;
-  /* max-width 제거하여 전체 화면에 보이도록 복원 */
-  height: 500px; /* MainImage 높이와 동일하게 설정 */
+  width: 800px !important; /* 정확히 800px로 고정 */
+  min-width: 800px !important;
+  max-width: 800px !important;
+  height: 500px !important; /* 세로 높이 500px로 강제 고정 */
+  min-height: 500px !important;
+  max-height: 500px !important;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: hidden !important; /* 넘치는 부분 숨김 */
   margin: 0 auto; /* 중앙 정렬 */
+  display: block; /* flex 대신 block 사용 */
+  background: #f3f4f6; /* 배경색 추가 */
+  cursor: pointer; /* 클릭 가능 표시 */
+  box-sizing: border-box; /* 패딩/보더 포함 크기 계산 */
+  
+  @media (max-width: 768px) {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    aspect-ratio: 16 / 10; /* 비율 유지 */
+  }
+`;
+
+const EmptyImageContainer = styled.div`
+  width: 800px;
+  min-width: 800px;
+  max-width: 800px;
+  height: 500px;
+  min-height: 500px;
+  max-height: 500px;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 1rem;
+  position: relative;
+  margin: 0 auto;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    aspect-ratio: 16 / 10;
+  }
 `;
 
 const ImageCounter = styled.div`
@@ -274,8 +507,8 @@ const ImageCounter = styled.div`
 
 const ImageNavigationButton = styled.button`
   position: absolute;
-  bottom: -50px; /* 사진 아래로 이동하여 겹치지 않도록 (0.3rem -> -50px) */
-  transform: translateX(-50%);
+  top: calc(100% - 0.25rem); /* ImageContainer 아래, ImageCounter 상단과 맞춤 */
+  transform: translateY(-50%); /* 원형 상단을 ImageCounter 상단과 맞춤 */
   background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
@@ -292,7 +525,7 @@ const ImageNavigationButton = styled.button`
 
   &:hover {
     background: rgba(0, 0, 0, 0.8);
-    transform: translateX(-50%) scale(1.1);
+    transform: translateY(-50%) scale(1.1);
   }
 
   &:disabled {
@@ -301,11 +534,11 @@ const ImageNavigationButton = styled.button`
   }
 
   &.prev {
-    left: calc(50% - 30px); /* 가운데에서 왼쪽으로 30px */
+    left: calc(45% - 40px); /* 사진 화면 중간(45%)에서 왼쪽으로 40px */
   }
 
   &.next {
-    left: calc(50% + 30px); /* 가운데에서 오른쪽으로 30px */
+    left: calc(45% + 40px); /* 사진 화면 중간(45%)에서 오른쪽으로 40px */
   }
 `;
 
@@ -654,6 +887,14 @@ const SectionTitle = styled.h3`
   margin-bottom: 1rem;
   border-bottom: 2px solid #e5e7eb;
   padding-bottom: 0.5rem;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0;
+  }
 `;
 
 const LocationInfoTitlePC = styled.span`
@@ -675,6 +916,7 @@ const LocationInfoTitleMobile = styled.div`
     border-bottom: 2px solid #e5e7eb;
     padding-bottom: 0.5rem;
     width: 100%;
+    order: 1; /* 지도 위에 표시되도록 */
   }
 `;
 
@@ -799,12 +1041,24 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       (window.location.hostname.includes('vercel.app') && 
                        window.location.hostname.includes('pa-realestate'));
   
-  // PC 메인 서버이고 관리자 권한이 있을 때만 수정 가능
-  const canEdit = isMainServer && isAdmin;
+  // 검색 전용 사이트이므로 항상 수정 불가
+  const canEdit = false;
+  const isAdminForced = false; // 항상 로그아웃 상태로 강제 설정
   const [currentImages, setCurrentImages] = useState<string[]>(property.images || []);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isImageZoomed, setIsImageZoomed] = useState(false); // 사진 확대 상태
+  const [zoomLevel, setZoomLevel] = useState(1); // 줌 레벨 (1 = 100%)
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 }); // 이미지 위치
+  const [isDragging, setIsDragging] = useState(false); // 드래그 중인지
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 }); // 드래그 시작 위치
+  const imageRef = useRef<HTMLImageElement>(null); // 이미지 참조
+  const containerRef = useRef<HTMLDivElement>(null); // 컨테이너 참조
+  const [touchStartDistance, setTouchStartDistance] = useState(0); // 터치 시작 시 두 손가락 간 거리
+  const [touchStartZoom, setTouchStartZoom] = useState(1); // 터치 시작 시 줌 레벨
+  const [touchStartPosition, setTouchStartPosition] = useState({ x: 0, y: 0 }); // 터치 시작 시 이미지 위치
+  const [lastTouchCenter, setLastTouchCenter] = useState({ x: 0, y: 0 }); // 마지막 터치 중심점
   const [editData, setEditData] = useState<Property>(() => ({
     ...property,
     contact: {
@@ -1390,6 +1644,238 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     e.target.value = '';
   };
 
+  // 줌인/줌아웃 핸들러
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 5)); // 최대 5배까지
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5)); // 최소 0.5배까지
+  };
+
+  const handleZoomReset = () => {
+    setZoomLevel(1);
+    setImagePosition({ x: 0, y: 0 });
+  };
+
+  // 이미지 위치를 컨테이너 경계 내로 제한하는 함수
+  const constrainImagePosition = (x: number, y: number, zoom: number): { x: number; y: number } => {
+    if (!imageRef.current || !containerRef.current || zoom <= 1) {
+      return { x: 0, y: 0 };
+    }
+
+    const img = imageRef.current;
+    const container = containerRef.current;
+    
+    // 이미지의 원본 크기
+    const imgWidth = img.naturalWidth || img.offsetWidth || 1;
+    const imgHeight = img.naturalHeight || img.offsetHeight || 1;
+    
+    // 컨테이너 크기
+    const containerWidth = container.offsetWidth;
+    const containerHeight = container.offsetHeight;
+    
+    // object-fit: contain 모드에서 실제 표시되는 이미지 크기 계산
+    const imgAspect = imgWidth / imgHeight;
+    const containerAspect = containerWidth / containerHeight;
+    
+    let displayWidth: number;
+    let displayHeight: number;
+    
+    if (imgAspect > containerAspect) {
+      // 이미지가 더 넓음: 너비 기준
+      displayWidth = containerWidth;
+      displayHeight = containerWidth / imgAspect;
+    } else {
+      // 이미지가 더 높음: 높이 기준
+      displayHeight = containerHeight;
+      displayWidth = containerHeight * imgAspect;
+    }
+    
+    // 줌인된 이미지의 실제 크기
+    const scaledWidth = displayWidth * zoom;
+    const scaledHeight = displayHeight * zoom;
+    
+    // 이미지가 컨테이너보다 작으면 이동 불필요
+    if (scaledWidth <= containerWidth && scaledHeight <= containerHeight) {
+      return { x: 0, y: 0 };
+    }
+    
+    // 최대 이동 범위 계산
+    const maxX = scaledWidth > containerWidth ? (scaledWidth - containerWidth) / 2 : 0;
+    const maxY = scaledHeight > containerHeight ? (scaledHeight - containerHeight) / 2 : 0;
+    
+    // 위치를 경계 내로 제한
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y))
+    };
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else {
+      handleZoomOut();
+    }
+  };
+
+  const handleDoubleClick = () => {
+    if (zoomLevel === 1) {
+      setZoomLevel(2);
+    } else {
+      handleZoomReset();
+    }
+  };
+
+  // 드래그 핸들러
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomLevel > 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - imagePosition.x, y: e.clientY - imagePosition.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && zoomLevel > 1) {
+      const newPosition = constrainImagePosition(
+        e.clientX - dragStart.x,
+        e.clientY - dragStart.y,
+        zoomLevel
+      );
+      setImagePosition(newPosition);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // 이미지 확대 시 줌 초기화
+  const handleImageZoom = () => {
+    setIsImageZoomed(true);
+    setZoomLevel(1);
+    setImagePosition({ x: 0, y: 0 });
+  };
+
+  // 두 터치 포인트 간 거리 계산
+  const getTouchDistance = (touch1: React.Touch, touch2: React.Touch): number => {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // 두 터치 포인트의 중심점 계산
+  const getTouchCenter = (touch1: React.Touch, touch2: React.Touch): { x: number; y: number } => {
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    };
+  };
+
+  // 터치 시작 핸들러
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault(); // 브라우저 기본 동작 방지
+    e.stopPropagation(); // 이벤트 전파 차단
+    
+    // 이미지나 컨테이너에서만 처리
+    const target = e.target as HTMLElement;
+    if (!target.closest('.zoomed-image-container') && !target.closest('img')) {
+      return;
+    }
+    
+    if (e.touches.length === 2) {
+      // 두 손가락: 핀치 줌
+      const distance = getTouchDistance(e.touches[0], e.touches[1]);
+      const center = getTouchCenter(e.touches[0], e.touches[1]);
+      
+      setTouchStartDistance(distance);
+      setTouchStartZoom(zoomLevel);
+      setLastTouchCenter(center);
+      setIsDragging(false);
+    } else if (e.touches.length === 1 && zoomLevel > 1) {
+      // 한 손가락: 드래그 (줌인 상태일 때만)
+      setIsDragging(true);
+      setDragStart({ 
+        x: e.touches[0].clientX - imagePosition.x, 
+        y: e.touches[0].clientY - imagePosition.y 
+      });
+    }
+  };
+
+  // 터치 이동 핸들러
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation(); // 이벤트 전파 차단
+    
+    // 이미지나 컨테이너에서만 처리
+    const target = e.target as HTMLElement;
+    if (!target.closest('.zoomed-image-container') && !target.closest('img')) {
+      return;
+    }
+    
+    if (e.touches.length === 2) {
+      // 두 손가락: 핀치 줌
+      const distance = getTouchDistance(e.touches[0], e.touches[1]);
+      const center = getTouchCenter(e.touches[0], e.touches[1]);
+      
+      if (touchStartDistance > 0) {
+        const scale = distance / touchStartDistance;
+        const newZoom = Math.max(0.5, Math.min(5, touchStartZoom * scale));
+        setZoomLevel(newZoom);
+        
+        // 줌 중심점 기준으로 이미지 위치 조정
+        const deltaX = center.x - lastTouchCenter.x;
+        const deltaY = center.y - lastTouchCenter.y;
+        const newPosition = constrainImagePosition(
+          imagePosition.x + deltaX,
+          imagePosition.y + deltaY,
+          newZoom
+        );
+        setImagePosition(newPosition);
+        setLastTouchCenter(center);
+      }
+    } else if (e.touches.length === 1 && isDragging && zoomLevel > 1) {
+      // 한 손가락: 드래그
+      const newPosition = constrainImagePosition(
+        e.touches[0].clientX - dragStart.x,
+        e.touches[0].clientY - dragStart.y,
+        zoomLevel
+      );
+      setImagePosition(newPosition);
+    }
+  };
+
+  // 터치 종료 핸들러
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault(); // 브라우저 기본 동작 방지
+    e.stopPropagation(); // 이벤트 전파 차단
+    
+    // 이미지나 컨테이너에서만 처리
+    const target = e.target as HTMLElement;
+    if (!target.closest('.zoomed-image-container') && !target.closest('img')) {
+      return;
+    }
+    
+    if (e.touches.length === 0) {
+      // 모든 손가락이 떼어짐
+      setIsDragging(false);
+      setTouchStartDistance(0);
+      setTouchStartZoom(1);
+    } else if (e.touches.length === 1) {
+      // 한 손가락만 남음 (드래그 모드로 전환)
+      setIsDragging(true);
+      setDragStart({ 
+        x: e.touches[0].clientX - imagePosition.x, 
+        y: e.touches[0].clientY - imagePosition.y 
+      });
+      setTouchStartDistance(0);
+    }
+  };
+
   // 펌방지 기능
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -1439,6 +1925,21 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
     property, 
     isEditMode
   ]);
+
+  // 줌 레벨 변경 시 이미지 위치를 경계 내로 제한
+  React.useEffect(() => {
+    if (isImageZoomed && imageRef.current && containerRef.current) {
+      const constrainedPosition = constrainImagePosition(
+        imagePosition.x,
+        imagePosition.y,
+        zoomLevel
+      );
+      if (constrainedPosition.x !== imagePosition.x || constrainedPosition.y !== imagePosition.y) {
+        setImagePosition(constrainedPosition);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoomLevel, isImageZoomed]);
 
   // 위치 정보 변환 함수 (GeoPoint 또는 일반 객체 모두 처리)
   const convertLocation = (location: any): { lat: number; lng: number } | null => {
@@ -1676,7 +2177,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     {canEdit && (
                       <EditButton onClick={toggleEditMode}>수정</EditButton>
                     )}
-                    {isAdmin && (
+                    {isAdminForced && (
                       <DeleteButton onClick={handleDeleteProperty}>삭제</DeleteButton>
                     )}
                   </>
@@ -1723,9 +2224,14 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                 >
                   &gt;
                 </ImageNavigationButton>
-                <ImageContainer>
-                    <MainImage src={currentImages[currentImageIndex]} alt={editData.title} />
-                    {isAdmin && (
+                <ImageContainer 
+                  onClick={handleImageZoom}
+                >
+                    <MainImage 
+                      src={currentImages[currentImageIndex]} 
+                      alt={editData.title}
+                    />
+                    {isAdminForced && (
                       <ImageDeleteButton 
                         onClick={(e) => {
                           e.preventDefault();
@@ -1739,7 +2245,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     )}
                   </ImageContainer>
                   <ImageCounter>{currentImageIndex + 1}/{currentImages.length}</ImageCounter>
-                  {isAdmin && (
+                  {isAdminForced && (
                     <ImageUploadButton 
                       onClick={() => {
                         console.log('📷 사진업로드 버튼 클릭');
@@ -1762,22 +2268,8 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                   )}
                 </>
               ) : (
-                <div style={{
-                  width: '100%',
-                  /* maxWidth 제거하여 전체 화면에 보이도록 복원 */
-                  height: '500px', /* MainImage 높이와 동일하게 설정 (280px -> 500px) */
-                  background: '#f3f4f6',
-                  border: '2px dashed #d1d5db',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#6b7280',
-                  fontSize: '1rem',
-                  position: 'relative',
-                  margin: '0 auto' /* 중앙 정렬 */
-                }}>
-                  {isAdmin && (
+                <EmptyImageContainer>
+                  {isAdminForced && (
                     <ImageUploadButton
                       onClick={() => {
                         console.log('📷 사진업로드 버튼 클릭 (빈 상태)');
@@ -1797,7 +2289,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       📷
                     </ImageUploadButton>
                   )}
-                </div>
+                </EmptyImageContainer>
               )}
             </ImageSection>
 
@@ -2804,7 +3296,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           </Section>
 
           <Section>
-            <SectionTitle style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '21rem' }}>
+            <SectionTitle>
               <span>연락처</span>
               {((property.location && property.location.lat && property.location.lng) || 
                 (editData.location && editData.location.lat && editData.location.lng)) && (
@@ -2842,11 +3334,11 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                     <ContactPhoto 
                       src={editData.contact.photo || '/contact-photo.jpg'}
                       onClick={() => {
-                        if (isAdmin && contactPhotoInputRef.current) {
+                        if (isAdminForced && contactPhotoInputRef.current) {
                           contactPhotoInputRef.current.click();
                         }
                       }}
-                      style={{ cursor: isAdmin ? 'pointer' : 'default' }}
+                      style={{ cursor: isAdminForced ? 'pointer' : 'default' }}
                     >
                       <img 
                         src={editData.contact.photo || `${process.env.PUBLIC_URL || ''}/contact-photo.jpg`}
@@ -2883,7 +3375,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                         </ContactPhotoText>
                       )}
                     </ContactPhoto>
-                    {isAdmin && (
+                    {isAdminForced && (
                       <ContactPhotoButton
                         onClick={() => {
                           if (contactPhotoInputRef.current) {
@@ -2949,7 +3441,7 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                  
                  return (
                    <>
-                     {/* 모바일에서만 표시되는 위치정보 제목 */}
+                     {/* 모바일에서만 표시되는 위치정보 제목 - 지도 상단에 표시 */}
                      {hasValidLocation && (
                        <LocationInfoTitleMobile>
                          위치정보
@@ -3030,6 +3522,106 @@ const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
           }}
         />
     </ModalOverlay>
+    
+    {/* 사진 확대 모달 */}
+    {isImageZoomed && (
+      <ZoomedImageOverlay 
+        onClick={(e) => {
+          // 이미지나 컨테이너를 클릭한 경우는 무시
+          const target = e.target as HTMLElement;
+          if (target.closest('.zoomed-image-container') || target.tagName === 'IMG' || target.closest('button')) {
+            return;
+          }
+          
+          if (zoomLevel === 1) {
+            setIsImageZoomed(false);
+          } else {
+            handleZoomReset();
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setIsImageZoomed(false);
+            handleZoomReset();
+          }
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={(e) => {
+          // 이미지 영역이 아닐 때만 기본 동작 방지 (오버레이 배경 클릭)
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+        onTouchMove={(e) => {
+          // 이미지 영역이 아닐 때만 기본 동작 방지 (오버레이 배경)
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+        onTouchEnd={(e) => {
+          // 이미지 영역이 아닐 때만 기본 동작 방지 (오버레이 배경)
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+        tabIndex={0}
+      >
+        <ZoomCloseButton onClick={() => {
+          setIsImageZoomed(false);
+          handleZoomReset();
+        }}>
+          &times;
+        </ZoomCloseButton>
+        <ZoomedImageContainer 
+          ref={containerRef}
+          className="zoomed-image-container"
+          onClick={(e) => e.stopPropagation()}
+          onWheel={handleWheel}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMove={(e) => {
+            e.stopPropagation();
+            // 컨테이너 자체를 터치한 경우 기본 동작 방지
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+          onTouchEnd={(e) => {
+            e.stopPropagation();
+            // 컨테이너 자체를 터치한 경우 기본 동작 방지
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <ZoomedImage 
+            ref={imageRef}
+            src={currentImages[currentImageIndex]} 
+            alt={editData.title}
+            zoom={zoomLevel}
+            translateX={imagePosition.x}
+            translateY={imagePosition.y}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              handleDoubleClick();
+            }}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className={isDragging ? 'dragging' : ''}
+            style={{ touchAction: 'none' }}
+          />
+        </ZoomedImageContainer>
+      </ZoomedImageOverlay>
+    )}
     </>
   );
 };

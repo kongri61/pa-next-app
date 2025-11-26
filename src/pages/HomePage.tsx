@@ -1359,12 +1359,7 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
         // 2. 모바일 목록 숨기기
         // setShowMobileList(false); // 이 변수는 모바일 목록 컴포넌트에서 관리하므로 여기서는 제거
         
-        // 4. 지도 중심을 구월동으로 설정 (초기화 버튼 클릭 시)
-        const guwolDongCenter = { lat: 37.4563, lng: 126.7052 }; // 구월동 중심 좌표
-        mapRef.current.setCenter(guwolDongCenter);
-        mapRef.current.setZoom(14); // 구월동 주변만 보이도록 줌 레벨 높임
-        
-        // 5. 마커 재설정
+        // 4. 마커 재설정 (초기 bounds로 복원)
         if (mapRef.current.resetMarkers) {
           mapRef.current.resetMarkers();
         } else {
@@ -2075,17 +2070,6 @@ const HomePage = forwardRef<HomePageRef, HomePageProps>(({
                   ? `검색 결과: ${listProperties.length}개 (전체 ${allProperties.length}개 중)`
                   : `총 ${allProperties.length}개 매물`
               }
-              {/* 모바일 사이트에서는 오프라인 모드 표시 제거 (읽기 전용) */}
-              {isMainServer && !isFirebaseConnected && allProperties.length > 0 && (
-                <span style={{ 
-                  marginLeft: '0.5rem', 
-                  fontSize: '0.7rem', 
-                  color: '#f59e0b',
-                  fontWeight: 600
-                }}>
-                  (오프라인 모드)
-                </span>
-              )}
             </div>
           </PropertyListHeader>
           

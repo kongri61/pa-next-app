@@ -54,10 +54,111 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
   const selectedMarkerIdRef = useRef<string | null>(null);
   const selectedClusterIdRef = useRef<string | null>(null);
 
+  // Geocoder API를 사용하여 장소 이름으로 좌표 찾기
+  const findPlaceCoordinates = async (placeName: string): Promise<{ lat: number; lng: number } | null> => {
+    return new Promise((resolve) => {
+      if (!window.google || !window.google.maps) {
+        console.warn(`⚠️ Google Maps API가 로드되지 않았습니다. ${placeName}의 기본 좌표를 사용합니다.`);
+        resolve(null);
+        return;
+      }
+
+      if (!window.google.maps.Geocoder) {
+        console.warn(`⚠️ Geocoder가 사용할 수 없습니다. ${placeName}의 기본 좌표를 사용합니다.`);
+        resolve(null);
+        return;
+      }
+
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address: placeName + ', 인천' }, (results: any, status: any) => {
+        if (status === 'OK' && results && results[0]) {
+          const location = results[0].geometry.location;
+          console.log(`✅ ${placeName} 좌표 찾기 성공:`, { lat: location.lat(), lng: location.lng() });
+          resolve({ lat: location.lat(), lng: location.lng() });
+        } else {
+          console.warn(`⚠️ ${placeName} 좌표를 찾을 수 없습니다. 기본 좌표를 사용합니다.`, status);
+          resolve(null);
+        }
+      });
+    });
+  };
+
+  // 초기화 범위 설정 함수 (기본 좌표만 사용)
+  const initializeBounds = (map: any, isReset: boolean = false) => {
+    try {
+      console.log('📍 초기화 범위 설정 시작', { isReset });
+      
+      // 기본 좌표 (인천시청역, 인천문화예술회관, 구월문화공원)
+      const topLat = 37.4563;    // 인천시청역 (상단)
+      const topLng = 126.7022;
+      const bottomLat = 37.4489;  // 인천문화예술회관 (하단)
+      const bottomLng = 126.7015;
+      const leftLat = 37.4524;    // 구월문화공원 (좌측)
+      const leftLng = 126.6996;
+
+      // 우측 경계는 상단과 하단의 경도를 기준으로 적절한 범위 유지
+      const rightLng = Math.max(topLng, bottomLng) + 0.01;
+
+      if (map) {
+        if (isReset) {
+          // 초기화 버튼을 눌렀을 때: fitBounds를 사용하고 줌 레벨을 낮게 설정하여 넓은 범위 표시
+          const bounds = new window.google.maps.LatLngBounds();
+          bounds.extend(new window.google.maps.LatLng(topLat, topLng)); // 인천시청역 (상단)
+          bounds.extend(new window.google.maps.LatLng(bottomLat, bottomLng)); // 인천문화예술회관 (하단)
+          bounds.extend(new window.google.maps.LatLng(leftLat, leftLng)); // 구월문화공원 (좌측)
+          bounds.extend(new window.google.maps.LatLng(topLat, rightLng)); // 상단-우측
+          bounds.extend(new window.google.maps.LatLng(bottomLat, rightLng)); // 하단-우측
+
+          if (!bounds.isEmpty()) {
+            // 중심점 계산
+            const centerLat = (topLat + bottomLat) / 2;
+            const centerLng = (leftLng + rightLng) / 2;
+            
+            // 중심점 설정 후 줌 레벨을 15로 설정하여 가까운 범위 표시
+            map.setCenter({ lat: centerLat, lng: centerLng });
+            map.setZoom(15);
+            
+            console.log('✅ 초기화 완료 (높은 줌 레벨):', {
+              centerLat,
+              centerLng,
+              zoom: 15,
+              상단: `${topLat}, ${topLng} (인천시청역)`,
+              하단: `${bottomLat}, ${bottomLng} (인천문화예술회관)`,
+              좌측: `${leftLat}, ${leftLng} (구월문화공원)`,
+              우측: `${rightLng}`
+            });
+          }
+        } else {
+          // 첫 화면 로드 시: 고정 줌 레벨 10 사용
+          const centerLat = (topLat + bottomLat) / 2;
+          const centerLng = (leftLng + rightLng) / 2;
+          const targetZoom = 10;
+
+          map.setCenter({ lat: centerLat, lng: centerLng });
+          map.setZoom(targetZoom);
+
+          console.log('✅ 초기화 완료 (고정 줌):', { 
+            centerLat, 
+            centerLng, 
+            zoom: targetZoom,
+            상단: `${topLat}, ${topLng} (인천시청역)`,
+            하단: `${bottomLat}, ${bottomLng} (인천문화예술회관)`,
+            좌측: `${leftLat}, ${leftLng} (구월문화공원)`
+          });
+        }
+      }
+
+      return { topLat, bottomLat, leftLng, rightLng };
+    } catch (error) {
+      console.error('❌ 초기화 범위 설정 오류:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!mapRef.current) return;
 
-    const initMap = () => {
+    const initMap = async () => {
       if (!window.google || !window.google.maps) {
         if (retryCount < 5) {
           setTimeout(() => {
@@ -75,12 +176,21 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       try {
         setError(null);
         
-        // 인천 중심점
-        const incheonCenter = { lat: 37.4563, lng: 126.7052 };
+        // 초기화 범위 기준점 (인천시청역, 인천문화예술회관, 구월문화공원)
+        const defaultTop = { lat: 37.4563, lng: 126.7022 }; // 인천시청역 (상단)
+        const defaultBottom = { lat: 37.4489, lng: 126.7015 }; // 인천문화예술회관 (하단)
+        const defaultLeft = { lat: 37.4524, lng: 126.6996 }; // 구월문화공원 (좌측)
+        const defaultRightLng = Math.max(defaultTop.lng, defaultBottom.lng) + 0.01;
+        
+        // 초기 중심점 계산
+        const initialCenter = {
+          lat: (defaultTop.lat + defaultBottom.lat) / 2,
+          lng: (defaultLeft.lng + defaultRightLng) / 2
+        };
         
         const map = new window.google.maps.Map(mapRef.current, {
-          center: incheonCenter,
-          zoom: 10, // 인천광역시 전체가 보이도록 설정
+          center: initialCenter,
+          zoom: 10, // 인천시청역, 인천문화예술회관, 구월문화공원이 보이도록 설정
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
           zoomControl: false, // 줌 컨트롤 제거
           mapTypeControl: false,
@@ -120,13 +230,11 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
 
         mapInstance.current = map;
 
-        // 지도 초기 범위 설정: 인천가좌시장(상단), 인천문학경기장(하단), 인하대병원(좌측), 장수동(우측)
-        const bounds = new window.google.maps.LatLngBounds();
-        bounds.extend(new window.google.maps.LatLng(37.4700, 126.7000)); // 인천가좌시장 (상단)
-        bounds.extend(new window.google.maps.LatLng(37.4300, 126.6900)); // 인천문학경기장 (하단)
-        bounds.extend(new window.google.maps.LatLng(37.4500, 126.6400)); // 인하대병원 (좌측)
-        bounds.extend(new window.google.maps.LatLng(37.4200, 126.7200)); // 장수동 (우측)
-        map.fitBounds(bounds);
+        // 지도 생성 직후 즉시 초기화 (강제 실행)
+        setTimeout(() => {
+          console.log('🚀 지도 생성 직후 초기화 실행');
+          initializeBounds(map, false);
+        }, 200);
 
         map.addListener('tilesloaded', () => {
           setIsLoaded(true);
@@ -139,25 +247,57 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
             // 지도가 완전히 로드된 후 bounds 설정 (한 번만)
             setTimeout(() => {
               try {
-                if (map && bounds && !bounds.isEmpty() && typeof map.fitBounds === 'function') {
-                  map.fitBounds(bounds);
-                }
+                console.log('🗺️ tilesloaded 이벤트에서 초기화 실행');
+                // 초기화 범위 설정
+                // 인천시청역(상단), 인천문화예술회관(하단), 구월문화공원(좌측)
+                initializeBounds(map, false);
+                
+                // 추가로 한 번 더 확인 및 재설정 (안정성을 위해)
+                setTimeout(() => {
+                  const currentCenter = map.getCenter();
+                  const currentZoom = map.getZoom();
+                  const expectedCenter = { lat: 37.4526, lng: 126.7025 };
+                  const expectedZoom = 10;
+                  
+                  // 중심점이 예상과 다르면 재설정
+                  if (currentCenter) {
+                    const latDiff = Math.abs(currentCenter.lat() - expectedCenter.lat);
+                    const lngDiff = Math.abs(currentCenter.lng() - expectedCenter.lng);
+                    
+                    if (latDiff > 0.01 || lngDiff > 0.01 || currentZoom !== expectedZoom) {
+                      console.log('🔄 지도 위치 재설정:', {
+                        현재: { lat: currentCenter.lat(), lng: currentCenter.lng(), zoom: currentZoom },
+                        예상: { ...expectedCenter, zoom: expectedZoom }
+                      });
+                      map.setCenter(expectedCenter);
+                      map.setZoom(expectedZoom);
+                    } else {
+                      console.log('✅ 지도 위치 확인 완료:', {
+                        lat: currentCenter.lat(),
+                        lng: currentCenter.lng(),
+                        zoom: currentZoom
+                      });
+                    }
+                  }
+                }, 1000);
               } catch (boundsError) {
-                console.warn('⚠️ fitBounds 오류, 대체 방법 사용:', boundsError);
+                console.warn('⚠️ 초기화 범위 설정 오류:', boundsError);
                 // 대체 방법: 중심점과 줌 설정 (클러스터가 보이도록 낮은 줌 레벨)
                 if (map && typeof map.setCenter === 'function' && typeof map.setZoom === 'function') {
-                  map.setCenter({ lat: 37.4500, lng: 126.6800 });
+                  map.setCenter({ lat: 37.4526, lng: 126.7025 }); // 인천시청역과 인천문화예술회관 중심
                   map.setZoom(10); // 클러스터가 보이도록 줌 레벨 낮춤 (13 -> 10)
                 }
               }
               
-              // 지도 로드 완료 후 클러스터링 업데이트
+              // 지도 로드 완료 후 클러스터링 업데이트 (마커가 있으면 항상 실행)
               setTimeout(() => {
                 if (markersRef.current.length > 0) {
-                  console.log('🗺️ 지도 로드 완료 - 클러스터링 업데이트 시작');
+                  console.log('🗺️ 지도 로드 완료 - 클러스터링 업데이트 시작 (초기 로드)');
                   updateClusters();
+                } else {
+                  console.log('⏳ 지도 로드 완료되었지만 마커가 아직 없음');
                 }
-              }, 200);
+              }, 300);
             }, 500); // 지도가 완전히 준비될 때까지 약간의 지연
           } else {
             // 이미 bounds가 설정된 경우에도 클러스터링 업데이트
@@ -170,14 +310,38 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           }
         });
 
-        // 줌 변경 시 클러스터 업데이트
+        // 줌 변경 시 클러스터 업데이트 (PC용 사이트와 동일)
         map.addListener('zoom_changed', () => {
           // 초기화 중이면 줌 변경 이벤트 무시
           if ((map as any).__isResetting) {
+            console.log('⏸️ 초기화 중이므로 줌 변경 이벤트 무시');
             return;
           }
-          // 줌 변경 시 즉시 클러스터 업데이트
-          updateClusters();
+          
+          // 줌 변경 시 즉시 클러스터 업데이트 (PC용 사이트와 동일)
+          const currentZoom = map.getZoom();
+          console.log(`🔍 줌 레벨 변경 감지: ${currentZoom}, 마커 수: ${markersRef.current.length}, 클러스터 수: ${clustersRef.current.length}`);
+          
+          // 줌 변경이 완료된 후 클러스터 업데이트 (약간의 지연으로 줌 레벨 안정화)
+          if (markersRef.current.length > 0 && mapInstance.current) {
+            // PC용 사이트와 동일하게 실행 (약간의 지연으로 줌 레벨이 완전히 변경된 후 실행)
+            setTimeout(() => {
+              const finalZoom = mapInstance.current.getZoom();
+              console.log(`🔄 줌 레벨 ${finalZoom}에서 클러스터 업데이트 실행`);
+              console.log(`📊 이전 클러스터 수: ${clustersRef.current.length}`);
+              try {
+                updateClusters();
+                console.log(`✅ 클러스터 업데이트 완료 - 새로운 클러스터 수: ${clustersRef.current.length}`);
+              } catch (error) {
+                console.error('❌ 클러스터 업데이트 오류:', error);
+              }
+            }, 100);
+          } else {
+            console.warn('⚠️ 줌 변경 감지되었지만 마커가 없거나 지도 인스턴스가 없음', {
+              markersCount: markersRef.current.length,
+              hasMapInstance: !!mapInstance.current
+            });
+          }
         });
         
         // 지도 이동(dragend) 시에도 클러스터 업데이트
@@ -354,21 +518,27 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     };
   };
 
-  // 2단계 클러스터링 함수
+  // 2단계 클러스터링 함수 (PC용 사이트와 동일)
   const updateClusters = () => {
-    if (!mapInstance.current || !window.google) {
-      console.warn('⚠️ updateClusters: 지도가 준비되지 않음');
-      // 지도가 준비되지 않았어도 마커는 표시되도록 보장
-      markersRef.current.forEach(marker => {
-        if (marker.getMap() === null) {
-          marker.setMap(mapInstance.current);
-        }
-      });
+    if (!window.google) {
+      console.warn('⚠️ updateClusters: Google Maps API가 로드되지 않음');
+      return;
+    }
+
+    if (!mapInstance.current) {
+      console.warn('⚠️ updateClusters: 지도 인스턴스가 없음');
       return;
     }
 
     if (markersRef.current.length === 0) {
       console.warn('⚠️ updateClusters: 마커가 없음');
+      return;
+    }
+
+    // 현재 줌 레벨 확인
+    const currentZoom = mapInstance.current.getZoom();
+    if (currentZoom === undefined || currentZoom === null) {
+      console.warn('⚠️ updateClusters: 줌 레벨을 가져올 수 없음');
       return;
     }
 
@@ -874,17 +1044,20 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
       });
     }
     
-    console.log(`✅ 클러스터링 완료 - 클러스터: ${clustersRef.current.length}개, 개별 마커: ${markersRef.current.length - clusteredMarkers.size}개, 클러스터된 마커: ${clusteredMarkers.size}개`);
+    console.log(`✅ 클러스터링 완료 - 줌: ${zoom}, 클러스터: ${clustersRef.current.length}개, 개별 마커: ${markersRef.current.length - clusteredMarkers.size}개, 클러스터된 마커: ${clusteredMarkers.size}개`);
+    console.log(`📊 클러스터 거리 - 대형: ${clusterDistances.large}, 중형: ${clusterDistances.medium}, 소형: ${clusterDistances.small}`);
   };
 
   useEffect(() => {
-    if (!mapInstance.current || !window.google || !isLoaded) {
+    if (!mapInstance.current || !window.google) {
+      console.log('⏳ 지도 인스턴스 또는 Google Maps API가 준비되지 않음');
       return;
     }
 
     console.log('=== GoogleMap - 매물 업데이트 ===');
     console.log('받은 매물 수:', properties.length);
     console.log('받은 매물들:', properties.map(p => ({ id: p.id, title: p.title })));
+    console.log('지도 로드 상태:', isLoaded);
 
     try {
       // 기존 마커 제거
@@ -935,7 +1108,7 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           
           const marker = new window.google.maps.Marker({
             position: { lat: property.location.lat, lng: property.location.lng },
-            map: mapInstance.current, // 지도에 바로 표시
+            map: null, // 클러스터링 로직에서 표시하므로 null로 설정
             title: property.id,
             zIndex: 1,
             optimized: true,
@@ -957,16 +1130,25 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
 
       console.log('생성된 마커 수:', markersRef.current.length);
 
-      // 클러스터링 업데이트 (마커는 이미 지도에 표시되었으므로 updateClusters에서 클러스터링 적용)
-      if (isLoaded && mapInstance.current) {
-        setTimeout(() => {
-          console.log('🔄 매물 업데이트 후 클러스터링 업데이트');
-          updateClusters();
-        }, 200);
-      } else {
-        // 지도가 아직 로드되지 않았으면 tilesloaded 이벤트에서 처리됨
-        console.log('⏳ 지도 로드 대기 중 - tilesloaded 이벤트에서 클러스터링 업데이트 예정');
-        // 지도가 로드되면 자동으로 클러스터링이 적용됨
+      // 클러스터링 업데이트 - 지도가 준비되면 즉시 실행
+      if (markersRef.current.length > 0 && mapInstance.current) {
+        if (isLoaded) {
+          // 지도가 이미 로드된 경우 즉시 클러스터링 업데이트
+          setTimeout(() => {
+            console.log('🔄 매물 업데이트 후 클러스터링 업데이트 (지도 로드 완료)');
+            updateClusters();
+          }, 200);
+        } else {
+          // 지도가 아직 로드되지 않은 경우 tilesloaded 이벤트에서 처리되지만, 
+          // 마커가 있으면 일단 표시 시도
+          setTimeout(() => {
+            console.log('🔄 지도 로드 대기 중이지만 마커 표시 시도');
+            updateClusters();
+          }, 500);
+          
+          // tilesloaded 이벤트에서도 처리되도록 보장
+          console.log('⏳ 지도 로드 대기 중 - tilesloaded 이벤트에서도 클러스터링 업데이트 예정');
+        }
       }
 
     } catch (error) {
@@ -996,6 +1178,16 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties, isLoaded]);
+
+  // isLoaded가 true가 되었을 때 마커가 있으면 클러스터링 업데이트
+  useEffect(() => {
+    if (isLoaded && mapInstance.current && markersRef.current.length > 0) {
+      console.log('🔄 지도 로드 완료 - 마커 클러스터링 업데이트');
+      setTimeout(() => {
+        updateClusters();
+      }, 300);
+    }
+  }, [isLoaded]);
 
   useImperativeHandle(ref, () => ({
     setCenter: (position: { lat: number; lng: number } = { lat: 37.4000, lng: 126.7052 }) => {
@@ -1048,121 +1240,27 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
         clustersRef.current = [];
         console.log('✅ 기존 마커 및 클러스터 제거 완료');
         
-        // 지도 초기 범위 설정: 구월로(상단), 인천문화예술회관(하단), 석바위공원(좌측) - 좌측을 오른쪽으로 이동
+        // 지도 초기 범위 설정
         console.log('🔄 초기화 버튼 클릭 - resetMarkers 실행');
         
-        // 원본 기준점
-        const topLat = 37.456;    // 구월로 (상단)
-        const bottomLat = 37.448; // 인천문화예술회관 (하단)
-        const leftLng = 126.6975 + 0.0055 + 0.01;  // 좌측 경계 (석바위소공원 앞, 롯데하이마트 주안점 제외) - 0.0155만큼 오른쪽으로 이동
-        const rightLng = 126.702; // 구월로 (우측)
+        // 초기화 범위 설정 (fitBounds 사용하여 자동 줌 조정)
+        const boundsResult = initializeBounds(mapInstance.current, true);
         
-        // 상하우측은 50% 더 크게 만들기 위해 각 방향으로 25% 확장, 좌측은 지정된 값 사용
-        const latRange = topLat - bottomLat; // 0.008
-        const lngRange = rightLng - leftLng; // 계산됨
-        const latPadding = latRange * 0.25;   // 0.002
-        const rightLngPadding = lngRange * 0.25;   // 우측 확장
-        const leftLngPadding = 0;  // 좌측은 지정된 값 그대로 사용
-        
-        // 최종 좌표 계산
-        const finalTopLat = topLat + latPadding;
-        const finalBottomLat = bottomLat - latPadding;
-        const finalLeftLng = leftLng; // 지정된 좌측 경계 사용 (석바위소공원 앞)
-        const finalRightLng = rightLng + rightLngPadding;
-        
-        console.log('📍 초기화 bounds 설정:', {
-          상단: `${finalTopLat}`,
-          하단: `${finalBottomLat}`,
-          좌측: `${finalLeftLng} (석바위소공원 앞, 롯데하이마트 주안점 제외)`,
-          우측: `${finalRightLng}`
-        });
-        
-        // bounds 생성 및 확장
-        const bounds = new window.google.maps.LatLngBounds();
-        bounds.extend(new window.google.maps.LatLng(finalTopLat, finalRightLng));     // 상단-우측
-        bounds.extend(new window.google.maps.LatLng(finalBottomLat, finalLeftLng));   // 하단-좌측
-        bounds.extend(new window.google.maps.LatLng(finalTopLat, finalLeftLng));      // 상단-좌측
-        bounds.extend(new window.google.maps.LatLng(finalBottomLat, finalRightLng));  // 하단-우측
-        
-        // bounds가 유효한지 확인하고 fitBounds 실행
-        const isEmpty = bounds.isEmpty();
-        console.log('🔍 bounds 상태 확인:', { isEmpty, bounds: bounds.toString() });
-        
-        if (bounds && !isEmpty && mapInstance.current) {
-          // fitBounds가 작동하지 않으므로 항상 대체 방법 사용
-          // 중심점과 bounds에 맞는 줌 레벨 계산
-          const centerLat = (finalTopLat + finalBottomLat) / 2;
-          const centerLng = (finalLeftLng + finalRightLng) / 2;
-          
-          // bounds 크기에 따라 적절한 줌 레벨 계산
-          const latDiff = finalTopLat - finalBottomLat;
-          const lngDiff = finalRightLng - finalLeftLng;
-          const maxDiff = Math.max(latDiff, lngDiff);
-          
-          // 경도 차이를 기반으로 줌 레벨 계산
-          // 클러스터가 보이도록 줌 레벨을 10으로 설정 (16 -> 10)
-          const targetZoom = 10;
-          
-          console.log('🔧 [초기화] 줌 레벨 설정 시작 - 목표 줌:', targetZoom);
-          console.log('🔧 [초기화] 현재 줌 레벨:', mapInstance.current?.getZoom?.());
-          
-          // 중심점 설정
-          mapInstance.current.setCenter({ lat: centerLat, lng: centerLng });
-          
-          // 줌 레벨 설정
-          console.log('🔧 [초기화] setZoom 호출 전 줌:', mapInstance.current?.getZoom?.());
-          mapInstance.current.setZoom(targetZoom);
-          console.log('🔧 [초기화] setZoom 호출 직후 줌:', mapInstance.current?.getZoom?.());
-          
-          // 즉시 다시 설정 (다른 이벤트에 의해 변경되는 것을 방지)
-          setTimeout(() => {
-            const actualZoom = mapInstance.current?.getZoom?.();
-            console.log('🔧 [초기화] 1차 설정 후 줌 레벨:', actualZoom);
-            
-            if (actualZoom !== targetZoom) {
-              console.warn('⚠️ [초기화] 줌 레벨이 목표값이 아닙니다! 다시 설정합니다.', { expected: targetZoom, actual: actualZoom });
-              mapInstance.current.setZoom(targetZoom);
-            }
-          }, 50);
-          
-          // 추가 확인 및 재설정
-          setTimeout(() => {
-            const actualZoom = mapInstance.current?.getZoom?.();
-            console.log('🔧 [초기화] 2차 설정 후 줌 레벨:', actualZoom);
-            
-            if (actualZoom !== targetZoom) {
-              console.warn('⚠️ [초기화] 여전히 줌 레벨이 목표값이 아닙니다!', { expected: targetZoom, actual: actualZoom });
-              mapInstance.current.setZoom(targetZoom);
-            }
-          }, 200);
-          
-          // 최종 확인
-          setTimeout(() => {
-            const actualZoom = mapInstance.current?.getZoom?.();
-            console.log('🔧 [초기화] 최종 줌 레벨:', actualZoom);
-            if (actualZoom !== targetZoom) {
-              console.error('❌ [초기화] 줌 레벨 설정 실패!', { expected: targetZoom, actual: actualZoom });
-              // 강제로 다시 설정
-              mapInstance.current.setZoom(targetZoom);
-              console.log('🔧 [초기화] 강제 재설정 후 줌:', mapInstance.current?.getZoom?.());
-            }
-          }, 500);
-          
+        if (boundsResult) {
+          // fitBounds가 자동으로 줌 레벨을 조정하므로 추가 줌 설정 불필요
           // 초기화 완료 후 플래그 해제
           setTimeout(() => {
             (mapInstance.current as any).__isResetting = false;
-          }, 1000);
-          
-          console.log('✅ 초기화: 중심점과 줌으로 지도 위치 설정 완료', { 
-            centerLat, 
-            centerLng, 
-            zoom: targetZoom,
-            latDiff,
-            lngDiff,
-            maxDiff
-          });
+            const finalZoom = mapInstance.current?.getZoom?.();
+            const finalCenter = mapInstance.current?.getCenter?.();
+            console.log('✅ 초기화 완료 - 최종 상태:', {
+              zoom: finalZoom,
+              center: finalCenter ? { lat: finalCenter.lat(), lng: finalCenter.lng() } : null
+            });
+          }, 500);
         } else {
-          console.warn('⚠️ bounds가 유효하지 않음:', { isEmpty, hasMapInstance: !!mapInstance.current });
+          console.warn('⚠️ 초기화 범위 설정 실패');
+          (mapInstance.current as any).__isResetting = false;
         }
         
         // 마커 재생성 (properties prop 사용)
@@ -1209,13 +1307,13 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
           (mapInstance.current as any).__isResetting = false;
           console.log('🔄 초기화 완료 - 클러스터링 업데이트 시작');
           console.log('📊 현재 마커 수:', markersRef.current.length);
-          if (markersRef.current.length > 0 && mapInstance.current && isLoaded) {
+          if (markersRef.current.length > 0 && mapInstance.current) {
+            // isLoaded 체크 제거 - 지도 인스턴스가 있으면 클러스터링 실행
             updateClusters();
           } else {
             console.warn('⚠️ 클러스터링 업데이트 건너뜀:', {
               markersCount: markersRef.current.length,
-              hasMapInstance: !!mapInstance.current,
-              isLoaded
+              hasMapInstance: !!mapInstance.current
             });
           }
         }, 600); // 줌 레벨 설정 완료 후 클러스터링 업데이트

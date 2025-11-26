@@ -7,7 +7,7 @@ import { firebaseSync } from '../utils/firebaseSync';
 const DebugContainer = styled.div`
   position: fixed;
   top: 10px;
-  right: 10px;
+  left: 10px;
   background: #1f2937;
   color: white;
   padding: 1rem;
