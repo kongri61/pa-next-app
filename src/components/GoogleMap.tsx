@@ -768,12 +768,15 @@ const GoogleMapComponent: ForwardRefRenderFunction<GoogleMapRef, GoogleMapProps>
         // 중형 클러스터들을 추가 (2개 이상은 클러스터, 1개는 개별 마커로 전달)
         tempMediumGroups.forEach(mediumGroup => {
           if (mediumGroup.markers.length >= 2) {
-            mediumGroups.push(mediumGroup);
+            mediumGroups.push({
+              ...mediumGroup,
+              type: 'medium' as 'large' | 'medium'
+            });
           } else {
             // 단일 마커는 개별 마커로 전달 (타입을 large로 설정하여 개별 마커로 처리)
             mediumGroups.push({
               ...mediumGroup,
-              type: 'large' // 개별 마커는 large 타입으로 처리
+              type: 'large' as 'large' | 'medium'
             });
           }
         });
